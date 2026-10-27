@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "RetelFlow Cafe",
+    "slug": "retelflow-cafe",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0b0f19"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow RetelFlow Cafe to recognize speech for quick voice ordering.",
+        "NSMicrophoneUsageDescription": "Allow RetelFlow Cafe to use the microphone for voice order creation."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b0f19"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "package": "in.retelflow.cafe"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-status-bar",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow RetelFlow Cafe to use the microphone for voice order creation.",
+          "speechRecognitionPermission": "Allow RetelFlow Cafe to recognize speech for voice order creation.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow RetelFlow Cafe to save receipts to your photo gallery.",
+          "savePhotosPermission": "Allow RetelFlow Cafe to save receipts to your photo gallery."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow RetelFlow Cafe to access your photos to select item images.",
+          "cameraPermission": "Allow RetelFlow Cafe to take pictures of menu items."
+        }
+      ],
+      "expo-asset",
+      "expo-sharing"
+    ]
+  }
+}
