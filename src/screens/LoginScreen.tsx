@@ -53,8 +53,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   };
 
   const handleQuickDemo = () => {
-    setPhone('9876543210');
-    setPin('1234');
+    setPhone('7251830075');
+    setPin('7251830075');
   };
 
   return (
