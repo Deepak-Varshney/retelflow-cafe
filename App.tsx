@@ -91,7 +91,15 @@ function AppContent() {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <Text className="text-2xl mb-2">🍕</Text>
+        <View
+          className="w-14 h-14 rounded-2xl items-center justify-center mb-3 border shadow-md"
+          style={{
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
+            borderColor: colors.primary,
+          }}
+        >
+          <Ionicons name="restaurant" size={26} color={colors.primary} />
+        </View>
         <Text className="text-xs font-bold text-amber-500">Loading RetelFlow Cafe...</Text>
       </View>
     );
@@ -148,6 +156,12 @@ function AppContent() {
           <OrderCompleteScreen
             invoice={completedInvoice}
             onNewOrder={resetOrder}
+            storeInfo={{
+              shopName: user?.shopName || user?.businessName || user?.name || 'RetelFlow Cafe',
+              address: user?.address || '',
+              phone: user?.phone || '',
+              gstNumber: user?.gstNumber || '',
+            }}
           />
         </View>
       );

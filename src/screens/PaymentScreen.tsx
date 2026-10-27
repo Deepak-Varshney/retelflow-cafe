@@ -222,8 +222,9 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               style={{ color: colors.text }}
             />
             {receivedAmount === totalAmount ? (
-              <View className="px-2 py-1 rounded-xl bg-emerald-500/20">
-                <Text className="text-[11px] font-bold text-emerald-400">Full Paid ✓</Text>
+              <View className="px-2.5 py-1 rounded-xl bg-emerald-500/20 flex-row items-center">
+                <Ionicons name="checkmark-circle" size={13} color="#10b981" />
+                <Text className="text-[11px] font-bold text-emerald-400 ml-1">Full Paid</Text>
               </View>
             ) : null}
           </View>

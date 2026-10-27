@@ -166,9 +166,12 @@ export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
           {extractedItems.length > 0 && (
             <View className="flex-1 mb-3">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-xs font-bold text-emerald-500">
-                  ✓ {extractedItems.length} Items Detected:
-                </Text>
+                <View className="flex-row items-center">
+                  <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                  <Text className="text-xs font-bold text-emerald-500 ml-1">
+                    {extractedItems.length} Items Detected:
+                  </Text>
+                </View>
                 <TouchableOpacity onPress={() => setExtractedItems([])}>
                   <Text className="text-[11px] text-slate-400">Clear</Text>
                 </TouchableOpacity>

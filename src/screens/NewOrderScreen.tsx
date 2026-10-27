@@ -42,8 +42,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // View Mode: Grid (2-column Swiggy/Zomato Kiosk) or List
-  const [isGridView, setIsGridView] = useState(true);
+  // Long press food detail modal
   const [detailModalItem, setDetailModalItem] = useState<MenuItem | null>(null);
 
   // Modals state
@@ -160,7 +159,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
               }
             }
 
-            setVoiceNotice(`✓ ${noticeSummary}`);
+            setVoiceNotice(noticeSummary);
             setTimeout(() => setVoiceNotice(null), 3500);
           }
         } catch (e) {
@@ -339,7 +338,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
             className="w-10 h-10 rounded-2xl items-center justify-center mr-3 border"
             style={{ backgroundColor: colors.badgeBg, borderColor: colors.primary }}
           >
-            <Text className="text-xl">🍕</Text>
+            <Ionicons name="storefront" size={20} color={colors.primary} />
           </View>
           <View>
             <Text className="text-base font-black tracking-tight" style={{ color: colors.text }}>
@@ -409,10 +408,10 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         </View>
       )}
 
-      {/* 2. Search Box & Grid/List Toggle */}
-      <View className="px-4 pt-3 pb-2 flex-row items-center gap-2" style={{ backgroundColor: colors.surface }}>
+      {/* 2. Search Box */}
+      <View className="px-4 pt-3 pb-2" style={{ backgroundColor: colors.surface }}>
         <View
-          className="flex-row items-center px-3.5 py-2.5 rounded-2xl border flex-1"
+          className="flex-row items-center px-3.5 py-2.5 rounded-2xl border"
           style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
         >
           <Ionicons name="search" size={18} color={colors.textMuted} className="mr-2" />
@@ -430,23 +429,6 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
             </TouchableOpacity>
           ) : null}
         </View>
-
-        {/* View Toggle (Grid ⏹ vs List ☰) */}
-        <TouchableOpacity
-          onPress={() => setIsGridView(!isGridView)}
-          activeOpacity={0.8}
-          className="px-3 py-2.5 rounded-2xl border items-center justify-center flex-row gap-1 shadow-sm active:scale-95"
-          style={{
-            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
-            borderColor: colors.primary,
-          }}
-        >
-          <Ionicons
-            name={isGridView ? 'grid' : 'list'}
-            size={18}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
       </View>
 
       {/* 3. Category Tabs (Swiggy / Zomato Kiosk Style) */}
@@ -466,9 +448,8 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         </View>
       ) : (
         <FlatList
-          key={isGridView ? 'grid-2' : 'list-1'}
+          key="cafe-menu-list"
           data={filteredItems}
-          numColumns={isGridView ? 2 : 1}
           keyExtractor={(item) => item.id || item.name}
           refreshing={loading}
           onRefresh={loadMenu}
@@ -479,16 +460,21 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
               onAddPress={handleAddItem}
               onRemovePress={handleRemoveItem}
               onLongPress={(it) => setDetailModalItem(it)}
-              isGrid={isGridView}
             />
           )}
           contentContainerStyle={{
-            padding: 10,
+            paddingHorizontal: 12,
+            paddingTop: 8,
             paddingBottom: cart.length > 0 ? 120 : 40,
           }}
           ListEmptyComponent={
             <View className="items-center justify-center py-16 px-4">
-              <Text className="text-4xl mb-2">🍽️</Text>
+              <View
+                className="w-16 h-16 rounded-full items-center justify-center mb-3 border"
+                style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+              >
+                <Ionicons name="restaurant-outline" size={30} color={colors.textMuted} />
+              </View>
               <Text className="text-base font-black" style={{ color: colors.text }}>
                 No menu items found
               </Text>

@@ -67,7 +67,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
 
       if (noticeParts.length > 0) {
         setError('');
-        setVoiceNotice(`✓ Detected: ${noticeParts.join(' • ')}`);
+        setVoiceNotice(`Detected: ${noticeParts.join(' • ')}`);
         setTimeout(() => setVoiceNotice(null), 3500);
       }
     },
@@ -271,7 +271,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                   Mobile Number
                 </Text>
                 <Text className="text-[10px] text-amber-500 font-medium">
-                  {isExistingCustomer ? '✓ Registered Customer' : 'Required for Credit / Khata'}
+                  {isExistingCustomer ? 'Registered Customer' : 'Required for Credit / Khata'}
                 </Text>
               </View>
 

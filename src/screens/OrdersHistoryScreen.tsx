@@ -14,7 +14,7 @@ export const OrdersHistoryScreen: React.FC = () => {
     try {
       setLoading(true);
       const data = await getInvoicesApi();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
       console.warn('Failed to load orders:', e);
     } finally {
@@ -26,7 +26,10 @@ export const OrdersHistoryScreen: React.FC = () => {
     loadOrders();
   }, []);
 
-  const totalSales = orders.reduce((sum, o) => sum + (Number(o.grandTotal ?? o.total) || 0), 0);
+  const totalSales = orders.reduce(
+    (sum, o) => sum + (Number(o.totalAmount ?? o.grandTotal ?? o.total) || 0),
+    0
+  );
   const totalOrders = orders.length;
 
   return (
@@ -81,49 +84,79 @@ export const OrdersHistoryScreen: React.FC = () => {
       ) : (
         <FlatList
           data={orders}
-          keyExtractor={(item, index) => item._id || item.id || String(index)}
-          renderItem={({ item }) => (
-            <View
-              className="p-3.5 mb-2.5 mx-4 rounded-2xl border"
-              style={{ backgroundColor: colors.card, borderColor: colors.border }}
-            >
-              <View className="flex-row items-center justify-between mb-1.5">
-                <View className="flex-row items-center gap-2">
-                  <View className="px-2 py-0.5 rounded-md bg-amber-500/20">
-                    <Text className="text-[10px] font-black text-amber-500">
-                      Token #{item.orderNumber || item.invoiceNumber?.slice(-3) || '01'}
+          keyExtractor={(item, index) => item._id || item.id || item.invoiceId || String(index)}
+          renderItem={({ item }) => {
+            const billAmount = Number(item.totalAmount ?? item.grandTotal ?? item.total) || 0;
+            const dueAmt = Number(item.balanceAmount ?? item.dueAmount) || 0;
+            const custName = item.customer?.name || item.customerName || 'Walk-in Guest';
+            const custPhone = item.customer?.phone || item.customerPhone || '';
+            const paymentMode = (item.paymentMethod || 'cash').toUpperCase();
+            const orderTime = item.createdAt || item.date
+              ? new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '';
+
+            return (
+              <View
+                className="p-3.5 mb-2.5 mx-4 rounded-2xl border"
+                style={{ backgroundColor: colors.card, borderColor: colors.border }}
+              >
+                <View className="flex-row items-center justify-between mb-1.5">
+                  <View className="flex-row items-center gap-2">
+                    <View className="px-2 py-0.5 rounded-md bg-amber-500/20">
+                      <Text className="text-[10px] font-black text-amber-500">
+                        Token #{item.orderNumber || item.invoiceNumber?.slice(-3) || item.id?.slice(-3) || '01'}
+                      </Text>
+                    </View>
+                    <Text className="text-xs font-bold" style={{ color: colors.text }}>
+                      {custName}
+                    </Text>
+                    <View className="px-1.5 py-0.2 rounded bg-slate-700/50">
+                      <Text className="text-[9px] font-semibold text-slate-300">
+                        {paymentMode}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="items-end">
+                    <Text className="text-sm font-black text-amber-500 font-mono">
+                      ₹{billAmount.toLocaleString()}
+                    </Text>
+                    {orderTime ? (
+                      <Text className="text-[9px] text-slate-400 font-mono">{orderTime}</Text>
+                    ) : null}
+                  </View>
+                </View>
+
+                {/* Items */}
+                <Text className="text-[11px] text-slate-400 mt-0.5" numberOfLines={1}>
+                  {item.items?.map((it: any) => `${it.qty}x ${it.name}`).join(', ') || 'Item list'}
+                </Text>
+
+                {dueAmt > 0 && (
+                  <View
+                    className="mt-2 pt-1 border-t flex-row justify-between"
+                    style={{ borderColor: colors.border }}
+                  >
+                    <Text className="text-[10px] text-rose-500 font-bold">
+                      Credit / Due: ₹{dueAmt.toLocaleString()}
+                    </Text>
+                    <Text className="text-[10px] text-slate-400">
+                      Phone: {custPhone ? `+91 ${custPhone}` : 'N/A'}
                     </Text>
                   </View>
-                  <Text className="text-xs font-bold" style={{ color: colors.text }}>
-                    {item.customer?.name || 'Guest'}
-                  </Text>
-                </View>
-
-                <Text className="text-sm font-black text-amber-500 font-mono">
-                  ₹{Number(item.grandTotal ?? item.total) || 0}
-                </Text>
+                )}
               </View>
-
-              <Text className="text-[11px] text-slate-400" numberOfLines={1}>
-                {item.items?.map((it: any) => `${it.qty}x ${it.name}`).join(', ')}
-              </Text>
-
-              {item.dueAmount > 0 && (
-                <View className="mt-2 pt-1 border-t flex-row justify-between" style={{ borderColor: colors.border }}>
-                  <Text className="text-[10px] text-rose-500 font-bold">
-                    Credit / Due: ₹{item.dueAmount}
-                  </Text>
-                  <Text className="text-[10px] text-slate-400">
-                    Phone: {item.customer?.phone || 'N/A'}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+            );
+          }}
           contentContainerStyle={{ paddingBottom: 20 }}
           ListEmptyComponent={
             <View className="items-center justify-center py-20">
-              <Text className="text-4xl mb-2">🧾</Text>
+              <View
+                className="w-16 h-16 rounded-full items-center justify-center mb-3 border"
+                style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+              >
+                <Ionicons name="receipt-outline" size={30} color={colors.textMuted} />
+              </View>
               <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
                 No orders placed yet today
               </Text>

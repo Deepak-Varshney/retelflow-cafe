@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { DEFAULT_CAFE_CATEGORIES } from '../data/defaultCatalog';
 
@@ -47,7 +48,12 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                 elevation: isSelected ? 3 : 0,
               }}
             >
-              <Text className="text-sm mr-1.5">{cat.icon}</Text>
+              <Ionicons
+                name={(cat.iconName || 'restaurant-outline') as any}
+                size={14}
+                color={isSelected ? '#000000' : colors.primary}
+                style={{ marginRight: 6 }}
+              />
               <Text
                 className="text-xs font-black"
                 numberOfLines={1}

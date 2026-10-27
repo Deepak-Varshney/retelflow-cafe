@@ -73,7 +73,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 borderColor: colors.primary,
               }}
             >
-              <Text className="text-4xl">🍕</Text>
+              <Ionicons name="restaurant" size={36} color={colors.primary} />
             </View>
 
             <Text className="text-2xl font-black tracking-tight" style={{ color: colors.text }}>

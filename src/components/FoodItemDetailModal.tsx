@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { MenuItem, ItemVariant } from '../types';
 import { useTheme } from '../services/ThemeContext';
+import { getFoodImageUrl, DEFAULT_FOOD_PLACEHOLDER } from '../utils/imageHelper';
 
 interface FoodItemDetailModalProps {
   visible: boolean;
@@ -61,9 +62,7 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
           <View className="relative w-full h-52 bg-slate-900">
             <Image
               source={{
-                uri:
-                  item.imageUrl ||
-                  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80',
+                uri: getFoodImageUrl(item.imageUrl, item.category),
               }}
               className="w-full h-full"
               resizeMode="cover"

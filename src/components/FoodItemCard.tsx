@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MenuItem, ItemVariant } from '../types';
 import { useTheme } from '../services/ThemeContext';
+import { getFoodImageUrl, DEFAULT_FOOD_PLACEHOLDER } from '../utils/imageHelper';
 
 interface FoodItemCardProps {
   item: MenuItem;
@@ -10,7 +11,6 @@ interface FoodItemCardProps {
   onAddPress: (item: MenuItem, variant?: ItemVariant) => void;
   onRemovePress: (item: MenuItem) => void;
   onLongPress?: (item: MenuItem) => void;
-  isGrid?: boolean;
 }
 
 export const FoodItemCard: React.FC<FoodItemCardProps> = ({
@@ -19,9 +19,9 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
   onAddPress,
   onRemovePress,
   onLongPress,
-  isGrid = false,
 }) => {
   const { colors, isDark } = useTheme();
+  const [imgError, setImgError] = useState(false);
 
   const hasVariants = Array.isArray(item.variants) && item.variants.length > 1;
 
@@ -36,268 +36,240 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
 
   const defaultVariant = item.variants?.find((v) => v.isDefault) || item.variants?.[0];
 
-  // -------------------------------------------------------------
-  // GRID VIEW CARD (2 Columns Swiggy / Zomato Kiosk Style)
-  // -------------------------------------------------------------
-  if (isGrid) {
-    return (
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onLongPress={() => onLongPress?.(item)}
-        delayLongPress={300}
-        className="flex-1 m-1 p-2.5 rounded-2xl border justify-between"
-        style={{
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      onLongPress={() => onLongPress?.(item)}
+      delayLongPress={300}
+      style={[
+        styles.card,
+        {
           backgroundColor: colors.card,
           borderColor: colors.border,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDark ? 0.3 : 0.08,
-          shadowRadius: 4,
-          elevation: 2,
-        }}
-      >
-        {/* Food Image with Top Badges */}
-        <View className="relative w-full h-28 rounded-xl overflow-hidden bg-slate-900 mb-2">
-          <Image
-            source={{
-              uri:
-                item.imageUrl ||
-                'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
-            }}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
-
-          {/* Veg / Non-Veg Indicator */}
-          <View
-            className="absolute top-1.5 left-1.5 w-4 h-4 bg-white/95 rounded-sm items-center justify-center border"
-            style={{ borderColor: item.isVeg !== false ? '#10b981' : '#ef4444' }}
-          >
-            <View
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: item.isVeg !== false ? '#10b981' : '#ef4444' }}
-            />
-          </View>
-
-          {/* Hint to Long Press for info */}
-          <View className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/60">
-            <Text className="text-[8px] font-bold text-white">Hold for info</Text>
-          </View>
-        </View>
-
-        {/* Item Info */}
-        <View className="flex-1 justify-between">
-          <View>
-            <Text
-              className="text-xs font-black leading-tight mb-1"
-              style={{ color: colors.text }}
-              numberOfLines={2}
-            >
-              {item.name}
-            </Text>
-
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-xs font-black text-amber-500 font-mono">
-                {priceLabel}
-              </Text>
-              {hasVariants ? (
-                <Text className="text-[9px] font-bold text-amber-500/90">
-                  Options ▾
-                </Text>
-              ) : null}
-            </View>
-          </View>
-
-          {/* Quantity Controls */}
-          {currentQty === 0 ? (
-            <TouchableOpacity
-              onPress={() => onAddPress(item, hasVariants ? undefined : defaultVariant)}
-              activeOpacity={0.8}
-              className="w-full py-2 rounded-xl border flex-row items-center justify-center gap-1 active:scale-95"
-              style={{
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
-                borderColor: colors.primary,
-              }}
-            >
-              <Text
-                className="text-xs font-black tracking-wider"
-                style={{ color: colors.primary }}
-              >
-                ADD
-              </Text>
-              <Ionicons name="add" size={14} color={colors.primary} />
-            </TouchableOpacity>
-          ) : (
-            <View
-              className="flex-row items-center justify-between rounded-xl border overflow-hidden"
-              style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.primary,
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => onRemovePress(item)}
-                className="p-1.5 active:bg-red-500/10 flex-1 items-center"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="remove" size={14} color="#ef4444" />
-              </TouchableOpacity>
-              <Text
-                className="font-black text-xs font-mono px-1"
-                style={{ color: colors.text }}
-              >
-                {currentQty}
-              </Text>
-              <TouchableOpacity
-                onPress={() => onAddPress(item, defaultVariant)}
-                className="p-1.5 active:bg-amber-500/10 flex-1 items-center"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="add" size={14} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  }
-
-  // -------------------------------------------------------------
-  // LIST VIEW CARD (Horizontal Row)
-  // -------------------------------------------------------------
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onLongPress={() => onLongPress?.(item)}
-      delayLongPress={300}
-      className="flex-row items-center p-3 mb-2.5 rounded-2xl border"
-      style={{
-        backgroundColor: colors.card,
-        borderColor: colors.border,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: isDark ? 0.2 : 0.05,
-        shadowRadius: 3,
-        elevation: 2,
-      }}
+          shadowOpacity: isDark ? 0.3 : 0.06,
+        },
+      ]}
     >
-      {/* Food Image with Veg Badge */}
-      <View className="relative">
+      {/* Left: Food Image with Veg Badge */}
+      <View style={styles.imageContainer}>
         <Image
           source={{
-            uri:
-              item.imageUrl ||
-              'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+            uri: imgError
+              ? DEFAULT_FOOD_PLACEHOLDER
+              : getFoodImageUrl(item.imageUrl, item.category),
           }}
-          className="w-20 h-20 rounded-2xl bg-slate-800"
+          onError={() => setImgError(true)}
+          style={styles.image}
           resizeMode="cover"
         />
 
         {/* Veg / Non-Veg Indicator */}
         <View
-          className="absolute top-1.5 left-1.5 w-4 h-4 bg-white/95 rounded-sm items-center justify-center border"
-          style={{ borderColor: item.isVeg !== false ? '#10b981' : '#ef4444' }}
+          style={[
+            styles.vegBadge,
+            { borderColor: item.isVeg !== false ? '#10b981' : '#ef4444' },
+          ]}
         >
           <View
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: item.isVeg !== false ? '#10b981' : '#ef4444' }}
+            style={[
+              styles.vegDot,
+              { backgroundColor: item.isVeg !== false ? '#10b981' : '#ef4444' },
+            ]}
           />
         </View>
       </View>
 
-      {/* Info Column */}
-      <View className="flex-1 ml-3 justify-between py-0.5">
-        <View>
-          <Text
-            className="text-xs font-black leading-snug"
-            style={{ color: colors.text }}
-            numberOfLines={1}
-          >
-            {item.name}
+      {/* Middle: Details */}
+      <View style={styles.details}>
+        <Text numberOfLines={1} style={[styles.title, { color: colors.text }]}>
+          {item.name}
+        </Text>
+
+        <Text numberOfLines={1} style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {item.description || (hasVariants ? `${item.variants!.length} sizes available` : item.category || 'Special')}
+        </Text>
+
+        <View style={styles.priceRow}>
+          <Text style={[styles.price, { color: colors.primary }]}>
+            {priceLabel}
           </Text>
-
-          {item.description ? (
-            <Text
-              className="text-[10px] mt-0.5"
-              style={{ color: colors.textSecondary }}
-              numberOfLines={1}
-            >
-              {item.description}
-            </Text>
-          ) : null}
-
-          <View className="flex-row items-center mt-1 gap-2">
-            <Text className="text-xs font-extrabold text-amber-500 font-mono">
-              {priceLabel}
-            </Text>
-            {item.unit && (
-              <Text className="text-[10px]" style={{ color: colors.textMuted }}>
-                / {item.unit}
-              </Text>
-            )}
-          </View>
-        </View>
-
-        {/* Bottom Actions: Customise hint & ADD button */}
-        <View className="flex-row items-center justify-between mt-1.5 pt-0.5">
           {hasVariants ? (
-            <Text className="text-[9px] font-bold text-amber-500/90">
-              Customisable ▾
+            <Text style={[styles.optionsHint, { color: colors.primary }]}>
+              Options ▾
             </Text>
           ) : (
-            <Text className="text-[9px] text-slate-400">Hold for details</Text>
-          )}
-
-          {currentQty === 0 ? (
-            <TouchableOpacity
-              onPress={() => onAddPress(item, hasVariants ? undefined : defaultVariant)}
-              activeOpacity={0.8}
-              className="px-3.5 py-1 rounded-xl border flex-row items-center gap-1 active:scale-95"
-              style={{
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
-                borderColor: colors.primary,
-              }}
-            >
-              <Text
-                className="text-[11px] font-black tracking-wider"
-                style={{ color: colors.primary }}
-              >
-                ADD
-              </Text>
-              <Ionicons name="add" size={13} color={colors.primary} />
-            </TouchableOpacity>
-          ) : (
-            <View
-              className="flex-row items-center rounded-xl border overflow-hidden"
-              style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.primary,
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => onRemovePress(item)}
-                className="px-2 py-1 active:bg-red-500/10"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="remove" size={13} color="#ef4444" />
-              </TouchableOpacity>
-              <Text
-                className="px-1.5 font-black text-xs font-mono"
-                style={{ color: colors.text }}
-              >
-                {currentQty}
-              </Text>
-              <TouchableOpacity
-                onPress={() => onAddPress(item, defaultVariant)}
-                className="px-2 py-1 active:bg-amber-500/10"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="add" size={13} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.holdHint}>Hold for info</Text>
           )}
         </View>
+      </View>
+
+      {/* Right: Solid ADD Button (Never wraps or squishes) */}
+      <View style={styles.actionContainer}>
+        {currentQty === 0 ? (
+          <TouchableOpacity
+            onPress={() => onAddPress(item, hasVariants ? undefined : defaultVariant)}
+            activeOpacity={0.8}
+            style={[styles.addButton, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.addButtonText}>ADD</Text>
+            <Ionicons name="add" size={16} color="#000000" />
+          </TouchableOpacity>
+        ) : (
+          <View
+            style={[
+              styles.qtyContainer,
+              {
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
+                borderColor: colors.primary,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => onRemovePress(item)}
+              activeOpacity={0.7}
+              style={styles.qtyBtn}
+            >
+              <Ionicons name="remove" size={14} color="#ef4444" />
+            </TouchableOpacity>
+
+            <Text style={[styles.qtyText, { color: colors.text }]}>
+              {currentQty}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => onAddPress(item, defaultVariant)}
+              activeOpacity={0.7}
+              style={styles.qtyBtn}
+            >
+              <Ionicons name="add" size={14} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  imageContainer: {
+    width: 82,
+    height: 82,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#0f172a',
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  vegBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    width: 15,
+    height: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 3,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vegDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  details: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  subtitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  price: {
+    fontSize: 14,
+    fontWeight: '900',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  optionsHint: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  holdHint: {
+    fontSize: 9,
+    color: '#94a3b8',
+  },
+  actionContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+    minWidth: 76,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  addButtonText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#000000',
+    letterSpacing: 0.5,
+    marginRight: 2,
+    flexShrink: 0,
+  },
+  qtyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  qtyBtn: {
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyText: {
+    fontSize: 13,
+    fontWeight: '900',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    paddingHorizontal: 5,
+  },
+});

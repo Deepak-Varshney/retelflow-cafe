@@ -42,7 +42,7 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
               className="w-12 h-12 rounded-2xl items-center justify-center mb-2"
               style={{ backgroundColor: colors.badgeBg }}
             >
-              <Text className="text-2xl">❓</Text>
+              <Ionicons name="help-circle-outline" size={26} color={colors.primary} />
             </View>
             <Text className="text-base font-black text-center" style={{ color: colors.text }}>
               Which {data.itemName}?

@@ -1,14 +1,20 @@
 import { MenuItem } from '../types';
 
-export const DEFAULT_CAFE_CATEGORIES = [
-  { id: 'all', name: 'All Items', icon: '🍽️' },
-  { id: 'Pizza', name: 'Pizza', icon: '🍕' },
-  { id: 'Cold Drinks', name: 'Cold Drinks', icon: '🥤' },
-  { id: 'Waffles', name: 'Waffles', icon: '🧇' },
-  { id: 'Sweets', name: 'Sweets & Mithai', icon: '🍬' },
-  { id: 'Burgers', name: 'Burgers & Fries', icon: '🍔' },
-  { id: 'Snacks', name: 'Snacks & Chaat', icon: '🥪' },
-  { id: 'Chai & Coffee', name: 'Chai & Coffee', icon: '☕' },
+export interface CafeCategoryDef {
+  id: string;
+  name: string;
+  iconName: string;
+}
+
+export const DEFAULT_CAFE_CATEGORIES: CafeCategoryDef[] = [
+  { id: 'all', name: 'All Items', iconName: 'grid-outline' },
+  { id: 'Pizza', name: 'Pizza', iconName: 'pizza-outline' },
+  { id: 'Cold Drinks', name: 'Cold Drinks', iconName: 'wine-outline' },
+  { id: 'Waffles', name: 'Waffles', iconName: 'restaurant-outline' },
+  { id: 'Sweets', name: 'Sweets & Mithai', iconName: 'ice-cream-outline' },
+  { id: 'Burgers', name: 'Burgers & Fries', iconName: 'fast-food-outline' },
+  { id: 'Snacks', name: 'Snacks & Chaat', iconName: 'nutrition-outline' },
+  { id: 'Chai & Coffee', name: 'Chai & Coffee', iconName: 'cafe-outline' },
 ];
 
 export const DEFAULT_MENU_ITEMS: MenuItem[] = [

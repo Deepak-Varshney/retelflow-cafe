@@ -217,15 +217,37 @@ export const updateShopSettingsApi = async (settings: {
 /**
  * Fetch all past invoices for today / history
  */
-export const getInvoicesApi = async () => {
-  const res = await api.get('/invoices');
-  return res.data?.invoices || [];
+export const getInvoicesApi = async (): Promise<any[]> => {
+  try {
+    const res = await api.get('/invoices');
+    if (Array.isArray(res.data)) {
+      return res.data;
+    }
+    if (Array.isArray(res.data?.invoices)) {
+      return res.data.invoices;
+    }
+    return [];
+  } catch (err) {
+    console.warn('[CafeApi] Failed to fetch invoices:', err);
+    return [];
+  }
 };
 
 /**
  * Fetch all customers with due balance
  */
-export const getCustomersWithDueApi = async () => {
-  const res = await api.get('/customers');
-  return res.data?.customers || [];
+export const getCustomersWithDueApi = async (): Promise<any[]> => {
+  try {
+    const res = await api.get('/customers');
+    if (Array.isArray(res.data)) {
+      return res.data;
+    }
+    if (Array.isArray(res.data?.customers)) {
+      return res.data.customers;
+    }
+    return [];
+  } catch (err) {
+    console.warn('[CafeApi] Failed to fetch customers:', err);
+    return [];
+  }
 };
