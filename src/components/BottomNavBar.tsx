@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 
@@ -17,6 +18,10 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   cartCount = 0,
 }) => {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // Ensure ample breathing room above gesture bar or 3-button hardware/software nav
+  const bottomPadding = Math.max(insets.bottom, 12);
 
   const tabs: Array<{
     id: CafeTab;
@@ -33,10 +38,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
   return (
     <View
-      className="flex-row items-center justify-around py-2 border-t"
+      className="flex-row items-center justify-around border-t"
       style={{
         backgroundColor: colors.surface,
         borderColor: colors.border,
+        paddingTop: 8,
+        paddingBottom: bottomPadding,
       }}
     >
       {tabs.map((tab) => {
@@ -46,7 +53,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             key={tab.id}
             onPress={() => onSelectTab(tab.id)}
             activeOpacity={0.7}
-            className="items-center py-1 px-3 relative"
+            className="flex-1 items-center justify-center py-1 relative"
           >
             <View className="relative">
               <Ionicons
@@ -67,7 +74,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             </View>
 
             <Text
-              className="text-[11px] font-bold mt-1"
+              className="text-[10px] font-bold mt-1 text-center"
+              numberOfLines={1}
               style={{
                 color: isActive ? colors.primary : colors.textMuted,
               }}

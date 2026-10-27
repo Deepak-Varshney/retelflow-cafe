@@ -21,7 +21,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 14, gap: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 14 }}
       >
         {DEFAULT_CAFE_CATEGORIES.map((cat) => {
           const isSelected = selectedCategory.toLowerCase() === cat.id.toLowerCase();
@@ -32,26 +32,27 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
               key={cat.id}
               onPress={() => onSelectCategory(cat.id)}
               activeOpacity={0.7}
-              className="flex-row items-center px-3.5 py-2 rounded-2xl border"
+              className="flex-row items-center px-4 py-2 mr-2.5 rounded-2xl border"
               style={{
                 backgroundColor: isSelected
                   ? colors.primary
                   : isDark
-                  ? 'rgba(255, 255, 255, 0.05)'
+                  ? 'rgba(255, 255, 255, 0.07)'
                   : '#f1f5f9',
                 borderColor: isSelected ? colors.primary : colors.border,
                 shadowColor: isSelected ? colors.primary : 'transparent',
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isSelected ? 0.3 : 0,
+                shadowOpacity: isSelected ? 0.35 : 0,
                 shadowRadius: 4,
                 elevation: isSelected ? 3 : 0,
               }}
             >
               <Text className="text-sm mr-1.5">{cat.icon}</Text>
               <Text
-                className="text-xs font-bold"
+                className="text-xs font-black"
+                numberOfLines={1}
                 style={{
-                  color: isSelected ? '#ffffff' : colors.text,
+                  color: isSelected ? '#000000' : colors.text,
                 }}
               >
                 {cat.name}
@@ -60,11 +61,11 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                 <View
                   className="ml-1.5 px-1.5 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: isSelected ? 'rgba(0, 0, 0, 0.25)' : colors.badgeBg,
+                    backgroundColor: isSelected ? '#000000' : colors.badgeBg,
                   }}
                 >
                   <Text
-                    className="text-[10px] font-bold"
+                    className="text-[10px] font-black"
                     style={{ color: isSelected ? '#ffffff' : colors.primary }}
                   >
                     {count}

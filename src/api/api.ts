@@ -62,7 +62,7 @@ export const getBaseUrl = (): string => {
     if (host) {
       return base.replace('localhost', host).replace('127.0.0.1', host);
     }
-    return base.replace('localhost', '10.146.109.211').replace('127.0.0.1', '10.146.109.211');
+    return base.replace('localhost', '10.122.234.211').replace('127.0.0.1', '10.122.234.211');
   }
 
   return base;

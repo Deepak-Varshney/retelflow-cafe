@@ -13,16 +13,35 @@ export const getMenuItemsApi = async (category?: string, query?: string): Promis
 
     const res = await api.get('/store-items', { params });
     if (res.data?.success && Array.isArray(res.data.items) && res.data.items.length > 0) {
-      return res.data.items.map((it: any) => ({
-        ...it,
-        id: it._id || it.id,
-      }));
+      const itemsList = res.data.items;
+      const hasCafe = itemsList.some((it: any) =>
+        ['Pizza', 'Cold Drinks', 'Waffles', 'Sweets', 'Burgers', 'Snacks', 'Chai & Coffee'].some((c) =>
+          (it.category || '').toLowerCase().includes(c.toLowerCase())
+        )
+      );
+
+      if (hasCafe) {
+        return itemsList.map((it: any) => ({
+          ...it,
+          id: it._id || it.id,
+        }));
+      }
+
+      // If backend has only non-cafe items, trigger seeding of cafe catalog
+      try {
+        const seedRes = await api.post('/store-items/seed-cafe', { overwrite: false });
+        if (seedRes.data?.items && seedRes.data.items.length > 0) {
+          return seedRes.data.items.map((it: any) => ({ ...it, id: it._id || it.id }));
+        }
+      } catch (seedErr) {
+        console.warn('[CafeApi] Auto-seed failed:', seedErr);
+      }
     }
   } catch (err) {
     console.warn('[CafeApi] Failed to fetch items from backend, using defaults:', err);
   }
 
-  // Filter default catalog if offline or backend empty
+  // Fallback to rich pre-seeded local defaults with images
   let items = [...DEFAULT_MENU_ITEMS];
   if (category && category !== 'all') {
     items = items.filter((it) => it.category.toLowerCase() === category.toLowerCase());

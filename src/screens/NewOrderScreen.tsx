@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { MenuItem, ItemVariant, CartItem } from '../types';
-import { getMenuItemsApi, parseCafeVoiceOrderApi } from '../api/cafeApi';
+import { getMenuItemsApi, parseCafeVoiceOrderApi, seedCafeCatalogApi } from '../api/cafeApi';
 import { CategoryTabs } from '../components/CategoryTabs';
 import { FoodItemCard } from '../components/FoodItemCard';
 import { VariantSelectorModal } from '../components/VariantSelectorModal';
@@ -351,7 +351,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           <TouchableOpacity
             onPress={() => (isListening ? stopListening() : startListening())}
             activeOpacity={0.8}
-            className="flex-row items-center px-3.5 py-2 rounded-2xl border shadow-md active:scale-95"
+            className="flex-row items-center px-3 py-1.5 rounded-2xl border shadow-md active:scale-95"
             style={{
               backgroundColor: isListening ? '#ef4444' : colors.primary,
               borderColor: isListening ? 'rgba(239, 68, 68, 0.5)' : colors.primaryGlow,
@@ -359,11 +359,11 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           >
             <Ionicons
               name={isListening ? 'stop' : 'mic'}
-              size={18}
+              size={17}
               color={isListening ? '#ffffff' : '#000000'}
             />
             <Text
-              className="text-xs font-black ml-1.5 uppercase tracking-wider"
+              className="text-xs font-black ml-1 uppercase"
               style={{ color: isListening ? '#ffffff' : '#000000' }}
             >
               {isListening ? 'Stop' : 'Voice'}
@@ -446,6 +446,8 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         <FlatList
           data={filteredItems}
           keyExtractor={(item) => item.id || item.name}
+          refreshing={loading}
+          onRefresh={loadMenu}
           renderItem={({ item }) => (
             <FoodItemCard
               item={item}
@@ -456,17 +458,40 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           )}
           contentContainerStyle={{
             padding: 14,
-            paddingBottom: cart.length > 0 ? 95 : 30,
+            paddingBottom: cart.length > 0 ? 110 : 40,
           }}
           ListEmptyComponent={
-            <View className="items-center justify-center py-20">
+            <View className="items-center justify-center py-16 px-4">
               <Text className="text-4xl mb-2">🍽️</Text>
-              <Text className="text-sm font-bold" style={{ color: colors.text }}>
+              <Text className="text-base font-black" style={{ color: colors.text }}>
                 No menu items found
               </Text>
-              <Text className="text-xs mt-1 text-center" style={{ color: colors.textMuted }}>
-                Try searching for something else or pick another category
+              <Text className="text-xs mt-1 text-center mb-4" style={{ color: colors.textMuted }}>
+                {search.trim()
+                  ? `No matches for "${search}". Try another keyword.`
+                  : 'Start by seeding standard Cafe, Fast Food & Sweets items.'}
               </Text>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    setLoading(true);
+                    await seedCafeCatalogApi(true);
+                    await loadMenu();
+                  } catch (e) {
+                    console.warn('Seed failed:', e);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                activeOpacity={0.8}
+                className="flex-row items-center px-4 py-2.5 rounded-2xl bg-amber-500 shadow-md active:scale-95"
+              >
+                <Ionicons name="sparkles" size={16} color="#000000" className="mr-1.5" />
+                <Text className="text-xs font-black text-black uppercase tracking-wider ml-1">
+                  Seed Cafe Menu (With Images)
+                </Text>
+              </TouchableOpacity>
             </View>
           }
         />
