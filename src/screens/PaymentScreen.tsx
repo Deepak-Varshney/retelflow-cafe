@@ -70,8 +70,9 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         total: totalAmount,
       });
 
-      if (res.success && res.invoice) {
-        onOrderCompleted(res.invoice);
+      const savedInvoice = res?.invoice || res;
+      if (savedInvoice) {
+        onOrderCompleted(savedInvoice);
       } else {
         Alert.alert('Error', 'Failed to save order invoice');
       }

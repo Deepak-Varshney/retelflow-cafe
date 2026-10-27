@@ -171,23 +171,46 @@ export const createOrderInvoiceApi = async (order: {
   dueAmount: number;
   total: number;
   notes?: string;
-}): Promise<{ success: boolean; invoice: any }> => {
+}): Promise<{ success: boolean; invoice: any; message?: string }> => {
   const payload = {
+    customerName: order.customer.name || 'Walk-in Guest',
+    customerPhone: order.customer.phone || '',
+    customer: order.customer,
     items: order.items.map((i) => ({
       name: i.selectedVariant ? `${i.name} (${i.selectedVariant.name})` : i.name,
       qty: i.qty,
       unit: i.unit || 'pcs',
       price: i.price,
     })),
-    customer: order.customer,
-    paymentMethod: order.paymentMethod,
-    receivedAmount: order.receivedAmount,
-    dueAmount: order.dueAmount,
+    totalAmount: order.total,
     grandTotal: order.total,
+    receivedAmount: order.receivedAmount,
+    balanceAmount: order.dueAmount,
+    dueAmount: order.dueAmount,
+    paymentMethod: order.paymentMethod,
     notes: order.notes || '',
   };
 
   const res = await api.post('/invoices', payload);
+  const invoice = res.data?.invoice || res.data;
+  return {
+    success: true,
+    invoice,
+    message: res.data?.message,
+  };
+};
+
+/**
+ * Update shop settings (shopName, address, phone, gstNumber, receiptTemplate)
+ */
+export const updateShopSettingsApi = async (settings: {
+  shopName?: string;
+  name?: string;
+  address?: string;
+  gstNumber?: string;
+  receiptTemplate?: string;
+}) => {
+  const res = await api.put('/auth/settings', settings);
   return res.data;
 };
 

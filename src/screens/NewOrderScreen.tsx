@@ -19,6 +19,7 @@ import { FoodItemCard } from '../components/FoodItemCard';
 import { VariantSelectorModal } from '../components/VariantSelectorModal';
 import { DisambiguationModal, DisambiguationItem } from '../components/DisambiguationModal';
 import { FloatingCartBar } from '../components/FloatingCartBar';
+import { FoodItemDetailModal } from '../components/FoodItemDetailModal';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
 
 interface NewOrderScreenProps {
@@ -40,6 +41,10 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // View Mode: Grid (2-column Swiggy/Zomato Kiosk) or List
+  const [isGridView, setIsGridView] = useState(true);
+  const [detailModalItem, setDetailModalItem] = useState<MenuItem | null>(null);
 
   // Modals state
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
@@ -404,10 +409,10 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         </View>
       )}
 
-      {/* 2. Search Box */}
-      <View className="px-4 pt-3 pb-2" style={{ backgroundColor: colors.surface }}>
+      {/* 2. Search Box & Grid/List Toggle */}
+      <View className="px-4 pt-3 pb-2 flex-row items-center gap-2" style={{ backgroundColor: colors.surface }}>
         <View
-          className="flex-row items-center px-3.5 py-2.5 rounded-2xl border"
+          className="flex-row items-center px-3.5 py-2.5 rounded-2xl border flex-1"
           style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
         >
           <Ionicons name="search" size={18} color={colors.textMuted} className="mr-2" />
@@ -425,6 +430,23 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {/* View Toggle (Grid ⏹ vs List ☰) */}
+        <TouchableOpacity
+          onPress={() => setIsGridView(!isGridView)}
+          activeOpacity={0.8}
+          className="px-3 py-2.5 rounded-2xl border items-center justify-center flex-row gap-1 shadow-sm active:scale-95"
+          style={{
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
+            borderColor: colors.primary,
+          }}
+        >
+          <Ionicons
+            name={isGridView ? 'grid' : 'list'}
+            size={18}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* 3. Category Tabs (Swiggy / Zomato Kiosk Style) */}
@@ -444,7 +466,9 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         </View>
       ) : (
         <FlatList
+          key={isGridView ? 'grid-2' : 'list-1'}
           data={filteredItems}
+          numColumns={isGridView ? 2 : 1}
           keyExtractor={(item) => item.id || item.name}
           refreshing={loading}
           onRefresh={loadMenu}
@@ -454,11 +478,13 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
               currentQty={cartQtyMap[item.name] || 0}
               onAddPress={handleAddItem}
               onRemovePress={handleRemoveItem}
+              onLongPress={(it) => setDetailModalItem(it)}
+              isGrid={isGridView}
             />
           )}
           contentContainerStyle={{
-            padding: 14,
-            paddingBottom: cart.length > 0 ? 110 : 40,
+            padding: 10,
+            paddingBottom: cart.length > 0 ? 120 : 40,
           }}
           ListEmptyComponent={
             <View className="items-center justify-center py-16 px-4">
@@ -468,28 +494,22 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
               </Text>
               <Text className="text-xs mt-1 text-center mb-4" style={{ color: colors.textMuted }}>
                 {search.trim()
-                  ? `No matches for "${search}". Try another keyword.`
-                  : 'Start by seeding standard Cafe, Fast Food & Sweets items.'}
+                  ? `No matches for "${search}". Try another keyword or clear search.`
+                  : 'No items in this category. Check Menu tab or try another category.'}
               </Text>
 
               <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    setLoading(true);
-                    await seedCafeCatalogApi(true);
-                    await loadMenu();
-                  } catch (e) {
-                    console.warn('Seed failed:', e);
-                  } finally {
-                    setLoading(false);
-                  }
+                onPress={() => {
+                  setSearch('');
+                  setSelectedCategory('all');
+                  loadMenu();
                 }}
                 activeOpacity={0.8}
                 className="flex-row items-center px-4 py-2.5 rounded-2xl bg-amber-500 shadow-md active:scale-95"
               >
-                <Ionicons name="sparkles" size={16} color="#000000" className="mr-1.5" />
+                <Ionicons name="reload" size={16} color="#000000" className="mr-1.5" />
                 <Text className="text-xs font-black text-black uppercase tracking-wider ml-1">
-                  Seed Cafe Menu (With Images)
+                  Reset Filter & Refresh
                 </Text>
               </TouchableOpacity>
             </View>
@@ -505,7 +525,15 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         onClose={() => setSelectedVariantItem(null)}
       />
 
-      {/* 6. Voice Disambiguation Modal */}
+      {/* 6. Food Item Details Modal (Shown on Long Press) */}
+      <FoodItemDetailModal
+        visible={Boolean(detailModalItem)}
+        item={detailModalItem}
+        onClose={() => setDetailModalItem(null)}
+        onAddToCart={(it, v) => handleAddItem(it, v)}
+      />
+
+      {/* 7. Voice Disambiguation Modal */}
       <DisambiguationModal
         visible={Boolean(disambiguationData)}
         data={disambiguationData}
@@ -513,7 +541,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         onClose={() => setDisambiguationData(null)}
       />
 
-      {/* 7. Floating Cart Summary Bar */}
+      {/* 8. Floating Cart Summary Bar */}
       <FloatingCartBar items={cart} onProceed={onProceedToCustomer} />
     </SafeAreaView>
   );
