@@ -74,12 +74,14 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
         )
         .join('\n') +
       `\n--------------------------------\n` +
+      (invoice.discount ? `*Discount Applied:* -₹${invoice.discount}\n` : '') +
       `*Grand Total: ₹${invoice.total}*\n` +
       `*Payment Mode:* ${(invoice.paymentMethod || 'cash').toUpperCase()}\n` +
       `*Amount Paid: ₹${invoice.receivedAmount}*\n` +
       (invoice.dueAmount > 0
         ? `*Due / Balance (Udhar): ₹${invoice.dueAmount}*\n`
         : `*Payment Status: Fully Paid*\n`) +
+      (invoice.notes ? `*Instructions / Note:* ${invoice.notes}\n` : '') +
       `--------------------------------\n` +
       `Thank you for dining with us! Visit again.\n` +
       `Powered by RetelFlow Cafe`;
@@ -237,6 +239,16 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
   <div class="solid"></div>
 
   <table class="table total-row">
+    ${
+      invoice.discount
+        ? `
+    <tr style="font-size: 10px; font-weight: normal;">
+      <td>DISCOUNT:</td>
+      <td class="text-right">- ₹${invoice.discount}</td>
+    </tr>
+    `
+        : ''
+    }
     <tr>
       <td>TOTAL BILL:</td>
       <td class="text-right">₹${invoice.total}</td>
@@ -256,6 +268,17 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
         : ''
     }
   </table>
+
+  ${
+    invoice.notes
+      ? `
+  <div class="dashed"></div>
+  <div style="font-size: 10px; font-weight: bold; margin: 3px 0;">
+    <b>NOTE:</b> ${invoice.notes}
+  </div>
+  `
+      : ''
+  }
 
   <div class="dashed"></div>
 
@@ -399,6 +422,15 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
 
           {/* Totals */}
           <View className="pt-3 border-t" style={{ borderColor: colors.border }}>
+            {invoice.discount ? (
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-xs text-emerald-400 font-semibold">Discount Applied:</Text>
+                <Text className="text-xs font-bold font-mono text-emerald-400">
+                  - ₹{invoice.discount}
+                </Text>
+              </View>
+            ) : null}
+
             <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-slate-400 font-semibold">Total Amount:</Text>
               <Text className="text-sm font-black font-mono text-white">
@@ -424,6 +456,13 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
                 </Text>
               </View>
             )}
+
+            {invoice.notes ? (
+              <View className="mt-2.5 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <Text className="text-[10px] font-black text-amber-500 uppercase">Kitchen Note:</Text>
+                <Text className="text-xs font-semibold text-slate-200 mt-0.5">{invoice.notes}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 

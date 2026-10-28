@@ -20,6 +20,9 @@ import { OrdersHistoryScreen } from './src/screens/OrdersHistoryScreen';
 import { CustomersKhataScreen } from './src/screens/CustomersKhataScreen';
 import { MoreScreen } from './src/screens/MoreScreen';
 import { BottomNavBar, CafeTab } from './src/components/BottomNavBar';
+import { CafeSplashScreen } from './src/components/CafeSplashScreen';
+import { initCache, setCachedConfig } from './src/services/cacheService';
+import { getAppConfigApi } from './src/api/cafeApi';
 
 type OrderStep = 'menu' | 'customer' | 'payment' | 'complete';
 
@@ -64,6 +67,24 @@ function AppContent() {
   };
 
   useEffect(() => {
+    // 1. Initialize local cache from persistent disk storage
+    initCache().catch(() => {});
+
+    // 2. Load remote branding and support numbers from superadmin
+    getAppConfigApi()
+      .then((cfg) => {
+        if (cfg) {
+          setCachedConfig({
+            helpPhone: cfg.cafe?.helpPhone || cfg.branding?.helpPhone || '',
+            whatsappPhone: cfg.cafe?.whatsappPhone || cfg.branding?.whatsappPhone || '',
+            helpEmail: cfg.cafe?.helpEmail || cfg.branding?.helpEmail || '',
+            logoUrl: cfg.cafe?.logoUrl || cfg.branding?.appLogoUrl || '',
+            splashUrl: cfg.cafe?.splashUrl || '',
+          });
+        }
+      })
+      .catch(() => {});
+
     checkAuth();
     const unsub = onSessionExpired(() => {
       setUser(null);
@@ -88,21 +109,7 @@ function AppContent() {
   };
 
   if (authLoading) {
-    return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <View
-          className="w-14 h-14 rounded-2xl items-center justify-center mb-3 border shadow-md"
-          style={{
-            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
-            borderColor: colors.primary,
-          }}
-        >
-          <Ionicons name="restaurant" size={26} color={colors.primary} />
-        </View>
-        <Text className="text-xs font-bold text-amber-500">Loading RetelFlow Cafe...</Text>
-      </View>
-    );
+    return <CafeSplashScreen />;
   }
 
   if (!user) {

@@ -13,8 +13,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
-import { updateShopSettingsApi } from '../api/cafeApi';
+import { updateShopSettingsApi, getAppConfigApi, getInvoicesApi, getCustomersWithDueApi } from '../api/cafeApi';
 import { getCurrentUser } from '../auth/authApi';
+import {
+  getCachedConfig,
+  setCachedConfig,
+  getCachedMetrics,
+  setCachedMetrics,
+  CafeAppConfig,
+} from '../services/cacheService';
 
 interface MoreScreenProps {
   user: any;
@@ -31,6 +38,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
   const [currentUser, setCurrentUser] = useState<any>(user || {});
 
+  // Admin Config state (Dynamic Support & Helpline, strictly NO hardcoded fallback)
+  const [appConfig, setAppConfig] = useState<CafeAppConfig | null>(() => getCachedConfig());
+
+  // Quick stats state (Loaded from cache first, refreshed silently)
+  const [metrics, setMetrics] = useState(() => {
+    return getCachedMetrics() || { todaySales: 0, totalOrders: 0, totalDue: 0, lastUpdated: '' };
+  });
+
   // Edit Store Details Modal
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState(currentUser.name || '');
@@ -42,14 +57,66 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   // Plans Modal
   const [plansModalVisible, setPlansModalVisible] = useState(false);
 
-  // Refresh user data silently
+  // Refresh user data & config silently
   useEffect(() => {
+    // 1. Refresh user
     getCurrentUser()
       .then((fresh) => {
         if (fresh) {
           setCurrentUser(fresh);
           onUserUpdated?.(fresh);
         }
+      })
+      .catch(() => {});
+
+    // 2. Fetch official admin helpline & branding config
+    getAppConfigApi()
+      .then((cfg) => {
+        const cafeCfg: CafeAppConfig = {
+          helpPhone: cfg?.cafe?.helpPhone || cfg?.branding?.helpPhone || '',
+          whatsappPhone: cfg?.cafe?.whatsappPhone || cfg?.branding?.whatsappPhone || '',
+          helpEmail: cfg?.cafe?.helpEmail || cfg?.branding?.helpEmail || '',
+          logoUrl: cfg?.cafe?.logoUrl || cfg?.branding?.appLogoUrl || '',
+          splashUrl: cfg?.cafe?.splashUrl || '',
+        };
+        setAppConfig(cafeCfg);
+        setCachedConfig(cafeCfg);
+      })
+      .catch(() => {});
+
+    // 3. Compute live counter metrics
+    Promise.all([getInvoicesApi(), getCustomersWithDueApi()])
+      .then(([invoices, customers]) => {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+        let salesToday = 0;
+        let totalCount = Array.isArray(invoices) ? invoices.length : 0;
+
+        if (Array.isArray(invoices)) {
+          for (const inv of invoices) {
+            const invTime = new Date(inv.date || inv.createdAt).getTime();
+            if (invTime >= startOfDay) {
+              salesToday += Number(inv.totalAmount || inv.total || 0);
+            }
+          }
+        }
+
+        let dueSum = 0;
+        if (Array.isArray(customers)) {
+          for (const c of customers) {
+            dueSum += Number(c.dueAmount || c.totalDue || 0);
+          }
+        }
+
+        const freshMetrics = {
+          todaySales: salesToday,
+          totalOrders: totalCount,
+          totalDue: dueSum,
+          lastUpdated: new Date().toISOString(),
+        };
+        setMetrics(freshMetrics);
+        setCachedMetrics(freshMetrics);
       })
       .catch(() => {});
   }, []);
@@ -96,22 +163,50 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
     }
   };
 
-  const handleOpenWhatsApp = (message?: string) => {
-    const text = encodeURIComponent(message || 'Hi RetelFlow Cafe Team, I need support for my counter billing system.');
-    Linking.openURL(`https://wa.me/917251830075?text=${text}`).catch(() => {
+  const supportPhone = appConfig?.helpPhone || '';
+  const whatsappPhone = appConfig?.whatsappPhone || supportPhone;
+
+  const handleOpenWhatsApp = (customMessage?: string) => {
+    if (!whatsappPhone) {
+      Alert.alert(
+        'Support Unavailable',
+        'Customer support WhatsApp number is not configured in the admin panel. Please reach out to your system administrator.'
+      );
+      return;
+    }
+    const cleanNumber = whatsappPhone.replace(/\D/g, '');
+    const text = encodeURIComponent(
+      customMessage || `Hi RetelFlow Support, I need help with my counter billing account (${currentUser.shopName || currentUser.name || 'Cafe'}).`
+    );
+    Linking.openURL(`https://wa.me/91${cleanNumber}?text=${text}`).catch(() => {
       Alert.alert('Error', 'Unable to open WhatsApp on this device.');
     });
   };
 
+  const handleCallSupport = () => {
+    if (!supportPhone) {
+      Alert.alert(
+        'Helpline Unavailable',
+        'Customer support helpline number is not configured in the admin panel. Please reach out to your system administrator.'
+      );
+      return;
+    }
+    Linking.openURL(`tel:${supportPhone}`).catch(() => {
+      Alert.alert('Error', 'Unable to place a phone call from this device.');
+    });
+  };
+
   const getInitials = (name?: string) => {
-    if (!name) return 'RF';
-    return name
-      .trim()
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || 'RF';
+    if (!name) return 'RC';
+    return (
+      name
+        .trim()
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || 'RC'
+    );
   };
 
   const access = currentUser?.access;
@@ -121,26 +216,43 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
-      {/* Header */}
+      {/* Top Header */}
       <View
-        className="px-5 py-3.5 border-b"
+        className="px-5 py-3.5 border-b flex-row items-center justify-between"
         style={{ backgroundColor: colors.surface, borderColor: colors.border }}
       >
-        <Text className="text-[11px] font-bold uppercase tracking-wider text-amber-500">
-          Account & Counter Management
-        </Text>
-        <Text className="text-xl font-black mt-0.5" style={{ color: colors.text }}>
-          Profile & Settings
-        </Text>
+        <View>
+          <Text className="text-[10px] font-black uppercase tracking-wider text-amber-500">
+            Counter Management
+          </Text>
+          <Text className="text-xl font-black mt-0.5" style={{ color: colors.text }}>
+            Store & Settings
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={toggleTheme}
+          activeOpacity={0.8}
+          className="p-2.5 rounded-2xl border active:scale-95 flex-row items-center gap-1.5"
+          style={{
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
+            borderColor: colors.primary,
+          }}
+        >
+          <Ionicons name={isDark ? 'moon' : 'sunny'} size={16} color={colors.primary} />
+          <Text className="text-xs font-black text-amber-500">
+            {isDark ? 'Dark' : 'Light'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
         {/* 1. STORE PROFILE HERO CARD */}
         <View
-          className="rounded-3xl p-4.5 border shadow-xl mb-4"
+          className="rounded-3xl p-5 border shadow-xl mb-4"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
-          <View className="flex-row items-center mb-3.5">
+          <View className="flex-row items-center mb-4">
             <View
               className="w-14 h-14 rounded-2xl items-center justify-center mr-3.5 border"
               style={{
@@ -166,17 +278,20 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   }}
                 >
                   <Text className="text-[9px] font-black text-amber-500 uppercase">
-                    {currentUser.role || 'OWNER'}
+                    {currentUser.role || 'COUNTER'}
                   </Text>
                 </View>
               </View>
 
               <Text className="text-xs font-semibold mt-0.5" style={{ color: colors.textSecondary }}>
-                Owner: <Text className="font-bold" style={{ color: colors.text }}>{currentUser.name || 'Deepak'}</Text>
+                Manager: <Text className="font-bold" style={{ color: colors.text }}>{currentUser.name || 'Cashier'}</Text>
               </Text>
-              <Text className="text-xs font-bold text-amber-500 mt-0.5">
-                +91 {currentUser.phone || '7251830075'}
-              </Text>
+              <View className="flex-row items-center gap-1 mt-0.5">
+                <Ionicons name="call" size={11} color={colors.primary} />
+                <Text className="text-xs font-bold text-amber-500 font-mono">
+                  {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -184,7 +299,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           <TouchableOpacity
             onPress={openEditModal}
             activeOpacity={0.8}
-            className="w-full py-2.5 rounded-2xl border items-center justify-center flex-row gap-1.5 active:scale-98"
+            className="w-full py-2.5 rounded-2xl border items-center justify-center flex-row gap-2 active:scale-98"
             style={{
               backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f8fafc',
               borderColor: colors.border,
@@ -192,19 +307,52 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           >
             <Ionicons name="create-outline" size={16} color={colors.primary} />
             <Text className="text-xs font-bold" style={{ color: colors.text }}>
-              Edit Store Name, Address & GST
+              Edit Cafe Name, Address & GSTIN
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* 2. SUBSCRIPTION & LICENSE CARD (RetelFlow Pro) */}
+        {/* 2. LIVE COUNTER STATS (Fast Offline Cache) */}
+        <View className="flex-row gap-2.5 mb-4">
+          <View
+            className="flex-1 p-3.5 rounded-2xl border shadow-sm"
+            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          >
+            <Text className="text-[10px] font-black uppercase text-slate-400">Today&apos;s Sales</Text>
+            <Text className="text-base font-black text-amber-500 font-mono mt-0.5">
+              ₹{metrics.todaySales.toLocaleString()}
+            </Text>
+          </View>
+
+          <View
+            className="flex-1 p-3.5 rounded-2xl border shadow-sm"
+            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          >
+            <Text className="text-[10px] font-black uppercase text-slate-400">Total Bills</Text>
+            <Text className="text-base font-black text-emerald-400 font-mono mt-0.5">
+              {metrics.totalOrders}
+            </Text>
+          </View>
+
+          <View
+            className="flex-1 p-3.5 rounded-2xl border shadow-sm"
+            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          >
+            <Text className="text-[10px] font-black uppercase text-slate-400">Total Khata Due</Text>
+            <Text className="text-base font-black text-rose-500 font-mono mt-0.5">
+              ₹{metrics.totalDue.toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        {/* 3. SUBSCRIPTION & LICENSE CARD */}
         <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
-          Subscription & License
+          POS License & Validity
         </Text>
         <TouchableOpacity
           onPress={() => setPlansModalVisible(true)}
           activeOpacity={0.8}
-          className="rounded-3xl p-4 border mb-5 flex-row items-center shadow-lg active:scale-98"
+          className="rounded-3xl p-4 border mb-4 flex-row items-center shadow-lg active:scale-98"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
           <View
@@ -230,98 +378,67 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   className="text-[9px] font-black uppercase"
                   style={{ color: isTrial ? '#f59e0b' : '#10b981' }}
                 >
-                  {isTrial ? 'Trial Active' : 'Active Plan'}
+                  {isTrial ? 'Trial Active' : 'Active'}
                 </Text>
               </View>
             </View>
             <Text className="text-[11px] mt-0.5" style={{ color: colors.textSecondary }}>
-              {daysLeft > 0 ? `${daysLeft} Days remaining • Tap to renew` : 'Unlimited voice & KOT billing'}
+              {daysLeft > 0 ? `${daysLeft} Days remaining • Unlimited voice POS` : 'Active POS billing access'}
             </Text>
           </View>
 
           <View className="flex-row items-center gap-1">
-            <Text className="text-xs font-black text-amber-500">Plans</Text>
+            <Text className="text-xs font-black text-amber-500">Upgrade</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </View>
         </TouchableOpacity>
 
-        {/* 3. THEME & DISPLAY SETTINGS */}
+        {/* 4. BILLING & HARDWARE PREFERENCES */}
         <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
-          Theme & Display
+          Hardware & Printing Config
         </Text>
         <View
-          className="rounded-3xl border p-4 mb-5"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
-        >
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center flex-1 pr-3">
-              <View
-                className="w-10 h-10 rounded-2xl items-center justify-center mr-3"
-                style={{ backgroundColor: isDark ? 'rgba(56, 189, 248, 0.15)' : '#e0f2fe' }}
-              >
-                <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color="#38bdf8" />
-              </View>
-              <View>
-                <Text className="text-sm font-bold" style={{ color: colors.text }}>
-                  Appearance Mode
-                </Text>
-                <Text className="text-[11px]" style={{ color: colors.textSecondary }}>
-                  Current: {isDark ? 'Dark (Night Mode)' : 'Light (Day Mode)'}
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={toggleTheme}
-              activeOpacity={0.8}
-              className="px-4 py-2 rounded-xl border flex-row items-center gap-1.5 active:scale-95"
-              style={{
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
-                borderColor: colors.primary,
-              }}
-            >
-              <Ionicons name="swap-horizontal" size={14} color={colors.primary} />
-              <Text className="text-xs font-black text-amber-500">Switch</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 4. RECEIPT & KOT PRINTER PREFERENCES */}
-        <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
-          Billing & KOT Engine
-        </Text>
-        <View
-          className="rounded-3xl border p-4 mb-5"
+          className="rounded-3xl border p-4 mb-4"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
           <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
             <View className="flex-row items-center">
               <Ionicons name="print-outline" size={18} color={colors.primary} className="mr-2" />
-              <Text className="text-xs font-bold" style={{ color: colors.text }}>
-                KOT Format
-              </Text>
+              <View>
+                <Text className="text-xs font-bold" style={{ color: colors.text }}>
+                  Thermal Receipt Printer
+                </Text>
+                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                  Bluetooth ESC/POS continuous roll
+                </Text>
+              </View>
             </View>
-            <Text className="text-xs font-bold text-amber-500">
-              Kitchen Token + Slip (58mm/80mm)
+            <Text className="text-xs font-bold text-amber-500 font-mono">
+              58mm / 80mm
             </Text>
           </View>
 
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
               <Ionicons name="mic-outline" size={18} color={colors.primary} className="mr-2" />
-              <Text className="text-xs font-bold" style={{ color: colors.text }}>
-                Voice Engine
-              </Text>
+              <View>
+                <Text className="text-xs font-bold" style={{ color: colors.text }}>
+                  AI Voice Engine
+                </Text>
+                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                  Multi-item speech detection
+                </Text>
+              </View>
             </View>
-            <Text className="text-xs font-bold text-emerald-500">
-              Gemini 2.0 Flash (Online)
-            </Text>
+            <View className="px-2 py-0.5 rounded-full bg-emerald-500/20">
+              <Text className="text-[10px] font-black text-emerald-400">Gemini 2.0</Text>
+            </View>
           </View>
         </View>
 
-        {/* 5. SUPPORT & HELP */}
+        {/* 5. SUPPORT & CUSTOMER CARE (Strictly from Admin, No Hardcoded Fallback) */}
         <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
-          Help & Customer Care
+          Official Support & Customer Care
         </Text>
         <View
           className="rounded-3xl border p-2 mb-5"
@@ -339,14 +456,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 WhatsApp Support
               </Text>
               <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                Chat directly with our tech support team
+                {whatsappPhone ? `+91 ${whatsappPhone} • Instant Counter Help` : 'Configured via Admin Portal'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => Linking.openURL('tel:7251830075')}
+            onPress={handleCallSupport}
             className="flex-row items-center p-3 rounded-2xl active:bg-amber-500/10"
           >
             <View className="w-10 h-10 rounded-xl bg-amber-500/15 items-center justify-center mr-3">
@@ -354,10 +471,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             </View>
             <View className="flex-1">
               <Text className="text-xs font-bold" style={{ color: colors.text }}>
-                Call Helpline
+                Helpline Phone Call
               </Text>
               <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                +91 72518 30075 (9 AM - 9 PM)
+                {supportPhone ? `+91 ${supportPhone} • Voice Support` : 'Configured via Admin Portal'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -382,11 +499,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
         {/* App Version Stamp */}
         <Text className="text-[11px] text-center font-bold text-slate-500 mb-4">
-          RetelFlow Cafe & Sweets • Version 1.0.0
+          RetelFlow Cafe & Sweets POS • Version 1.0.0
         </Text>
       </ScrollView>
 
-      {/* EDIT STORE DETAILS MODAL */}
+      {/* EDIT STORE DETAILS MODAL (Mobile Number Locked & Read Only) */}
       <Modal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => setEditModalVisible(false)}>
         <View className="flex-1 justify-end bg-black/75">
           <TouchableOpacity className="flex-1" activeOpacity={1} onPress={() => setEditModalVisible(false)} />
@@ -395,15 +512,21 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
             <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
-              <Text className="text-base font-black" style={{ color: colors.text }}>
-                Edit Store & Counter Profile
-              </Text>
+              <View>
+                <Text className="text-base font-black" style={{ color: colors.text }}>
+                  Edit Store & Counter Profile
+                </Text>
+                <Text className="text-[10px] text-slate-400">
+                  Update cafe branding and tax info for invoices
+                </Text>
+              </View>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
                 <Ionicons name="close" size={22} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Cafe Name */}
               <View className="mb-3">
                 <Text className="text-xs font-bold mb-1" style={{ color: colors.textSecondary }}>
                   Cafe / Restaurant Name *
@@ -418,6 +541,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 />
               </View>
 
+              {/* Owner Name */}
               <View className="mb-3">
                 <Text className="text-xs font-bold mb-1" style={{ color: colors.textSecondary }}>
                   Owner / Incharge Name
@@ -425,16 +549,39 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <TextInput
                   value={editName}
                   onChangeText={setEditName}
-                  placeholder="Deepak"
+                  placeholder="e.g. Deepak"
                   placeholderTextColor={colors.textMuted}
                   className="px-3.5 py-2.5 rounded-xl border text-xs font-bold"
                   style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.text }}
                 />
               </View>
 
+              {/* LOCKED MOBILE NUMBER (Read-Only) */}
+              <View className="mb-3">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
+                    Registered Mobile Number
+                  </Text>
+                  <View className="flex-row items-center gap-1">
+                    <Ionicons name="lock-closed" size={11} color="#f59e0b" />
+                    <Text className="text-[10px] text-amber-500 font-bold">Locked / Read Only</Text>
+                  </View>
+                </View>
+                <TextInput
+                  value={currentUser.phone ? `+91 ${currentUser.phone}` : 'Not available'}
+                  editable={false}
+                  className="px-3.5 py-2.5 rounded-xl border text-xs font-bold opacity-60 font-mono"
+                  style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }}
+                />
+                <Text className="text-[10px] text-slate-400 mt-1">
+                  Primary mobile number is tied to your store account and cannot be modified from counter.
+                </Text>
+              </View>
+
+              {/* Store Address */}
               <View className="mb-3">
                 <Text className="text-xs font-bold mb-1" style={{ color: colors.textSecondary }}>
-                  Store Address
+                  Store Address (Printed on Bills)
                 </Text>
                 <TextInput
                   value={editAddress}
@@ -446,6 +593,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 />
               </View>
 
+              {/* GSTIN */}
               <View className="mb-4">
                 <Text className="text-xs font-bold mb-1" style={{ color: colors.textSecondary }}>
                   GST Number (Optional)

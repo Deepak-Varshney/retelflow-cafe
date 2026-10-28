@@ -4,17 +4,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { getInvoicesApi } from '../api/cafeApi';
+import { getCachedOrders, setCachedOrders } from '../services/cacheService';
 
 export const OrdersHistoryScreen: React.FC = () => {
   const { colors } = useTheme();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<any[]>(() => getCachedOrders());
+  const [loading, setLoading] = useState(() => getCachedOrders().length === 0);
 
   const loadOrders = async () => {
     try {
-      setLoading(true);
+      if (orders.length === 0) setLoading(true);
       const data = await getInvoicesApi();
-      setOrders(Array.isArray(data) ? data : []);
+      if (Array.isArray(data)) {
+        setOrders(data);
+        setCachedOrders(data);
+      }
     } catch (e) {
       console.warn('Failed to load orders:', e);
     } finally {

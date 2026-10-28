@@ -53,6 +53,7 @@ export interface OrderInvoice {
   dueAmount: number;
   paymentMethod: PaymentMethod;
   customer: CustomerInfo;
+  notes?: string;
   date: string;
   createdAt?: string;
   status?: 'completed' | 'cancelled';

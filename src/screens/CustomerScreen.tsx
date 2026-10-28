@@ -195,27 +195,55 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
           contentContainerStyle={{ padding: 18 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Order Mini-Summary Card */}
+          {/* Order Items Preview Card */}
           <View
-            className="p-4 mb-5 rounded-3xl border flex-row items-center justify-between"
+            className="rounded-3xl p-4 mb-4 border shadow-sm"
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
-            <View>
-              <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
-                Active Order Summary
-              </Text>
-              <Text className="text-sm font-bold mt-0.5" style={{ color: colors.text }}>
-                {totalQty} Items Selected
+            <View className="flex-row items-center justify-between pb-2.5 border-b" style={{ borderColor: colors.border }}>
+              <View className="flex-row items-center">
+                <Ionicons name="receipt-outline" size={16} color={colors.primary} />
+                <Text className="text-xs font-black uppercase tracking-wider ml-1.5 text-amber-500">
+                  Items in this Order ({cart.length})
+                </Text>
+              </View>
+              <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
+                Total: <Text className="font-mono font-black text-amber-500">₹{totalAmount.toLocaleString()}</Text>
               </Text>
             </View>
 
-            <View className="items-end">
-              <Text className="text-[11px]" style={{ color: colors.textMuted }}>
-                Bill Amount
-              </Text>
-              <Text className="text-xl font-black text-amber-500 font-mono">
-                ₹{totalAmount.toLocaleString()}
-              </Text>
+            <View className="pt-2">
+              {cart.map((item, idx) => (
+                <View
+                  key={idx}
+                  className="flex-row items-center justify-between py-1.5 border-b border-dashed"
+                  style={{ borderColor: colors.border }}
+                >
+                  <View className="flex-row items-center flex-1 pr-2">
+                    <View
+                      className="px-2 py-0.5 rounded-md mr-2"
+                      style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7' }}
+                    >
+                      <Text className="text-xs font-black text-amber-500 font-mono">
+                        {item.qty}x
+                      </Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold" style={{ color: colors.text }} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      {item.selectedVariant ? (
+                        <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                          Size: {item.selectedVariant.name}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  <Text className="text-xs font-black text-amber-500 font-mono">
+                    ₹{item.qty * item.price}
+                  </Text>
+                </View>
+              ))}
             </View>
           </View>
 

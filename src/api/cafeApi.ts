@@ -251,3 +251,25 @@ export const getCustomersWithDueApi = async (): Promise<any[]> => {
     return [];
   }
 };
+
+/**
+ * Fetch dynamic branding and customer care configuration from superadmin
+ */
+export const getAppConfigApi = async (): Promise<{
+  branding: any;
+  cafe: {
+    logoUrl?: string;
+    splashUrl?: string;
+    helpPhone?: string;
+    whatsappPhone?: string;
+    helpEmail?: string;
+  };
+}> => {
+  try {
+    const res = await api.get('/config');
+    return res.data;
+  } catch (err) {
+    console.warn('[CafeApi] Failed to fetch app config:', err);
+    return { branding: {}, cafe: {} };
+  }
+};

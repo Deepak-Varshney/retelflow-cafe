@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { MenuItem, ItemVariant, CartItem } from '../types';
 import { getMenuItemsApi, parseCafeVoiceOrderApi, seedCafeCatalogApi } from '../api/cafeApi';
+import { getCachedMenu, setCachedMenu } from '../services/cacheService';
+import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
 import { CategoryTabs } from '../components/CategoryTabs';
 import { FoodItemCard } from '../components/FoodItemCard';
 import { VariantSelectorModal } from '../components/VariantSelectorModal';
@@ -39,8 +41,14 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
+    const cached = getCachedMenu();
+    return cached && cached.length > 0 ? cached : DEFAULT_MENU_ITEMS;
+  });
+  const [loading, setLoading] = useState(() => {
+    const cached = getCachedMenu();
+    return !(cached && cached.length > 0);
+  });
 
   // Long press food detail modal
   const [detailModalItem, setDetailModalItem] = useState<MenuItem | null>(null);
@@ -56,12 +64,14 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   // Pulse animation for mic
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Load menu items
+  // Load menu items with background cache update
   const loadMenu = async () => {
     try {
-      setLoading(true);
       const items = await getMenuItemsApi();
-      setMenuItems(items);
+      if (items && items.length > 0) {
+        setMenuItems(items);
+        setCachedMenu(items);
+      }
     } catch (e) {
       console.warn('Failed to load menu items:', e);
     } finally {
@@ -74,69 +84,59 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   }, []);
 
   // Voice ordering hook
-  const { isListening, transcript, interimTranscript, startListening, stopListening } =
+  const { isListening, startListening, stopListening } =
     useVoiceRecognition({
       locale: 'hi-IN',
       onPhraseSpoken: async (phrase) => {
         if (!phrase.trim()) return;
         try {
           setIsProcessingVoice(true);
-          setVoiceNotice(`Listening: "${phrase}"`);
+          // Do not display raw transcript text on screen
+          setVoiceNotice('Processing order...');
 
           const res = await parseCafeVoiceOrderApi(phrase, cart);
 
           if (res?.actions && res.actions.length > 0) {
-            let noticeSummary = res.summary || '';
+            const addActions = res.actions.filter((a: any) => a.type === 'ADD');
+            const selectionActions = res.actions.filter((a: any) => a.type === 'NEEDS_SELECTION');
+            const deleteActions = res.actions.filter((a: any) => a.type === 'DELETE');
 
-            for (const act of res.actions) {
-              if (act.type === 'NEEDS_SELECTION') {
-                // Trigger disambiguation / variant picker popup
-                const matchedMenu = menuItems.find(
-                  (m) => m.name.toLowerCase() === act.itemName.toLowerCase()
-                );
-                const variants = act.availableVariants || matchedMenu?.variants || [];
+            // 1. Process all additions atomically
+            if (addActions.length > 0) {
+              setCart((prev) => {
+                let updated = [...prev];
+                for (const act of addActions) {
+                  const matchedMenu = menuItems.find(
+                    (m) =>
+                      m.name.toLowerCase() === act.itemName.toLowerCase() ||
+                      m.name.toLowerCase().includes(act.itemName.toLowerCase()) ||
+                      act.itemName.toLowerCase().includes(m.name.toLowerCase())
+                  );
 
-                setDisambiguationData({
-                  itemName: act.itemName,
-                  qty: act.qty || 1,
-                  availableVariants: variants,
-                });
-                noticeSummary = `Select size for ${act.itemName}`;
-              } else if (act.type === 'ADD') {
-                // Find matching menu item from catalog
-                const matchedMenu = menuItems.find(
-                  (m) =>
-                    m.name.toLowerCase().includes(act.itemName.toLowerCase()) ||
-                    act.itemName.toLowerCase().includes(m.name.toLowerCase())
-                );
+                  const itemImg =
+                    matchedMenu?.imageUrl ||
+                    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80';
 
-                const itemImg =
-                  matchedMenu?.imageUrl ||
-                  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80';
+                  const unitPrice =
+                    act.price ||
+                    (act.totalSpokenAmount && act.qty ? act.totalSpokenAmount / act.qty : 0) ||
+                    matchedMenu?.price ||
+                    0;
 
-                const unitPrice =
-                  act.price ||
-                  (act.totalSpokenAmount && act.qty ? act.totalSpokenAmount / act.qty : 0) ||
-                  matchedMenu?.price ||
-                  0;
+                  const qty = act.qty || 1;
+                  const variantObj = act.variantName
+                    ? { name: act.variantName, price: unitPrice, unit: act.unit }
+                    : undefined;
 
-                const qty = act.qty || 1;
-                const variantObj = act.variantName
-                  ? { name: act.variantName, price: unitPrice, unit: act.unit }
-                  : undefined;
-
-                const cartId = `${act.itemName}-${act.variantName || 'default'}`;
-
-                setCart((prev) => {
-                  const existingIdx = prev.findIndex((i) => i.id === cartId);
+                  const cartId = `${act.itemName}-${act.variantName || 'default'}`;
+                  const existingIdx = updated.findIndex((i) => i.id === cartId);
                   if (existingIdx !== -1) {
-                    const updated = [...prev];
-                    updated[existingIdx].qty += qty;
-                    return updated;
-                  }
-                  return [
-                    ...prev,
-                    {
+                    updated[existingIdx] = {
+                      ...updated[existingIdx],
+                      qty: updated[existingIdx].qty + qty,
+                    };
+                  } else {
+                    updated.push({
                       id: cartId,
                       menuItemId: matchedMenu?.id,
                       name: act.itemName,
@@ -147,20 +147,44 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
                       unit: act.unit || matchedMenu?.unit || 'pcs',
                       imageUrl: itemImg,
                       isVeg: matchedMenu?.isVeg !== false,
-                    },
-                  ];
-                });
-              } else if (act.type === 'DELETE') {
-                setCart((prev) =>
-                  prev.filter(
-                    (i) => !i.name.toLowerCase().includes(act.itemName.toLowerCase())
-                  )
-                );
-              }
+                    });
+                  }
+                }
+                return updated;
+              });
             }
 
-            setVoiceNotice(noticeSummary);
+            // 2. Process deletions
+            if (deleteActions.length > 0) {
+              setCart((prev) =>
+                prev.filter(
+                  (i) =>
+                    !deleteActions.some((d: any) =>
+                      i.name.toLowerCase().includes(d.itemName.toLowerCase())
+                    )
+                )
+              );
+            }
+
+            // 3. Process disambiguation
+            if (selectionActions.length > 0) {
+              const act = selectionActions[0];
+              const matchedMenu = menuItems.find(
+                (m) => m.name.toLowerCase() === act.itemName.toLowerCase()
+              );
+              const variants = act.availableVariants || matchedMenu?.variants || [];
+              setDisambiguationData({
+                itemName: act.itemName,
+                qty: act.qty || 1,
+                availableVariants: variants,
+              });
+            }
+
+            setVoiceNotice(res.summary || 'Added items to order');
             setTimeout(() => setVoiceNotice(null), 3500);
+          } else {
+            setVoiceNotice('No items recognized. Speak again.');
+            setTimeout(() => setVoiceNotice(null), 3000);
           }
         } catch (e) {
           console.warn('Voice ordering error:', e);
@@ -401,7 +425,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
             >
               {voiceNotice ||
                 (isListening
-                  ? interimTranscript || transcript || 'Listening for items...'
+                  ? 'Listening... Speak items & quantities'
                   : 'Processing speech...')}
             </Text>
           </View>

@@ -12,19 +12,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { getCustomersWithDueApi } from '../api/cafeApi';
+import { getCachedCustomers, setCachedCustomers } from '../services/cacheService';
 
 export const CustomersKhataScreen: React.FC = () => {
   const { colors, isDark } = useTheme();
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<any[]>(() => getCachedCustomers());
+  const [loading, setLoading] = useState(() => getCachedCustomers().length === 0);
   const [search, setSearch] = useState('');
   const [tabFilter, setTabFilter] = useState<'all' | 'due'>('all');
 
   const loadKhata = async () => {
     try {
-      setLoading(true);
+      if (customers.length === 0) setLoading(true);
       const data = await getCustomersWithDueApi();
-      setCustomers(Array.isArray(data) ? data : []);
+      if (Array.isArray(data)) {
+        setCustomers(data);
+        setCachedCustomers(data);
+      }
     } catch (e) {
       console.warn('Failed to load customers khata:', e);
     } finally {
