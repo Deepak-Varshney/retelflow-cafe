@@ -22,6 +22,7 @@ import {
   setCachedMetrics,
   CafeAppConfig,
 } from '../services/cacheService';
+import { SupportTicketsModal } from '../components/SupportTicketsModal';
 
 interface MoreScreenProps {
   user: any;
@@ -56,6 +57,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
   // Plans Modal
   const [plansModalVisible, setPlansModalVisible] = useState(false);
+
+  // Support Tickets Modal
+  const [ticketsModalVisible, setTicketsModalVisible] = useState(false);
 
   // Refresh user data & config silently
   useEffect(() => {
@@ -436,14 +440,47 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           </View>
         </View>
 
-        {/* 5. SUPPORT & CUSTOMER CARE (Strictly from Admin, No Hardcoded Fallback) */}
+        {/* 5. SUPPORT & CUSTOMER CARE */}
         <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
-          Official Support & Customer Care
+          Official Support & Helpdesk
         </Text>
         <View
           className="rounded-3xl border p-2 mb-5"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
+          {/* Raise Support Ticket (In-App) */}
+          <TouchableOpacity
+            onPress={() => setTicketsModalVisible(true)}
+            activeOpacity={0.8}
+            className="flex-row items-center p-3 rounded-2xl border mb-1.5"
+            style={{
+              backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#fef3c7',
+              borderColor: colors.primary,
+            }}
+          >
+            <View
+              className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+              style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fde68a' }}
+            >
+              <Ionicons name="chatbubbles" size={20} color={colors.primary} />
+            </View>
+            <View className="flex-1">
+              <View className="flex-row items-center gap-1.5">
+                <Text className="text-xs font-black" style={{ color: colors.text }}>
+                  Raise Support Ticket
+                </Text>
+                <View className="px-1.5 py-0.5 rounded-full bg-amber-500">
+                  <Text className="text-[8px] font-black text-black uppercase">Direct</Text>
+                </View>
+              </View>
+              <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                Report issues, track admin replies & chat directly
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          </TouchableOpacity>
+
+          {/* WhatsApp Support */}
           <TouchableOpacity
             onPress={() => handleOpenWhatsApp()}
             className="flex-row items-center p-3 rounded-2xl active:bg-emerald-500/10"
@@ -456,12 +493,13 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 WhatsApp Support
               </Text>
               <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                {whatsappPhone ? `+91 ${whatsappPhone} • Instant Counter Help` : 'Configured via Admin Portal'}
+                {whatsappPhone ? `+91 ${whatsappPhone} • Instant WhatsApp Support` : 'Chat with Tech Support Team'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
 
+          {/* Helpline Phone Call */}
           <TouchableOpacity
             onPress={handleCallSupport}
             className="flex-row items-center p-3 rounded-2xl active:bg-amber-500/10"
@@ -474,7 +512,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 Helpline Phone Call
               </Text>
               <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                {supportPhone ? `+91 ${supportPhone} • Voice Support` : 'Configured via Admin Portal'}
+                {supportPhone ? `+91 ${supportPhone} • Voice Call Support` : 'Direct Call (9 AM - 9 PM)'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -721,6 +759,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* SUPPORT TICKETS & HELPDESK MODAL */}
+      <SupportTicketsModal
+        visible={ticketsModalVisible}
+        onClose={() => setTicketsModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };

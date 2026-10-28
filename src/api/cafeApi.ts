@@ -273,3 +273,45 @@ export const getAppConfigApi = async (): Promise<{
     return { branding: {}, cafe: {} };
   }
 };
+
+/**
+ * Raise a new support ticket directly from cafe app
+ */
+export const createTicketApi = async (data: {
+  subject: string;
+  category: string;
+  message: string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+}) => {
+  const res = await api.post('/tickets', data);
+  return res.data;
+};
+
+/**
+ * Get all support tickets raised by this cafe counter
+ */
+export const getTicketsApi = async () => {
+  try {
+    const res = await api.get('/tickets');
+    return res.data?.tickets || [];
+  } catch (err) {
+    console.warn('[CafeApi] Failed to fetch tickets:', err);
+    return [];
+  }
+};
+
+/**
+ * Get full conversation of a single ticket
+ */
+export const getTicketDetailApi = async (id: string) => {
+  const res = await api.get(`/tickets/${id}`);
+  return res.data?.ticket;
+};
+
+/**
+ * Reply to a ticket
+ */
+export const replyTicketApi = async (id: string, text: string) => {
+  const res = await api.post(`/tickets/${id}/reply`, { text });
+  return res.data?.ticket;
+};

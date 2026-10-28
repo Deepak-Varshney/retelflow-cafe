@@ -56,12 +56,29 @@ function AppContent() {
         setAuthLoading(false);
         return;
       }
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
+
+      // 1. Instant Fast Path: Load cached user so the app opens in under 100ms
+      const cachedUser = await authStorage.getUser();
+      if (cachedUser) {
+        setUser(cachedUser);
+        setAuthLoading(false);
+      }
+
+      // 2. Background Refresh: Validate session and update profile silently
+      getCurrentUser()
+        .then((fresh) => {
+          if (fresh) {
+            setUser(fresh);
+            authStorage.saveUser(fresh);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setAuthLoading(false);
+        });
     } catch {
       await logout();
       setUser(null);
-    } finally {
       setAuthLoading(false);
     }
   };

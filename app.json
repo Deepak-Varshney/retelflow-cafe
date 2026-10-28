@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0b0f19"
+      "backgroundColor": "#070a13"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -24,7 +24,16 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0b0f19"
+        "backgroundColor": "#070a13"
+      },
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#070a13",
+        "dark": {
+          "image": "./assets/splash.png",
+          "backgroundColor": "#070a13"
+        }
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -42,6 +51,18 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#070a13",
+          "image": "./assets/splash.png",
+          "dark": {
+            "image": "./assets/splash.png",
+            "backgroundColor": "#070a13"
+          },
+          "imageWidth": 200
+        }
+      ],
       "expo-status-bar",
       [
         "expo-speech-recognition",
