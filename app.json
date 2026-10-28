@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "Allow RetelFlow Cafe to recognize speech for quick voice ordering.",
+        "NSSpeechRecognitionUsageDescription": "Allow RetelFlow Cafe to recognize speech for voice order creation.",
         "NSMicrophoneUsageDescription": "Allow RetelFlow Cafe to use the microphone for voice order creation."
       }
     },
@@ -30,7 +30,11 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
       ],
       "package": "in.retelflow.cafe"
     },
@@ -67,6 +71,11 @@
       "expo-asset",
       "expo-sharing"
     ],
-    "owner": "frpunlockcomins-team"
+    "owner": "frpunlockcomins-team",
+    "extra": {
+      "eas": {
+        "projectId": "bf443d48-3a89-4eee-86f7-381a7dd91806"
+      }
+    }
   }
 }
