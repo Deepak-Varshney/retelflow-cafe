@@ -12,8 +12,11 @@ export interface DisambiguationItem {
 interface DisambiguationModalProps {
   visible: boolean;
   data: DisambiguationItem | null;
+  /** Picking a size resolves the item; the parent closes / moves to the next one. */
   onSelect: (variantName: string, price: number, unit?: string) => void;
   onClose: () => void;
+  /** e.g. "1 of 3" when several voice items need a size */
+  position?: string;
 }
 
 export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
@@ -21,6 +24,7 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
   data,
   onSelect,
   onClose,
+  position,
 }) => {
   const { colors } = useTheme();
 
@@ -44,8 +48,11 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
             >
               <Ionicons name="help-circle-outline" size={26} color={colors.primary} />
             </View>
+            {position ? (
+              <Text className="text-[10px] font-black text-amber-500 uppercase mb-0.5">{position}</Text>
+            ) : null}
             <Text className="text-base font-black text-center" style={{ color: colors.text }}>
-              Which {data.itemName}?
+              Which {data.itemName}?{data.qty && data.qty > 1 ? ` (x${data.qty})` : ''}
             </Text>
             <Text className="text-xs text-center mt-1" style={{ color: colors.textSecondary }}>
               Multiple options found. Please pick the correct size/portion:
@@ -57,10 +64,7 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
             {(data.availableVariants || []).map((v, idx) => (
               <TouchableOpacity
                 key={idx}
-                onPress={() => {
-                  onSelect(v.name, v.price, v.unit);
-                  onClose();
-                }}
+                onPress={() => onSelect(v.name, v.price, v.unit)}
                 activeOpacity={0.7}
                 className="flex-row items-center justify-between p-3.5 mb-2 rounded-2xl border active:scale-98"
                 style={{
@@ -91,7 +95,7 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
             style={{ borderColor: colors.border }}
           >
             <Text className="text-xs font-semibold" style={{ color: colors.textMuted }}>
-              Cancel
+              {position ? 'Skip this item' : 'Cancel'}
             </Text>
           </TouchableOpacity>
         </View>

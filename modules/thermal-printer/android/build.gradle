@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'in.retelflow.cafe'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.thermalprinter"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+    consumerProguardFiles 'proguard-rules.pro'
+  }
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+  // Vendor Bluetooth/USB/WiFi ESC-POS printer SDK (sdk/AndroidPrintSDK/app/libs)
+  implementation files('libs/androidprintsdk.jar')
+}

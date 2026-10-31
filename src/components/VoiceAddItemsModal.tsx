@@ -88,8 +88,8 @@ export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
       <View className="flex-1 justify-end bg-black/75">
         <TouchableOpacity className="flex-1" activeOpacity={1} onPress={onClose} />
         <View
-          className="rounded-t-3xl border-t p-5 max-h-[85%]"
-          style={{
+          className="rounded-t-3xl border-t p-5 w-full self-center"
+          style={{ maxHeight: '85%', maxWidth: 640,
             backgroundColor: colors.card,
             borderColor: colors.border,
           }}

@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Android 11 and below -->
+  <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+  <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+  <!-- Android 12+ : needed to list paired devices and open the RFCOMM socket -->
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+  <!-- Android 12+ : the SDK's BluetoothPort calls adapter.cancelDiscovery() while connecting -->
+  <uses-permission
+    android:name="android.permission.BLUETOOTH_SCAN"
+    android:usesPermissionFlags="neverForLocation" />
+</manifest>

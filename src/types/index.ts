@@ -41,12 +41,36 @@ export interface CustomerInfo {
 
 export type PaymentMethod = 'cash' | 'online' | 'split' | 'credit';
 
+export interface StoreInfo {
+  shopName?: string;
+  address?: string;
+  phone?: string;
+  gstNumber?: string;
+}
+
+/** Bluetooth receipt layout, set per shop from the admin panel (/auth/me). */
+export interface PrintSettings {
+  paperWidth: 58 | 80;
+  storeNameSize: 'normal' | 'large' | 'xlarge';
+  itemTextSize: 'normal' | 'large';
+  tokenSize: 'normal' | 'large';
+  footerText: string; // empty = app default
+  feedLines: number;
+}
+
+/** Per-shop features switched on from the admin panel (/auth/me). */
+export interface ShopFeatures {
+  reprintBills: boolean;
+  khataStatement: boolean;
+}
+
 export interface OrderInvoice {
   id: string;
   invoiceNumber: string;
   orderNumber?: number; // KOT token # (e.g. 14)
   items: CartItem[];
   subtotal: number;
+  originalAmount?: number; // server's name for the subtotal before discount
   discount: number;
   total: number;
   receivedAmount: number;

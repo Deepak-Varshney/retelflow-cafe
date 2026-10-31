@@ -1,13 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { getInvoicesApi } from '../api/cafeApi';
 import { getCachedOrders, setCachedOrders } from '../services/cacheService';
+import { BillDetailModal } from '../components/BillDetailModal';
+import { PrintSettings, ShopFeatures, StoreInfo } from '../types';
 
-export const OrdersHistoryScreen: React.FC = () => {
+interface OrdersHistoryScreenProps {
+  storeInfo: StoreInfo;
+  printSettings: PrintSettings;
+  features: ShopFeatures;
+}
+
+export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
+  storeInfo,
+  printSettings,
+  features,
+}) => {
   const { colors } = useTheme();
+  const [openBill, setOpenBill] = useState<any | null>(null);
+  const [search, setSearch] = useState('');
   const [orders, setOrders] = useState<any[]>(() => getCachedOrders());
   const [loading, setLoading] = useState(() => getCachedOrders().length === 0);
 
@@ -36,6 +50,15 @@ export const OrdersHistoryScreen: React.FC = () => {
   );
   const totalOrders = orders.length;
 
+  const visibleOrders = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter((o) =>
+      [o.customer?.name, o.customerName, o.customer?.phone, o.customerPhone, o.invoiceNumber, String(o.orderNumber || '')]
+        .some((v) => String(v || '').toLowerCase().includes(q))
+    );
+  }, [orders, search]);
+
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       {/* Header */}
@@ -48,7 +71,7 @@ export const OrdersHistoryScreen: React.FC = () => {
             Orders & Sales
           </Text>
           <Text className="text-[11px]" style={{ color: colors.textSecondary }}>
-            Today&apos;s Cafe & Restaurant Sales
+            All bills • Tap a bill to view
           </Text>
         </View>
 
@@ -74,9 +97,32 @@ export const OrdersHistoryScreen: React.FC = () => {
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
           <Text className="text-[11px] font-bold text-slate-400">Total Orders</Text>
-          <Text className="text-xl font-black text-white font-mono mt-1">
+          <Text className="text-xl font-black font-mono mt-1" style={{ color: colors.text }}>
             {totalOrders}
           </Text>
+        </View>
+      </View>
+
+      {/* Search */}
+      <View className="px-4 pb-2">
+        <View
+          className="flex-row items-center px-3.5 py-2.5 rounded-2xl border"
+          style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
+        >
+          <Ionicons name="search" size={16} color={colors.textMuted} />
+          <TextInput
+            placeholder="Search name, mobile or bill no..."
+            placeholderTextColor={colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            className="flex-1 text-xs font-semibold ml-2"
+            style={{ color: colors.text }}
+          />
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
 
@@ -87,7 +133,9 @@ export const OrdersHistoryScreen: React.FC = () => {
         </View>
       ) : (
         <FlatList
-          data={orders}
+          data={visibleOrders}
+          refreshing={false}
+          onRefresh={loadOrders}
           keyExtractor={(item, index) => item._id || item.id || item.invoiceId || String(index)}
           renderItem={({ item }) => {
             const billAmount = Number(item.totalAmount ?? item.grandTotal ?? item.total) || 0;
@@ -95,27 +143,30 @@ export const OrdersHistoryScreen: React.FC = () => {
             const custName = item.customer?.name || item.customerName || 'Walk-in Guest';
             const custPhone = item.customer?.phone || item.customerPhone || '';
             const paymentMode = (item.paymentMethod || 'cash').toUpperCase();
-            const orderTime = item.createdAt || item.date
-              ? new Date(item.createdAt || item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            const when = item.createdAt || item.date ? new Date(item.createdAt || item.date) : null;
+            const orderTime = when
+              ? `${when.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, ${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
               : '';
 
             return (
-              <View
+              <TouchableOpacity
+                onPress={() => setOpenBill(item)}
+                activeOpacity={0.75}
                 className="p-3.5 mb-2.5 mx-4 rounded-2xl border"
                 style={{ backgroundColor: colors.card, borderColor: colors.border }}
               >
                 <View className="flex-row items-center justify-between mb-1.5">
-                  <View className="flex-row items-center gap-2">
+                  <View className="flex-row items-center gap-2 flex-1 pr-2 flex-wrap">
                     <View className="px-2 py-0.5 rounded-md bg-amber-500/20">
                       <Text className="text-[10px] font-black text-amber-500">
                         Token #{item.orderNumber || item.invoiceNumber?.slice(-3) || item.id?.slice(-3) || '01'}
                       </Text>
                     </View>
-                    <Text className="text-xs font-bold" style={{ color: colors.text }}>
+                    <Text className="text-xs font-bold flex-shrink" style={{ color: colors.text }} numberOfLines={1}>
                       {custName}
                     </Text>
-                    <View className="px-1.5 py-0.2 rounded bg-slate-700/50">
-                      <Text className="text-[9px] font-semibold text-slate-300">
+                    <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: colors.surface }}>
+                      <Text className="text-[9px] font-semibold" style={{ color: colors.textSecondary }}>
                         {paymentMode}
                       </Text>
                     </View>
@@ -149,7 +200,7 @@ export const OrdersHistoryScreen: React.FC = () => {
                     </Text>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
             );
           }}
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -162,12 +213,22 @@ export const OrdersHistoryScreen: React.FC = () => {
                 <Ionicons name="receipt-outline" size={30} color={colors.textMuted} />
               </View>
               <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
-                No orders placed yet today
+                {search.trim() ? `No bills match "${search}"` : 'No orders placed yet'}
               </Text>
             </View>
           }
         />
       )}
+
+      {openBill ? (
+        <BillDetailModal
+          invoice={openBill}
+          storeInfo={storeInfo}
+          printSettings={printSettings}
+          features={features}
+          onClose={() => setOpenBill(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 };

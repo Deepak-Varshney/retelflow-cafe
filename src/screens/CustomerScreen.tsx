@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,15 @@ import { CustomerInfo, CartItem } from '../types';
 import { searchCustomerApi } from '../api/cafeApi';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
 import { parseCustomerVoice } from '../services/customerVoiceParser';
+import { CartReviewModal } from '../components/CartReviewModal';
+import { getCachedMenu } from '../services/cacheService';
+import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
 
 interface CustomerScreenProps {
   customer: CustomerInfo;
   setCustomer: (cust: CustomerInfo) => void;
   cart: CartItem[];
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   onProceedToPayment: () => void;
   onBack: () => void;
 }
@@ -29,10 +33,21 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
   customer,
   setCustomer,
   cart,
+  setCart,
   onProceedToPayment,
   onBack,
 }) => {
   const { colors, isDark } = useTheme();
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const menuItems = useMemo(() => {
+    const cached = getCachedMenu();
+    return cached && cached.length > 0 ? cached : DEFAULT_MENU_ITEMS;
+  }, []);
+
+  // Everything removed while editing: back to the menu
+  useEffect(() => {
+    if (cart.length === 0) onBack();
+  }, [cart.length]);
 
   const [name, setName] = useState(customer.name || '');
   const [phone, setPhone] = useState(customer.phone || '');
@@ -207,9 +222,17 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                   Items in this Order ({cart.length})
                 </Text>
               </View>
-              <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
-                Total: <Text className="font-mono font-black text-amber-500">₹{totalAmount.toLocaleString()}</Text>
-              </Text>
+              <TouchableOpacity
+                onPress={() => setCartModalVisible(true)}
+                className="flex-row items-center px-2.5 py-1 rounded-xl border"
+                style={{ borderColor: colors.primary }}
+                hitSlop={6}
+              >
+                <Ionicons name="create-outline" size={14} color={colors.primary} />
+                <Text className="text-xs font-black ml-1" style={{ color: colors.primary }}>
+                  Edit
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View className="pt-2">
@@ -244,6 +267,11 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                   </Text>
                 </View>
               ))}
+            </View>
+            <View className="flex-row justify-end pt-2">
+              <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
+                Total: <Text className="font-mono font-black text-amber-500">₹{totalAmount.toLocaleString()}</Text>
+              </Text>
             </View>
           </View>
 
@@ -382,6 +410,14 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      <CartReviewModal
+        visible={cartModalVisible}
+        cart={cart}
+        setCart={setCart}
+        menuItems={menuItems}
+        onClose={() => setCartModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };

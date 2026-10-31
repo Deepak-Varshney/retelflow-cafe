@@ -13,9 +13,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { getCustomersWithDueApi } from '../api/cafeApi';
 import { getCachedCustomers, setCachedCustomers } from '../services/cacheService';
+import { CustomerDetailModal } from '../components/CustomerDetailModal';
+import { ShopFeatures } from '../types';
 
-export const CustomersKhataScreen: React.FC = () => {
+interface CustomersKhataScreenProps {
+  features: ShopFeatures;
+}
+
+export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ features }) => {
   const { colors, isDark } = useTheme();
+  const [openCustomer, setOpenCustomer] = useState<any | null>(null);
   const [customers, setCustomers] = useState<any[]>(() => getCachedCustomers());
   const [loading, setLoading] = useState(() => getCachedCustomers().length === 0);
   const [search, setSearch] = useState('');
@@ -80,7 +87,7 @@ export const CustomersKhataScreen: React.FC = () => {
       const cleanPhone = phone.replace(/\D/g, '').slice(-10);
       const dueText = due && due > 0 ? `Your pending credit balance is ₹${due.toLocaleString()}.` : '';
       const msg = encodeURIComponent(
-        `Hello ${name || 'Customer'}, greetings from RetelFlow Cafe! ${dueText} Thank you for your visit.`
+        `Hello ${name || 'Customer'}! ${dueText} Thank you for your visit.`
       );
       Linking.openURL(`whatsapp://send?phone=91${cleanPhone}&text=${msg}`);
     }
@@ -129,7 +136,7 @@ export const CustomersKhataScreen: React.FC = () => {
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
           <Text className="text-[10px] font-bold uppercase text-slate-400">All Customers</Text>
-          <Text className="text-lg font-black text-white font-mono mt-0.5">
+          <Text className="text-lg font-black font-mono mt-0.5" style={{ color: colors.text }}>
             {customers.length}
           </Text>
         </View>
@@ -210,7 +217,9 @@ export const CustomersKhataScreen: React.FC = () => {
             const hasPhone = Boolean(item.phone && item.phone.replace(/\D/g, '').length >= 10);
 
             return (
-              <View
+              <TouchableOpacity
+                onPress={() => setOpenCustomer(item)}
+                activeOpacity={0.8}
                 className="p-3.5 mb-2.5 mx-4 rounded-2xl border"
                 style={{
                   backgroundColor: colors.card,
@@ -304,9 +313,11 @@ export const CustomersKhataScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
                 ) : null}
-              </View>
+              </TouchableOpacity>
             );
           }}
+          refreshing={false}
+          onRefresh={loadKhata}
           contentContainerStyle={{ paddingBottom: 24 }}
           ListEmptyComponent={
             <View className="items-center justify-center py-20">
@@ -327,6 +338,15 @@ export const CustomersKhataScreen: React.FC = () => {
           }
         />
       )}
+
+      {openCustomer ? (
+        <CustomerDetailModal
+          customer={openCustomer}
+          features={features}
+          onClose={() => setOpenCustomer(null)}
+          onChanged={loadKhata}
+        />
+      ) : null}
     </SafeAreaView>
   );
 };

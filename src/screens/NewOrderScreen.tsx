@@ -22,7 +22,15 @@ import { VariantSelectorModal } from '../components/VariantSelectorModal';
 import { DisambiguationModal, DisambiguationItem } from '../components/DisambiguationModal';
 import { FloatingCartBar } from '../components/FloatingCartBar';
 import { FoodItemDetailModal } from '../components/FoodItemDetailModal';
+import { CartReviewModal } from '../components/CartReviewModal';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
+import { friendlyError } from '../utils/errorMessage';
+
+const norm = (s?: string) => (s || '').trim().toLowerCase();
+
+const findMenuItem = (items: MenuItem[], name: string) =>
+  items.find((m) => norm(m.name) === norm(name)) ||
+  items.find((m) => norm(m.name).includes(norm(name)) || norm(name).includes(norm(m.name)));
 
 interface NewOrderScreenProps {
   cart: CartItem[];
@@ -55,7 +63,12 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
 
   // Modals state
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
-  const [disambiguationData, setDisambiguationData] = useState<DisambiguationItem | null>(null);
+  // Voice items that need a size picked, asked one after another
+  const [selectionQueue, setSelectionQueue] = useState<DisambiguationItem[]>([]);
+  const disambiguationData = selectionQueue[0] || null;
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+  // Android sometimes delivers the same final phrase twice
+  const lastPhraseRef = useRef<{ text: string; at: number }>({ text: '', at: 0 });
 
   // Live voice processing status
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
@@ -89,6 +102,9 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
       locale: 'hi-IN',
       onPhraseSpoken: async (phrase) => {
         if (!phrase.trim()) return;
+        const now = Date.now();
+        if (norm(phrase) === lastPhraseRef.current.text && now - lastPhraseRef.current.at < 5000) return;
+        lastPhraseRef.current = { text: norm(phrase), at: now };
         try {
           setIsProcessingVoice(true);
           // Do not display raw transcript text on screen
@@ -97,21 +113,34 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           const res = await parseCafeVoiceOrderApi(phrase, cart);
 
           if (res?.actions && res.actions.length > 0) {
-            const addActions = res.actions.filter((a: any) => a.type === 'ADD');
-            const selectionActions = res.actions.filter((a: any) => a.type === 'NEEDS_SELECTION');
             const deleteActions = res.actions.filter((a: any) => a.type === 'DELETE');
+            const addActions: any[] = [];
+            const selectionActions: DisambiguationItem[] = [];
+
+            // Any item with 2+ sizes on the menu goes to the size picker unless
+            // the spoken size matches one of them
+            for (const act of res.actions) {
+              if (act.type !== 'ADD' && act.type !== 'NEEDS_SELECTION') continue;
+              const menu = findMenuItem(menuItems, act.itemName);
+              const variants = menu?.variants?.length ? menu.variants : act.availableVariants || [];
+              const spoken = act.variantName && variants.find((v) => norm(v.name) === norm(act.variantName));
+              if (variants.length > 1 && !(act.type === 'ADD' && spoken)) {
+                selectionActions.push({
+                  itemName: menu?.name || act.itemName,
+                  qty: act.qty || 1,
+                  availableVariants: variants,
+                });
+              } else {
+                addActions.push(spoken ? { ...act, price: spoken.price, unit: spoken.unit || act.unit } : act);
+              }
+            }
 
             // 1. Process all additions atomically
             if (addActions.length > 0) {
               setCart((prev) => {
                 let updated = [...prev];
                 for (const act of addActions) {
-                  const matchedMenu = menuItems.find(
-                    (m) =>
-                      m.name.toLowerCase() === act.itemName.toLowerCase() ||
-                      m.name.toLowerCase().includes(act.itemName.toLowerCase()) ||
-                      act.itemName.toLowerCase().includes(m.name.toLowerCase())
-                  );
+                  const matchedMenu = findMenuItem(menuItems, act.itemName);
 
                   const itemImg =
                     matchedMenu?.imageUrl ||
@@ -166,21 +195,16 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
               );
             }
 
-            // 3. Process disambiguation
+            // 3. Ask the size for every item that needs one, one by one
             if (selectionActions.length > 0) {
-              const act = selectionActions[0];
-              const matchedMenu = menuItems.find(
-                (m) => m.name.toLowerCase() === act.itemName.toLowerCase()
-              );
-              const variants = act.availableVariants || matchedMenu?.variants || [];
-              setDisambiguationData({
-                itemName: act.itemName,
-                qty: act.qty || 1,
-                availableVariants: variants,
-              });
+              setSelectionQueue((prev) => [...prev, ...selectionActions]);
             }
 
-            setVoiceNotice(res.summary || 'Added items to order');
+            setVoiceNotice(
+              selectionActions.length > 0
+                ? `Pick size for ${selectionActions.length} item${selectionActions.length > 1 ? 's' : ''}`
+                : res.summary || 'Added items to order'
+            );
             setTimeout(() => setVoiceNotice(null), 3500);
           } else {
             setVoiceNotice('No items recognized. Speak again.');
@@ -188,8 +212,8 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           }
         } catch (e) {
           console.warn('Voice ordering error:', e);
-          setVoiceNotice('Could not understand. Please try again.');
-          setTimeout(() => setVoiceNotice(null), 3000);
+          setVoiceNotice(friendlyError(e, 'Could not understand. Please try again.'));
+          setTimeout(() => setVoiceNotice(null), 4000);
         } finally {
           setIsProcessingVoice(false);
         }
@@ -270,9 +294,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
     setCart((prev) => {
       const existingIdx = prev.findIndex((i) => i.id === cartId);
       if (existingIdx !== -1) {
-        const updated = [...prev];
-        updated[existingIdx].qty += 1;
-        return updated;
+        return prev.map((it, i) => (i === existingIdx ? { ...it, qty: it.qty + 1 } : it));
       }
       return [
         ...prev,
@@ -300,9 +322,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
       if (idx === -1) return prev;
 
       if (prev[idx].qty > 1) {
-        const updated = [...prev];
-        updated[idx].qty -= 1;
-        return updated;
+        return prev.map((it, i) => (i === idx ? { ...it, qty: it.qty - 1 } : it));
       } else {
         return prev.filter((_, i) => i !== idx);
       }
@@ -326,9 +346,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
     setCart((prev) => {
       const existingIdx = prev.findIndex((i) => i.id === cartId);
       if (existingIdx !== -1) {
-        const updated = [...prev];
-        updated[existingIdx].qty += qty;
-        return updated;
+        return prev.map((it, i) => (i === existingIdx ? { ...it, qty: it.qty + qty } : it));
       }
       return [
         ...prev,
@@ -347,7 +365,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
       ];
     });
 
-    setDisambiguationData(null);
+    setSelectionQueue((prev) => prev.slice(1));
   };
 
   return (
@@ -547,12 +565,30 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
       <DisambiguationModal
         visible={Boolean(disambiguationData)}
         data={disambiguationData}
+        position={selectionQueue.length > 1 ? `1 of ${selectionQueue.length}` : undefined}
         onSelect={handleResolveDisambiguation}
-        onClose={() => setDisambiguationData(null)}
+        onClose={() => setSelectionQueue((prev) => prev.slice(1))}
       />
 
-      {/* 8. Floating Cart Summary Bar */}
-      <FloatingCartBar items={cart} onProceed={onProceedToCustomer} />
+      {/* 8. Full order list: change size / qty / remove */}
+      <CartReviewModal
+        visible={cartModalVisible}
+        cart={cart}
+        setCart={setCart}
+        menuItems={menuItems}
+        onClose={() => setCartModalVisible(false)}
+        onProceed={() => {
+          setCartModalVisible(false);
+          onProceedToCustomer();
+        }}
+      />
+
+      {/* 9. Floating Cart Summary Bar */}
+      <FloatingCartBar
+        items={cart}
+        onProceed={onProceedToCustomer}
+        onViewCart={() => setCartModalVisible(true)}
+      />
     </SafeAreaView>
   );
 };

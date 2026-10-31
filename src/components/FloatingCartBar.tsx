@@ -8,12 +8,15 @@ interface FloatingCartBarProps {
   items: CartItem[];
   onProceed: () => void;
   onClearCart?: () => void;
+  /** Opens the full order list (edit size / qty / remove). */
+  onViewCart?: () => void;
 }
 
 export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
   items,
   onProceed,
   onClearCart,
+  onViewCart,
 }) => {
   const { colors } = useTheme();
 
@@ -35,8 +38,13 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
         elevation: 10,
       }}
     >
-      {/* Left: Items Summary */}
-      <View className="flex-row items-center flex-1">
+      {/* Left: Items Summary (tap to view / edit the order) */}
+      <TouchableOpacity
+        onPress={onViewCart}
+        disabled={!onViewCart}
+        activeOpacity={0.7}
+        className="flex-row items-center flex-1 pr-2"
+      >
         <View
           className="w-10 h-10 rounded-2xl items-center justify-center mr-3 border"
           style={{
@@ -54,8 +62,11 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
           <Text className="text-base font-black text-white font-mono">
             ₹{totalPrice.toLocaleString()}
           </Text>
+          {onViewCart ? (
+            <Text className="text-[10px] font-bold text-amber-400">View / edit order ▴</Text>
+          ) : null}
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Right: Proceed Button */}
       <TouchableOpacity

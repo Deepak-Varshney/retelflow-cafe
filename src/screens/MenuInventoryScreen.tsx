@@ -1296,8 +1296,8 @@ export const MenuInventoryScreen: React.FC = () => {
             onPress={() => setCategoryPickerVisible(false)}
           />
           <View
-            className="rounded-t-3xl border-t p-5 max-h-[80%]"
-            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+            className="rounded-t-3xl border-t p-5 w-full self-center"
+            style={{ maxHeight: '80%', maxWidth: 640, backgroundColor: colors.card, borderColor: colors.border }}
           >
             <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
               <View>

@@ -170,6 +170,8 @@ export const createOrderInvoiceApi = async (order: {
   receivedAmount: number;
   dueAmount: number;
   total: number;
+  subtotal: number;
+  discount: number;
   notes?: string;
 }): Promise<{ success: boolean; invoice: any; message?: string }> => {
   const payload = {
@@ -184,6 +186,9 @@ export const createOrderInvoiceApi = async (order: {
     })),
     totalAmount: order.total,
     grandTotal: order.total,
+    // Subtotal before discount; the server stores it as originalAmount
+    originalAmount: order.subtotal,
+    discount: order.discount,
     receivedAmount: order.receivedAmount,
     balanceAmount: order.dueAmount,
     dueAmount: order.dueAmount,
@@ -250,6 +255,54 @@ export const getCustomersWithDueApi = async (): Promise<any[]> => {
     console.warn('[CafeApi] Failed to fetch customers:', err);
     return [];
   }
+};
+
+export interface LedgerEntry {
+  type: 'bill' | 'payment';
+  id: string;
+  date: string;
+  // bill
+  total?: number;
+  paidAtBill?: number;
+  dueAtBill?: number;
+  dueNow?: number;
+  items?: number;
+  // payment
+  amount?: number;
+  bills?: string[];
+  dueAfter?: number;
+  approximateDate?: boolean;
+  notes?: string;
+  paymentMethod?: string;
+}
+
+export interface CustomerLedger {
+  billed: number;
+  paid: number;
+  paidLater: number;
+  due: number;
+  entries: LedgerEntry[];
+}
+
+/**
+ * Khata history of one customer: bills and dues payments, newest first
+ */
+export const getCustomerLedgerApi = async (phone?: string, name?: string): Promise<CustomerLedger> => {
+  const res = await api.get('/customers/ledger', { params: { phone: phone || '', name: name || '' } });
+  return res.data;
+};
+
+/**
+ * Record a dues payment; the server applies it to the oldest unpaid bills first
+ */
+export const settleCustomerDueApi = async (data: {
+  phone: string;
+  amount: number;
+  paymentMethod: 'cash' | 'online';
+  notes?: string;
+}): Promise<{ success: boolean; settledAmount: number; remainingDue: number }> => {
+  const res = await api.post('/customers/settle', data);
+  return res.data;
 };
 
 /**

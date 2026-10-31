@@ -158,10 +158,15 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end bg-black/80"
       >
-        <TouchableOpacity className="flex-1" activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={onClose}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+        {/* Fixed sheet height: the list / chat inside are flex-1 and collapse to nothing without it */}
         <View
-          className="rounded-t-3xl border-t p-5 max-h-[92%]"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          className="rounded-t-3xl border-t p-5"
+          style={{ backgroundColor: colors.card, borderColor: colors.border, height: '88%' }}
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>

@@ -14,6 +14,7 @@ import { useTheme } from '../services/ThemeContext';
 import { CustomerInfo, CartItem } from '../types';
 import { createOrderInvoiceApi } from '../api/cafeApi';
 import { CreditMobileModal } from '../components/CreditMobileModal';
+import { friendlyError } from '../utils/errorMessage';
 
 interface PaymentScreenProps {
   cart: CartItem[];
@@ -123,6 +124,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         receivedAmount,
         dueAmount,
         total: finalTotal,
+        subtotal,
+        discount: discountAmount,
         notes: notes.trim(),
       });
 
@@ -134,7 +137,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
       }
     } catch (err: any) {
       console.warn('Order completion failed:', err);
-      // Fallback local invoice for smooth cashier experience
+      // Unsaved bill = missing from sales and khata. Tell the cashier and let
+      // them retry; "Continue" still gives a KOT for the kitchen.
       const localInvoice = {
         id: `kot-${Date.now()}`,
         invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
@@ -153,7 +157,14 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         },
         date: new Date().toISOString(),
       };
-      onOrderCompleted(localInvoice);
+      Alert.alert(
+        'Order not saved',
+        `${friendlyError(err, 'Could not reach the server.')}\n\nThis bill will not appear in Orders or Khata if you continue without saving.`,
+        [
+          { text: 'Retry', onPress: () => handleProcessPayment(activePhone) },
+          { text: 'Continue without saving', style: 'destructive', onPress: () => onOrderCompleted(localInvoice) },
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -209,7 +220,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <View className="mt-2 flex-row items-center">
             <Ionicons name="person-circle-outline" size={14} color={colors.textSecondary} />
             <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>
-              <Text className="font-bold text-white">{customer.name || 'Walk-in Guest'}</Text>
+              <Text className="font-bold" style={{ color: colors.text }}>{customer.name || 'Walk-in Guest'}</Text>
               {customer.phone ? ` • +91 ${customer.phone}` : ''}
             </Text>
           </View>

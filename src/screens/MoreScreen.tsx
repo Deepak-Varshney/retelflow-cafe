@@ -23,6 +23,8 @@ import {
   CafeAppConfig,
 } from '../services/cacheService';
 import { SupportTicketsModal } from '../components/SupportTicketsModal';
+import { PrinterSetupModal } from '../components/PrinterSetupModal';
+import { getSavedPrinter, isPrinterSdkAvailable } from '../../modules/thermal-printer';
 
 interface MoreScreenProps {
   user: any;
@@ -57,6 +59,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
   // Plans Modal
   const [plansModalVisible, setPlansModalVisible] = useState(false);
+
+  // Bluetooth Thermal Printer
+  const [printerModalVisible, setPrinterModalVisible] = useState(false);
+  const [savedPrinter, setSavedPrinter] = useState(() => getSavedPrinter());
 
   // Support Tickets Modal
   const [ticketsModalVisible, setTicketsModalVisible] = useState(false);
@@ -172,13 +178,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
   const handleOpenWhatsApp = (customMessage?: string) => {
     if (!whatsappPhone) {
-      Alert.alert(
-        'Support Unavailable',
-        'Customer support WhatsApp number is not configured in the admin panel. Please reach out to your system administrator.'
-      );
+      setTicketsModalVisible(true);
       return;
     }
-    const cleanNumber = whatsappPhone.replace(/\D/g, '');
+    // Admin may store it with or without the 91 prefix
+    const cleanNumber = whatsappPhone.replace(/\D/g, '').slice(-10);
     const text = encodeURIComponent(
       customMessage || `Hi RetelFlow Support, I need help with my counter billing account (${currentUser.shopName || currentUser.name || 'Cafe'}).`
     );
@@ -189,13 +193,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
   const handleCallSupport = () => {
     if (!supportPhone) {
-      Alert.alert(
-        'Helpline Unavailable',
-        'Customer support helpline number is not configured in the admin panel. Please reach out to your system administrator.'
-      );
+      setTicketsModalVisible(true);
       return;
     }
-    Linking.openURL(`tel:${supportPhone}`).catch(() => {
+    Linking.openURL(`tel:+91${supportPhone.replace(/\D/g, '').slice(-10)}`).catch(() => {
       Alert.alert('Error', 'Unable to place a phone call from this device.');
     });
   };
@@ -405,22 +406,34 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           className="rounded-3xl border p-4 mb-4"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
-          <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
-            <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() =>
+              isPrinterSdkAvailable
+                ? setPrinterModalVisible(true)
+                : Alert.alert('Not Available', 'Direct Bluetooth printing works in the Android app only.')
+            }
+            activeOpacity={0.7}
+            className="flex-row items-center justify-between pb-3 border-b mb-3"
+            style={{ borderColor: colors.border }}
+          >
+            <View className="flex-row items-center flex-1">
               <Ionicons name="print-outline" size={18} color={colors.primary} className="mr-2" />
-              <View>
+              <View className="flex-1">
                 <Text className="text-xs font-bold" style={{ color: colors.text }}>
                   Thermal Receipt Printer
                 </Text>
-                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                  Bluetooth ESC/POS continuous roll
+                <Text className="text-[10px]" style={{ color: colors.textSecondary }} numberOfLines={1}>
+                  {savedPrinter ? savedPrinter.name : 'Tap to select Bluetooth printer'}
                 </Text>
               </View>
             </View>
-            <Text className="text-xs font-bold text-amber-500 font-mono">
-              58mm / 80mm
-            </Text>
-          </View>
+            <View className="flex-row items-center gap-1">
+              <Text className="text-xs font-bold text-amber-500 font-mono">
+                {savedPrinter ? 'Change' : 'Setup'}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            </View>
+          </TouchableOpacity>
 
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
@@ -480,7 +493,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </TouchableOpacity>
 
-          {/* WhatsApp Support */}
+          {/* WhatsApp Support (only when a number is set in the admin) */}
+          {whatsappPhone ? (
           <TouchableOpacity
             onPress={() => handleOpenWhatsApp()}
             className="flex-row items-center p-3 rounded-2xl active:bg-emerald-500/10"
@@ -493,13 +507,15 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 WhatsApp Support
               </Text>
               <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                {whatsappPhone ? `+91 ${whatsappPhone} • Instant WhatsApp Support` : 'Chat with Tech Support Team'}
+                +91 {whatsappPhone.replace(/\D/g, '').slice(-10)} • Instant WhatsApp Support
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
+          ) : null}
 
-          {/* Helpline Phone Call */}
+          {/* Helpline Phone Call (only when a number is set in the admin) */}
+          {supportPhone ? (
           <TouchableOpacity
             onPress={handleCallSupport}
             className="flex-row items-center p-3 rounded-2xl active:bg-amber-500/10"
@@ -512,11 +528,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 Helpline Phone Call
               </Text>
               <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                {supportPhone ? `+91 ${supportPhone} • Voice Call Support` : 'Direct Call (9 AM - 9 PM)'}
+                +91 {supportPhone.replace(/\D/g, '').slice(-10)} • Voice Call Support
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* 6. LOGOUT BUTTON */}
@@ -546,8 +563,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         <View className="flex-1 justify-end bg-black/75">
           <TouchableOpacity className="flex-1" activeOpacity={1} onPress={() => setEditModalVisible(false)} />
           <View
-            className="rounded-t-3xl border-t p-5 max-h-[85%]"
-            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+            className="rounded-t-3xl border-t p-5 w-full self-center"
+            style={{ maxHeight: '85%', maxWidth: 640, backgroundColor: colors.card, borderColor: colors.border }}
           >
             <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
               <View>
@@ -670,8 +687,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         <View className="flex-1 justify-end bg-black/80">
           <TouchableOpacity className="flex-1" activeOpacity={1} onPress={() => setPlansModalVisible(false)} />
           <View
-            className="rounded-t-3xl border-t p-5 max-h-[88%]"
-            style={{ backgroundColor: colors.card, borderColor: colors.border }}
+            className="rounded-t-3xl border-t p-5 w-full self-center"
+            style={{ maxHeight: '88%', maxWidth: 640, backgroundColor: colors.card, borderColor: colors.border }}
           >
             <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
               <View>
@@ -764,6 +781,13 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
       <SupportTicketsModal
         visible={ticketsModalVisible}
         onClose={() => setTicketsModalVisible(false)}
+      />
+
+      {/* BLUETOOTH THERMAL PRINTER SETUP (vendor SDK) */}
+      <PrinterSetupModal
+        visible={printerModalVisible}
+        onClose={() => setPrinterModalVisible(false)}
+        onPrinterChanged={setSavedPrinter}
       />
     </SafeAreaView>
   );

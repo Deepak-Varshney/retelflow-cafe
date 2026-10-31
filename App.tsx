@@ -23,6 +23,7 @@ import { BottomNavBar, CafeTab } from './src/components/BottomNavBar';
 import { CafeSplashScreen } from './src/components/CafeSplashScreen';
 import { initCache, setCachedConfig } from './src/services/cacheService';
 import { getAppConfigApi } from './src/api/cafeApi';
+import { getPrintSettings, getShopFeatures, getStoreInfo } from './src/utils/shopSettings';
 
 type OrderStep = 'menu' | 'customer' | 'payment' | 'complete';
 
@@ -148,6 +149,7 @@ function AppContent() {
             customer={customer}
             setCustomer={setCustomer}
             cart={cart}
+            setCart={setCart}
             onProceedToPayment={() => setOrderStep('payment')}
             onBack={() => setOrderStep('menu')}
           />
@@ -180,12 +182,8 @@ function AppContent() {
           <OrderCompleteScreen
             invoice={completedInvoice}
             onNewOrder={resetOrder}
-            storeInfo={{
-              shopName: user?.shopName || user?.businessName || user?.name || 'RetelFlow Cafe',
-              address: user?.address || '',
-              phone: user?.phone || '',
-              gstNumber: user?.gstNumber || '',
-            }}
+            storeInfo={getStoreInfo(user)}
+            printSettings={getPrintSettings(user)}
           />
         </View>
       );
@@ -207,9 +205,15 @@ function AppContent() {
 
       {currentTab === 'menu' && <MenuInventoryScreen />}
 
-      {currentTab === 'history' && <OrdersHistoryScreen />}
+      {currentTab === 'history' && (
+        <OrdersHistoryScreen
+          storeInfo={getStoreInfo(user)}
+          printSettings={getPrintSettings(user)}
+          features={getShopFeatures(user)}
+        />
+      )}
 
-      {currentTab === 'khata' && <CustomersKhataScreen />}
+      {currentTab === 'khata' && <CustomersKhataScreen features={getShopFeatures(user)} />}
 
       {currentTab === 'more' && (
         <MoreScreen

@@ -34,8 +34,8 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
           onPress={onClose}
         />
         <View
-          className="rounded-t-3xl border-t p-5 max-h-[80%]"
-          style={{
+          className="rounded-t-3xl border-t p-5 w-full self-center"
+          style={{ maxHeight: '80%', maxWidth: 640,
             backgroundColor: colors.card,
             borderColor: colors.border,
           }}

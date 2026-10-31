@@ -1,0 +1,2 @@
+-keep class com.android.print.sdk.** { *; }
+-dontwarn com.android.print.sdk.**
