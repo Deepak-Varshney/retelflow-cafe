@@ -79,7 +79,7 @@ export const BillReceiptView = forwardRef<View, BillReceiptViewProps>(({ receipt
     ) : null}
     <Row left="TOTAL BILL" right={`₹${r.total.toLocaleString()}`} bold />
     <Row left={`Paid (${r.paymentMethod.toUpperCase()})`} right={`₹${r.received.toLocaleString()}`} />
-    {r.due > 0 ? <Row left="Credit / Due (Udhar)" right={`₹${r.due.toLocaleString()}`} bold color="#be123c" /> : null}
+    {r.due > 0 ? <Row left="Credit / Khata (Due)" right={`₹${r.due.toLocaleString()}`} bold color="#be123c" /> : null}
 
     {r.notes ? (
       <>

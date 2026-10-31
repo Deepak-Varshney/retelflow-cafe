@@ -7,6 +7,7 @@ import { PrintSettings, ShopFeatures, StoreInfo } from '../types';
 import { BillReceiptView } from './BillReceiptView';
 import { toReceiptData, buildBillText } from '../utils/receipt';
 import { printBill, openWhatsAppBill, saveBillImageToGallery } from '../services/billActions';
+import { PrinterSetupModal } from './PrinterSetupModal';
 
 interface BillDetailModalProps {
   invoice: any | null;
@@ -28,6 +29,9 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
   const receiptRef = useRef<View>(null);
   const [printing, setPrinting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [printerModalVisible, setPrinterModalVisible] = useState(false);
+  const [onConnectedCallback, setOnConnectedCallback] = useState<(() => void) | null>(null);
+
   const receipt = useMemo(() => (invoice ? toReceiptData(invoice) : null), [invoice]);
 
   if (!receipt) return null;
@@ -35,7 +39,12 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
   const handlePrint = async () => {
     setPrinting(true);
     try {
-      await printBill(receipt, storeInfo, printSettings);
+      await printBill(receipt, storeInfo, printSettings, {
+        onRequirePrinterSetup: (resume) => {
+          setOnConnectedCallback(() => resume);
+          setPrinterModalVisible(true);
+        },
+      });
     } finally {
       setPrinting(false);
     }
@@ -136,6 +145,22 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
           )}
         </View>
       </View>
+
+      {/* Printer Setup Connection Modal with auto-resume */}
+      <PrinterSetupModal
+        visible={printerModalVisible}
+        onClose={() => {
+          setPrinterModalVisible(false);
+          setOnConnectedCallback(null);
+        }}
+        onConnected={() => {
+          setPrinterModalVisible(false);
+          const cb = onConnectedCallback;
+          setOnConnectedCallback(null);
+          cb?.();
+        }}
+        reason="Connect your printer to reprint this receipt automatically."
+      />
     </Modal>
   );
 };

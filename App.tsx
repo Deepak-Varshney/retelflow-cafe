@@ -24,14 +24,21 @@ import { CafeSplashScreen } from './src/components/CafeSplashScreen';
 import { initCache, setCachedConfig } from './src/services/cacheService';
 import { getAppConfigApi } from './src/api/cafeApi';
 import { getPrintSettings, getShopFeatures, getStoreInfo } from './src/utils/shopSettings';
+import { GlobalPrinterSetupModal } from './src/components/PrinterSetupModal';
 
 type OrderStep = 'menu' | 'customer' | 'payment' | 'complete';
 
 function AppContent() {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors, isDark, setPreset } = useTheme();
 
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.themePreset) {
+      setPreset(user.themePreset);
+    }
+  }, [user?.themePreset]);
 
   // Navigation state
   const [currentTab, setCurrentTab] = useState<CafeTab>('order');
@@ -245,6 +252,7 @@ export default function App() {
       <KeyboardProvider>
         <ThemeProvider>
           <AppContent />
+          <GlobalPrinterSetupModal />
         </ThemeProvider>
       </KeyboardProvider>
     </SafeAreaProvider>

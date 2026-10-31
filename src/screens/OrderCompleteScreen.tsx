@@ -9,6 +9,7 @@ import { BillReceiptView } from '../components/BillReceiptView';
 import { toReceiptData, buildBillText } from '../utils/receipt';
 import { DEFAULT_PRINT_SETTINGS } from '../utils/shopSettings';
 import { printBill, openWhatsAppBill, saveBillImageToGallery } from '../services/billActions';
+import { PrinterSetupModal } from '../components/PrinterSetupModal';
 
 interface OrderCompleteScreenProps {
   invoice: OrderInvoice;
@@ -25,7 +26,10 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
 }) => {
   const { colors } = useTheme();
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isSavingImage, setIsSavingImage] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [printerModalVisible, setPrinterModalVisible] = useState(false);
+  const [onConnectedCallback, setOnConnectedCallback] = useState<(() => void) | null>(null);
   const receiptRef = useRef<View>(null);
 
   const receipt = useMemo(() => toReceiptData(invoice), [invoice]);
@@ -39,7 +43,12 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
   const handlePrintReceipt = async () => {
     setIsPrinting(true);
     try {
-      await printBill(receipt, storeInfo, printSettings);
+      await printBill(receipt, storeInfo, printSettings, {
+        onRequirePrinterSetup: (resume) => {
+          setOnConnectedCallback(() => resume);
+          setPrinterModalVisible(true);
+        },
+      });
     } finally {
       setIsPrinting(false);
     }
@@ -48,19 +57,50 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
   // Capture the bill image first (needs the view on screen), open WhatsApp
   // right away, and save the image to the gallery in the background so it can
   // be attached from inside the chat.
-  const handleSendWhatsApp = async () => {
-    if (!hasPhone) return;
-    let uri: string | null = null;
+  const handleSaveGalleryOnly = async () => {
+    setIsSavingImage(true);
     try {
-      if (receiptRef.current) uri = await captureRef(receiptRef, { format: 'png', quality: 1 });
-    } catch (err) {
-      console.warn('Bill capture failed:', err);
+      if (receiptRef.current) {
+        const uri = await captureRef(receiptRef, { format: 'png', quality: 1 });
+        if (uri) {
+          const saved = await saveBillImageToGallery(uri);
+          if (saved) {
+            showNotice('Bill image saved to gallery successfully!');
+            return uri;
+          }
+        }
+      }
+      showNotice('Could not save to gallery. Check permissions.');
+    } catch (e) {
+      console.warn('Gallery save error:', e);
+      showNotice('Could not save to gallery.');
+    } finally {
+      setIsSavingImage(false);
     }
-    openWhatsAppBill(receipt, storeInfo, printSettings.footerText);
-    if (uri) {
-      saveBillImageToGallery(uri).then((saved) => {
-        if (saved) showNotice('Bill image saved to gallery');
-      });
+    return null;
+  };
+
+  const handleSendWhatsApp = async () => {
+    setIsSavingImage(true);
+    try {
+      let uri: string | null = null;
+      if (receiptRef.current) {
+        try {
+          uri = await captureRef(receiptRef, { format: 'png', quality: 1 });
+        } catch (err) {
+          console.warn('Bill capture failed:', err);
+        }
+      }
+      // Save image to gallery automatically BEFORE launching WhatsApp
+      if (uri) {
+        const saved = await saveBillImageToGallery(uri);
+        if (saved) {
+          showNotice('Bill image saved to gallery! Attach it in WhatsApp.');
+        }
+      }
+      await openWhatsAppBill(receipt, storeInfo, printSettings.footerText);
+    } finally {
+      setIsSavingImage(false);
     }
   };
 
@@ -106,8 +146,8 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
               className="w-full py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-xl"
               style={{ backgroundColor: colors.primary }}
             >
-              <Ionicons name="add-circle" size={20} color="#000" />
-              <Text className="text-sm font-black text-black tracking-wider uppercase">Start Next Order</Text>
+              <Ionicons name="home" size={20} color="#000" />
+              <Text className="text-sm font-black text-black tracking-wider uppercase">Back to Home</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -127,19 +167,41 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
               </Text>
             </TouchableOpacity>
 
-            {hasPhone && (
-              <TouchableOpacity
-                onPress={handleSendWhatsApp}
-                activeOpacity={0.8}
-                className="w-full py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-md px-3"
-                style={{ backgroundColor: '#25D366' }}
-              >
+            <TouchableOpacity
+              onPress={handleSendWhatsApp}
+              disabled={isSavingImage}
+              activeOpacity={0.8}
+              className="w-full py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-md px-3"
+              style={{ backgroundColor: '#25D366' }}
+            >
+              {isSavingImage ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
                 <Ionicons name="logo-whatsapp" size={20} color="#FFFFFF" />
-                <Text className="text-xs font-black text-white uppercase tracking-wider" numberOfLines={1}>
-                  Send Bill on WhatsApp (+91 {receipt.customerPhone})
-                </Text>
-              </TouchableOpacity>
-            )}
+              )}
+              <Text className="text-xs font-black text-white uppercase tracking-wider" numberOfLines={1}>
+                {receipt.customerPhone
+                  ? `Send Bill on WhatsApp (+91 ${receipt.customerPhone})`
+                  : 'Share Bill on WhatsApp'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleSaveGalleryOnly}
+              disabled={isSavingImage}
+              activeOpacity={0.8}
+              className="w-full py-3 rounded-2xl items-center justify-center flex-row gap-2 border"
+              style={{ borderColor: colors.primary, backgroundColor: colors.surface }}
+            >
+              {isSavingImage ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="images" size={17} color={colors.primary} />
+              )}
+              <Text className="text-xs font-bold" style={{ color: colors.primary }}>
+                Save Bill Image to Gallery
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleGenericShare}
@@ -153,6 +215,22 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
           </View>
         </View>
       </ScrollView>
+
+      {/* Printer Setup Connection Modal with auto-resume */}
+      <PrinterSetupModal
+        visible={printerModalVisible}
+        onClose={() => {
+          setPrinterModalVisible(false);
+          setOnConnectedCallback(null);
+        }}
+        onConnected={() => {
+          setPrinterModalVisible(false);
+          const cb = onConnectedCallback;
+          setOnConnectedCallback(null);
+          cb?.();
+        }}
+        reason="Connect your printer to print this receipt automatically."
+      />
     </SafeAreaView>
   );
 };

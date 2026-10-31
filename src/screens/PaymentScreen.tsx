@@ -327,7 +327,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             {dueAmount > 0 ? (
               <View className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/30">
                 <Text className="text-[10px] font-black text-rose-500">
-                  Auto-Credit (Udhar): ₹{dueAmount.toLocaleString()}
+                  Credit / Khata (Due): ₹{dueAmount.toLocaleString()}
                 </Text>
               </View>
             ) : (

@@ -7,6 +7,9 @@ type NativePcmRecorder = {
   isRecording(): boolean;
   start(): void;
   stop(): void;
+  getLastRecordingPath(): string | null;
+  getRecordedPcm(): string | null;
+  clearLastRecording(): boolean;
   addListener(event: 'onAudioChunk', listener: (e: { data: string }) => void): Subscription;
 };
 
@@ -39,4 +42,26 @@ export async function startPcmStream(onChunk: (base64: string) => void): Promise
     sub.remove();
     Native.stop();
   };
+}
+
+/**
+ * Returns the absolute path of the last recorded raw PCM audio file
+ * (stored in app cacheDir/cafe_voice_last.pcm), or null if none exists.
+ */
+export function getLastRecordingPath(): string | null {
+  return Native?.getLastRecordingPath?.() ?? null;
+}
+
+/**
+ * Returns the base64-encoded raw PCM audio of the last recording, or null if none exists.
+ */
+export function getRecordedPcm(): string | null {
+  return Native?.getRecordedPcm?.() ?? null;
+}
+
+/**
+ * Deletes the local raw PCM audio cache file.
+ */
+export function clearLastRecording(): boolean {
+  return Native?.clearLastRecording?.() ?? false;
 }

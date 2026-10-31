@@ -16,6 +16,7 @@ import { CustomerInfo, CartItem } from '../types';
 import { searchCustomerApi } from '../api/cafeApi';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
 import { parseCustomerVoice } from '../services/customerVoiceParser';
+import { GeminiVoiceOrb } from '../components/GeminiVoiceOrb';
 import { CartReviewModal } from '../components/CartReviewModal';
 import { getCachedMenu } from '../services/cacheService';
 import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
@@ -54,6 +55,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
   const [searching, setSearching] = useState(false);
   const [isExistingCustomer, setIsExistingCustomer] = useState(false);
   const [error, setError] = useState('');
+  const [isHolding, setIsHolding] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const totalAmount = cart.reduce((sum, it) => sum + it.qty * it.price, 0);
@@ -61,7 +63,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
 
   // Voice fill for customer name and/or phone
   const { isListening, transcript, startListening, stopListening } = useVoiceRecognition({
-    locale: 'hi-IN',
+    locale: 'en-IN',
     onPhraseSpoken: (phrase) => {
       const parsed = parseCustomerVoice(phrase);
       let noticeParts = [];
@@ -161,47 +163,67 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             </View>
           </View>
 
-          {/* Voice Auto-Detect Mic */}
+          {/* Voice Auto-Detect Mic (Hold-to-Speak) */}
           <TouchableOpacity
-            onPress={() => (isListening ? stopListening() : startListening())}
-            activeOpacity={0.8}
+            onPressIn={() => {
+              setIsHolding(true);
+              startListening();
+            }}
+            onPressOut={() => {
+              setIsHolding(false);
+              stopListening();
+            }}
+            activeOpacity={0.85}
             className="flex-row items-center px-3.5 py-2 rounded-2xl border active:scale-95 shadow-md"
             style={{
-              backgroundColor: isListening ? '#ef4444' : colors.primary,
-              borderColor: isListening ? 'rgba(239, 68, 68, 0.4)' : colors.primaryGlow,
+              backgroundColor: (isHolding || isListening) ? '#06202a' : colors.primary,
+              borderColor: (isHolding || isListening) ? '#00d2ff' : colors.primaryGlow,
             }}
           >
             <Ionicons
-              name={isListening ? 'stop' : 'mic'}
+              name={isListening ? 'radio' : 'mic'}
               size={18}
-              color={isListening ? '#ffffff' : '#000000'}
+              color={(isHolding || isListening) ? '#00d2ff' : '#000000'}
             />
             <Text
-              className="text-xs font-black ml-1 uppercase"
-              style={{ color: isListening ? '#ffffff' : '#000000' }}
+              className="text-xs font-black ml-1.5 uppercase tracking-wide"
+              style={{ color: isListening ? '#00d2ff' : '#000000' }}
             >
-              {isListening ? 'Stop' : 'Voice'}
+              {(isHolding || isListening) ? 'Listening...' : 'Hold & Speak'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Voice Feedback Banner */}
-        {(isListening || voiceNotice) && (
+        {/* Gemini Voice Pulse Orb */}
+        {(isHolding || isListening) && (
+          <View
+            className="border-b py-2"
+            style={{
+              backgroundColor: 'rgba(6, 18, 30, 0.96)',
+              borderColor: 'rgba(0, 210, 255, 0.25)',
+            }}
+          >
+            <GeminiVoiceOrb
+              isListening={isHolding || isListening}
+              size={68}
+              heardText={transcript || undefined}
+              hintText="Hold & speak customer name or 10-digit number..."
+            />
+          </View>
+        )}
+
+        {/* Voice Feedback Banner when completed */}
+        {!isListening && voiceNotice && (
           <View
             className="px-4 py-2.5 border-b flex-row items-center justify-between"
             style={{
-              backgroundColor: isListening ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-              borderColor: colors.border,
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              borderColor: 'rgba(16, 185, 129, 0.3)',
             }}
           >
-            <Text
-              className="text-xs font-bold"
-              style={{ color: isListening ? '#ef4444' : colors.primary }}
-            >
-              {voiceNotice ||
-                (isListening
-                  ? 'Speak customer name or 10-digit number...'
-                  : '')}
+            <Ionicons name="checkmark-circle" size={16} color="#10b981" className="mr-2" />
+            <Text className="text-xs font-bold text-emerald-400 flex-1">
+              {voiceNotice}
             </Text>
           </View>
         )}

@@ -51,10 +51,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleQuickDemo = () => {
-    setPhone('7251830075');
-    setPin('7251830075');
-  };
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
@@ -177,12 +173,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               )}
             </TouchableOpacity>
 
-            {/* Quick Demo Fill */}
-            <TouchableOpacity onPress={handleQuickDemo} className="mt-4 py-2 items-center">
-              <Text className="text-xs font-medium text-amber-500 underline">
-                Quick Demo Auto-Fill
-              </Text>
-            </TouchableOpacity>
+
           </View>
         </KeyboardAwareScrollView>
     </SafeAreaView>

@@ -17,6 +17,7 @@ import { getMenuItemsApi } from '../api/cafeApi';
 import { getCachedMenu, setCachedMenu } from '../services/cacheService';
 import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
 import { CategoryTabs } from '../components/CategoryTabs';
+import { GeminiVoiceOrb } from '../components/GeminiVoiceOrb';
 import { FoodItemCard } from '../components/FoodItemCard';
 import { VariantSelectorModal } from '../components/VariantSelectorModal';
 import { DisambiguationModal } from '../components/DisambiguationModal';
@@ -45,6 +46,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   const { colors, isDark } = useTheme();
 
   const [search, setSearch] = useState('');
+  const [isHolding, setIsHolding] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const cached = getCachedMenu();
@@ -204,7 +206,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
       {/* 1. Header Toolbar */}
       <View
         className="px-4 py-3 flex-row items-center justify-between border-b"
-        style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+        style={{ backgroundColor: colors.glassBg || colors.surface, borderColor: colors.glassBorder || colors.border }}
       >
         <View className="flex-row items-center">
           <View
@@ -223,73 +225,92 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           </View>
         </View>
 
-        {/* Live Mic Toggle Button */}
+        {/* Live Mic Push-to-Talk (Hold-to-Speak) Button */}
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <TouchableOpacity
-            onPress={voice.toggleListening}
-            activeOpacity={0.8}
+            onPressIn={() => {
+              setIsHolding(true);
+              voice.startListening();
+            }}
+            onPressOut={() => {
+              setIsHolding(false);
+              voice.stopListening();
+            }}
+            activeOpacity={0.85}
             className="flex-row items-center px-3 py-1.5 rounded-2xl border shadow-md active:scale-95"
             style={{
-              backgroundColor: isListening ? '#ef4444' : colors.primary,
-              borderColor: isListening ? 'rgba(239, 68, 68, 0.5)' : colors.primaryGlow,
+              backgroundColor: (isHolding || isListening) ? '#06202a' : colors.primary,
+              borderColor: (isHolding || isListening) ? '#00d2ff' : colors.primaryGlow,
             }}
           >
             <Ionicons
-              name={isListening ? 'stop' : 'mic'}
+              name={isListening ? 'radio' : 'mic'}
               size={17}
-              color={isListening ? '#ffffff' : '#000000'}
+              color={(isHolding || isListening) ? '#00d2ff' : '#000000'}
             />
             <Text
-              className="text-xs font-black ml-1 uppercase"
-              style={{ color: isListening ? '#ffffff' : '#000000' }}
+              className="text-xs font-black ml-1.5 uppercase tracking-wide"
+              style={{ color: isListening ? '#00d2ff' : '#000000' }}
             >
-              {isListening ? 'Stop' : 'Voice'}
+              {(isHolding || isListening) ? 'Listening...' : 'Hold & Speak'}
             </Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
 
-      {/* Voice Processing Banner */}
-      {(isListening || voice.busy || voice.notice) && (
+      {/* Gemini Voice Pulse Orb */}
+      {(isHolding || isListening) && (
+        <View
+          className="border-b py-2"
+          style={{
+            backgroundColor: 'rgba(6, 18, 30, 0.96)',
+            borderColor: 'rgba(0, 210, 255, 0.25)',
+          }}
+        >
+          <GeminiVoiceOrb
+            isListening={isHolding || isListening}
+            size={68}
+            heardText={voice.heard || undefined}
+            hintText={
+              voice.mode === 'live'
+                ? 'Live: speak items & quantities freely...'
+                : 'Hold & speak items (e.g. "Do burger ek cold coffee")'
+            }
+          />
+        </View>
+      )}
+
+      {/* Voice Notice / Processing Banner when not holding */}
+      {!isListening && (voice.busy || voice.notice) && (
         <View
           className="px-4 py-2 border-b flex-row items-center justify-between"
           style={{
-            backgroundColor: isListening ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-            borderColor: colors.border,
+            backgroundColor: 'rgba(245, 158, 11, 0.12)',
+            borderColor: 'rgba(245, 158, 11, 0.25)',
           }}
         >
           <View className="flex-row items-center flex-1 pr-2">
             {voice.busy ? (
               <ActivityIndicator size="small" color={colors.primary} className="mr-2" />
             ) : (
-              <View
-                className="w-2.5 h-2.5 rounded-full mr-2"
-                style={{ backgroundColor: isListening ? '#ef4444' : colors.primary }}
-              />
+              <Ionicons name="sparkles" size={15} color={colors.primary} className="mr-2" />
             )}
             <Text
               className="text-xs font-bold"
-              style={{ color: isListening ? '#ef4444' : colors.primary }}
+              style={{ color: colors.primary }}
               numberOfLines={1}
             >
-              {voice.notice ||
-                (voice.heard
-                  ? `"${voice.heard}"`
-                  : isListening
-                  ? voice.mode === 'live'
-                    ? 'Live: speak items & quantities'
-                    : 'Listening... Speak items & quantities'
-                  : 'Processing speech...')}
+              {voice.notice || (voice.busy ? 'AI is processing your order...' : '')}
             </Text>
           </View>
         </View>
       )}
 
       {/* 2. Search Box */}
-      <View className="px-4 pt-3 pb-2" style={{ backgroundColor: colors.surface }}>
+      <View className="px-4 pt-3 pb-2" style={{ backgroundColor: colors.glassBg || colors.surface }}>
         <View
           className="flex-row items-center px-3.5 py-2.5 rounded-2xl border"
-          style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
+          style={{ backgroundColor: colors.inputBg, borderColor: colors.glassBorder || colors.border }}
         >
           <Ionicons name="search" size={18} color={colors.textMuted} className="mr-2" />
           <TextInput

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import {
   PrinterDevice,
+  classifyPrinterError,
   connectPrinter,
   forgetPrinter,
   getPairedDevices,
@@ -11,18 +12,22 @@ import {
   isPrinterConnected,
   printCommands,
 } from '../../modules/thermal-printer';
-import { friendlyError } from '../utils/errorMessage';
+import { subscribeToPrinterSetup, PrinterSetupRequest } from '../services/printerSetupService';
 
-interface PrinterSetupModalProps {
+export interface PrinterSetupModalProps {
   visible: boolean;
   onClose: () => void;
   onPrinterChanged?: (printer: PrinterDevice | null) => void;
+  onConnected?: (printer: PrinterDevice) => void;
+  reason?: string;
 }
 
 export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
   visible,
   onClose,
   onPrinterChanged,
+  onConnected,
+  reason,
 }) => {
   const { colors } = useTheme();
   const [devices, setDevices] = useState<PrinterDevice[]>([]);
@@ -39,7 +44,8 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
     try {
       setDevices(await getPairedDevices());
     } catch (err: any) {
-      setError(friendlyError(err, 'Could not read paired Bluetooth devices.'));
+      const classified = classifyPrinterError(err);
+      setError(classified.message);
     } finally {
       setLoading(false);
     }
@@ -60,9 +66,16 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
       setSaved(device);
       setConnected(true);
       onPrinterChanged?.(device);
+      if (onConnected) {
+        setTimeout(() => {
+          onClose();
+          onConnected(device);
+        }, 300);
+      }
     } catch (err: any) {
       setConnected(false);
-      setError(friendlyError(err, 'Could not connect to printer.'));
+      const classified = classifyPrinterError(err);
+      setError(classified.message);
     } finally {
       setBusyAddress(null);
     }
@@ -79,7 +92,8 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
       ]);
       setConnected(true);
     } catch (err: any) {
-      Alert.alert('Test Print Failed', friendlyError(err, 'Could not print.'));
+      const classified = classifyPrinterError(err);
+      Alert.alert('Test Print Failed', classified.message);
     } finally {
       setTesting(false);
     }
@@ -88,6 +102,7 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
   const handleForget = () => {
     forgetPrinter();
     setSaved(null);
+    setConnected(false);
     onPrinterChanged?.(null);
   };
 
@@ -110,6 +125,19 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
             </TouchableOpacity>
           </View>
 
+          {/* Context banner when opened to fulfill a print request */}
+          {onConnected || reason ? (
+            <View
+              className="flex-row items-center gap-2 p-2.5 mb-3 rounded-2xl border"
+              style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' }}
+            >
+              <Ionicons name="print" size={16} color="#f59e0b" />
+              <Text className="text-xs font-bold text-amber-500 flex-1">
+                {reason || 'Connect your printer to resume printing the bill automatically.'}
+              </Text>
+            </View>
+          ) : null}
+
           {/* Current printer */}
           <View
             className="p-3 mb-3 rounded-2xl border"
@@ -123,7 +151,10 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
             </Text>
             {saved ? (
               <Text className="text-[10px] font-mono" style={{ color: colors.textMuted }}>
-                {saved.address} • {connected ? 'Connected' : 'Not connected'}
+                {saved.address} •{' '}
+                <Text style={{ color: connected ? '#10b981' : colors.textMuted }}>
+                  {connected ? 'Connected' : 'Not connected'}
+                </Text>
               </Text>
             ) : null}
             {saved ? (
@@ -156,18 +187,23 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {error ? <Text className="text-[11px] text-rose-500 mb-1.5">{error}</Text> : null}
+          {error ? (
+            <View className="p-2 mb-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <Text className="text-[11px] font-semibold text-rose-500">{error}</Text>
+            </View>
+          ) : null}
 
           <ScrollView style={{ maxHeight: 280 }}>
             {loading ? (
               <ActivityIndicator className="my-4" color={colors.primary} />
             ) : devices.length === 0 ? (
               <Text className="text-[11px] my-3 text-center" style={{ color: colors.textMuted }}>
-                No paired devices. Pair your printer in Android Bluetooth settings first.
+                No paired devices. Pair your printer in Android Bluetooth settings first, then tap refresh.
               </Text>
             ) : (
               devices.map((d) => {
                 const isSelected = saved?.address === d.address;
+                const isItemConnected = isSelected && connected;
                 return (
                   <TouchableOpacity
                     key={d.address}
@@ -189,8 +225,15 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
                     </View>
                     {busyAddress === d.address ? (
                       <ActivityIndicator size="small" color={colors.primary} />
+                    ) : isItemConnected ? (
+                      <View className="flex-row items-center gap-1">
+                        <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+                        <Text className="text-[10px] font-bold text-emerald-500">Connected</Text>
+                      </View>
                     ) : isSelected ? (
-                      <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                      <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>
+                        Reconnect
+                      </Text>
                     ) : (
                       <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>
                         Connect
@@ -204,5 +247,31 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
         </View>
       </View>
     </Modal>
+  );
+};
+
+export const GlobalPrinterSetupModal: React.FC = () => {
+  const [request, setRequest] = useState<PrinterSetupRequest | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPrinterSetup((req) => {
+      setRequest(req);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (!request) return null;
+
+  return (
+    <PrinterSetupModal
+      visible={Boolean(request)}
+      reason={request.reason}
+      onClose={() => setRequest(null)}
+      onConnected={(device) => {
+        const cb = request.onConnected;
+        setRequest(null);
+        cb?.(device);
+      }}
+    />
   );
 };

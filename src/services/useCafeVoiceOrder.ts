@@ -252,7 +252,7 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
   );
 
   const speech = useVoiceRecognition({
-    locale: 'hi-IN',
+    locale: 'en-IN',
     onInterimResult: (text) => {
       setHeard(text);
       const now = Date.now();
@@ -287,21 +287,38 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
 
   const isListening = effectiveMode === 'live' ? liveOn : speech.isListening;
 
-  const toggleListening = useCallback(() => {
-    if (effectiveMode === 'live') {
-      if (liveOn) stopLive();
-      else startLive();
-    } else if (speech.isListening) {
-      speech.stopListening();
+  const startListening = useCallback(() => {
+    if (effectiveMode === "live") {
+      startLive();
     } else {
-      setHeard('');
+      setHeard("");
       speech.startListening();
     }
-  }, [effectiveMode, liveOn, speech, startLive, stopLive]);
+  }, [effectiveMode, speech, startLive]);
+
+  const stopListening = useCallback(() => {
+    if (effectiveMode === "live") {
+      stopLive();
+    } else {
+      speech.stopListening();
+    }
+  }, [effectiveMode, speech, stopLive]);
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }, [isListening,
+    startListening,
+    stopListening, startListening, stopListening]);
 
   return {
     mode: effectiveMode,
     isListening,
+    startListening,
+    stopListening,
     toggleListening,
     busy,
     heard,

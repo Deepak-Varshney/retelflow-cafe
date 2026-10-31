@@ -14,7 +14,7 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const currentLocale = options?.locale || 'hi-IN';
+  const currentLocale = options?.locale || 'en-IN';
   const isListeningRef = useRef(false);
   const webRecognitionRef = useRef<any>(null);
   const nativeModuleRef = useRef<any>(null);
@@ -98,6 +98,9 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   }, []);
 
   const startListening = useCallback(async () => {
+    setIsListening(true);
+    isListeningRef.current = true;
+    setError(null);
     setError(null);
     setTranscript('');
     setInterimTranscript('');

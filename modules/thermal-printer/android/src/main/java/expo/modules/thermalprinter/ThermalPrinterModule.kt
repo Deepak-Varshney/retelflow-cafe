@@ -22,9 +22,11 @@ import expo.modules.kotlin.modules.ModuleDefinition
 private const val PREFS = "retelflow_thermal_printer"
 private const val KEY_ADDRESS = "address"
 private const val KEY_NAME = "name"
-private const val CONNECT_TIMEOUT_MS = 15_000L
+private const val CONNECT_TIMEOUT_MS = 8_000L
 
-class PrinterException(message: String) : CodedException("ERR_THERMAL_PRINTER", message, null)
+class PrinterException(code: String, message: String) : CodedException(code, message, null) {
+  constructor(message: String) : this("ERR_THERMAL_PRINTER", message)
+}
 
 /**
  * Bridges the vendor AndroidPrintSDK (com.android.print.sdk) to JS.
@@ -39,7 +41,7 @@ class ThermalPrinterModule : Module() {
   private var pendingTimeout: Runnable? = null
 
   private val context: Context
-    get() = appContext.reactContext ?: throw PrinterException("React context is not available")
+    get() = appContext.reactContext ?: throw PrinterException("REACT_CONTEXT_UNAVAILABLE", "React context is not available")
 
   private val prefs
     get() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -54,17 +56,20 @@ class ThermalPrinterModule : Module() {
       PrinterConstants.Connect.FAILED -> {
         printer = null
         connectedAddress = null
-        settleConnect { it.reject(PrinterException("Could not connect to printer. Make sure it is ON and paired.")) }
+        settleConnect { it.reject(PrinterException("PRINTER_OFF_OR_UNREACHABLE", "Printer is turned off or unreachable. Please turn it on and keep it close.")) }
         emitState(false)
       }
       PrinterConstants.Connect.CLOSED -> {
         printer = null
         connectedAddress = null
-        settleConnect { it.reject(PrinterException("Printer connection closed")) }
+        settleConnect { it.reject(PrinterException("PRINTER_CONNECTION_CLOSED", "Printer connection closed")) }
         emitState(false)
       }
       PrinterConstants.Connect.NODEVICE -> {
-        settleConnect { it.reject(PrinterException("Printer not found")) }
+        printer = null
+        connectedAddress = null
+        settleConnect { it.reject(PrinterException("PRINTER_OFF_OR_UNREACHABLE", "Printer not found. Please make sure it is turned on and paired.")) }
+        emitState(false)
       }
     }
     true
@@ -109,10 +114,16 @@ class ThermalPrinterModule : Module() {
     AsyncFunction("print") { commands: List<Map<String, Any?>>, options: Map<String, Any?>? ->
       val p = printer
       if (p == null || !p.isConnected) {
-        throw PrinterException("Printer is not connected")
+        throw PrinterException("PRINTER_NOT_CONNECTED", "Printer is not connected")
       }
       val paperWidthDots = (options?.get("paperWidthDots") as? Number)?.toInt() ?: 384
-      runJob(p, commands, paperWidthDots)
+      try {
+        runJob(p, commands, paperWidthDots)
+      } catch (e: Exception) {
+        closeConnection()
+        emitState(false)
+        throw PrinterException("PRINTER_OFF_OR_UNREACHABLE", "Printer is turned off or unreachable. Please turn it on and keep it close.")
+      }
     }
 
     OnDestroy {
@@ -128,12 +139,12 @@ class ThermalPrinterModule : Module() {
         context.checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
       }
     ) {
-      throw PrinterException("Bluetooth permission not granted. Allow 'Nearby devices' for this app in Settings.")
+      throw PrinterException("BLUETOOTH_PERMISSION_DENIED", "Bluetooth permission not granted. Allow 'Nearby devices' for this app in Settings.")
     }
     val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-    val adapter = manager?.adapter ?: throw PrinterException("Bluetooth is not supported on this device")
+    val adapter = manager?.adapter ?: throw PrinterException("BLUETOOTH_UNAVAILABLE", "Bluetooth is not supported on this device")
     if (!adapter.isEnabled) {
-      throw PrinterException("Bluetooth is turned off. Please turn it on.")
+      throw PrinterException("BLUETOOTH_DISABLED", "Bluetooth is turned off on your phone. Please turn it on.")
     }
     return adapter
   }
@@ -142,7 +153,7 @@ class ThermalPrinterModule : Module() {
   private fun connectInternal(requestedAddress: String?, promise: Promise) {
     try {
       val address = requestedAddress ?: prefs.getString(KEY_ADDRESS, null)
-        ?: throw PrinterException("No printer selected. Choose a printer in More > Printer settings.")
+        ?: throw PrinterException("NO_PRINTER_SAVED", "No printer selected. Choose a printer to connect.")
 
       val current = printer
       if (current != null && current.isConnected && connectedAddress == address) {
@@ -158,10 +169,10 @@ class ThermalPrinterModule : Module() {
         .putString(KEY_NAME, device.name ?: address)
         .apply()
 
-      settleConnect { it.reject(PrinterException("Connection superseded")) }
+      settleConnect { it.reject(PrinterException("CONNECTION_SUPERSEDED", "Connection superseded")) }
       pendingConnect = promise
       val timeout = Runnable {
-        settleConnect { it.reject(PrinterException("Printer connection timed out")) }
+        settleConnect { it.reject(PrinterException("PRINTER_OFF_OR_UNREACHABLE", "Printer is turned off or unreachable. Please turn it on and keep it close.")) }
       }
       pendingTimeout = timeout
       mainHandler.postDelayed(timeout, CONNECT_TIMEOUT_MS)
@@ -171,7 +182,7 @@ class ThermalPrinterModule : Module() {
     } catch (e: CodedException) {
       promise.reject(e)
     } catch (e: Exception) {
-      promise.reject(PrinterException(e.message ?: "Could not connect to printer"))
+      promise.reject(PrinterException("PRINTER_CONNECT_ERROR", e.message ?: "Could not connect to printer"))
     }
   }
 
