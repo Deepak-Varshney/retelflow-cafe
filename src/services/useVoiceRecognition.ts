@@ -1,11 +1,48 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
+import { uploadVoiceRecording } from './voiceRecordingUpload';
+import { friendlyError } from '../utils/errorMessage';
+
+// Speech recognizer error codes -> human-friendly message
+function voiceErrorText(code?: string, message?: string): string {
+  switch (code) {
+    case 'no-speech':
+    case 'speech-timeout':
+      return 'Did not hear anything. Hold the mic and speak.';
+    case 'network':
+      return 'Voice needs internet. Please check your connection.';
+    case 'not-allowed':
+    case 'service-not-allowed':
+      return 'Microphone permission is off. Allow it in phone Settings.';
+    case 'audio-capture':
+      return 'Microphone is busy or not available.';
+    case 'busy':
+      return 'Voice engine is busy. Please try again.';
+    case 'language-not-supported':
+      return 'Language not supported on this device.';
+    default:
+      return friendlyError(message, 'Voice input stopped. Hold the mic to try again.');
+  }
+}
+
+// Audio persistence is supported on Android 13+ (API 33) and iOS
+const CAN_PERSIST_AUDIO =
+  Platform.OS === 'ios' || (Platform.OS === 'android' && Number(Platform.Version) >= 33);
+
+const nativeStartOptions = (lang: string, persistAudio = true) => ({
+  lang,
+  interimResults: true,
+  continuous: false, // Walkie-Talkie Push-to-Talk: stops on release
+  addsPunctuation: true,
+  ...(persistAudio && CAN_PERSIST_AUDIO ? { recordingOptions: { persist: true } } : {}),
+});
 
 export interface UseVoiceRecognitionOptions {
   locale?: string;
   onFinalResult?: (transcript: string) => void;
   onPhraseSpoken?: (phrase: string) => void;
   onInterimResult?: (interim: string) => void;
+  recordAudio?: boolean;
 }
 
 export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
@@ -15,7 +52,10 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   const [error, setError] = useState<string | null>(null);
 
   const currentLocale = options?.locale || 'en-IN';
+  const recordAudio = options?.recordAudio !== false;
+
   const isListeningRef = useRef(false);
+  const isPressingRef = useRef(false);
   const webRecognitionRef = useRef<any>(null);
   const nativeModuleRef = useRef<any>(null);
   const subscriptionsRef = useRef<any[]>([]);
@@ -26,6 +66,24 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   onPhraseSpokenRef.current = options?.onPhraseSpoken;
   const onInterimResultRef = useRef(options?.onInterimResult);
   onInterimResultRef.current = options?.onInterimResult;
+  const localeRef = useRef(currentLocale);
+  localeRef.current = currentLocale;
+
+  // Segment audio & text tracking for background R2 sync
+  const segmentTextRef = useRef('');
+  const segmentStartRef = useRef(0);
+
+  const flushTranscript = useCallback(() => {
+    const text = segmentTextRef.current;
+    const started = segmentStartRef.current;
+    segmentTextRef.current = '';
+    segmentStartRef.current = 0;
+    if (text.trim()) {
+      uploadVoiceRecording(null, text, started ? (Date.now() - started) / 1000 : 0, localeRef.current);
+    }
+  }, []);
+
+  useEffect(() => () => flushTranscript(), [flushTranscript]);
 
   // Initialize native speech recognition safely
   useEffect(() => {
@@ -41,16 +99,28 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
           nativeModuleRef.current = mod;
 
           const subStart = mod.addListener('start', () => {
+            if (!isPressingRef.current) {
+              // User already released finger before start event arrived! Kill it immediately.
+              try {
+                mod.abort?.() || mod.stop?.();
+              } catch {}
+              setIsListening(false);
+              isListeningRef.current = false;
+              return;
+            }
+            if (!segmentStartRef.current) segmentStartRef.current = Date.now();
             setIsListening(true);
             isListeningRef.current = true;
             setError(null);
           });
 
           const subResult = mod.addListener('result', (event: any) => {
+            if (!isPressingRef.current && !isListeningRef.current) return;
             if (event.results && event.results.length > 0) {
               const best = event.results[0]?.transcript || '';
               if (event.isFinal) {
                 if (best && best.trim()) {
+                  segmentTextRef.current = `${segmentTextRef.current} ${best.trim()}`.trim();
                   if (onPhraseSpokenRef.current) {
                     onPhraseSpokenRef.current(best.trim());
                   }
@@ -72,19 +142,38 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
             }
           });
 
-          const subEnd = mod.addListener('end', () => {
+          const subEnd = () => {
             setIsListening(false);
             isListeningRef.current = false;
-          });
+          };
+          const endSub = mod.addListener('end', subEnd);
 
           const subError = mod.addListener('error', (event: any) => {
-            console.warn('[Speech Error]:', event.error);
-            setError(event.message || event.error);
+            if (event.error !== 'aborted') {
+              if (isPressingRef.current) {
+                setError(voiceErrorText(event.error, event.message));
+              }
+            }
             setIsListening(false);
             isListeningRef.current = false;
+            isPressingRef.current = false;
           });
 
-          subscriptionsRef.current = [subStart, subResult, subEnd, subError];
+          // Audio file recording callbacks (for R2 upload)
+          const subAudioStart = mod.addListener('audiostart', (event: any) => {
+            if (event?.uri) segmentStartRef.current = event?.timestamp || Date.now();
+          });
+          const subAudioEnd = mod.addListener('audioend', (event: any) => {
+            if (!event?.uri) return;
+            const text = segmentTextRef.current;
+            const started = segmentStartRef.current;
+            segmentTextRef.current = '';
+            segmentStartRef.current = 0;
+            const durationSec = started ? ((event.timestamp || Date.now()) - started) / 1000 : 0;
+            uploadVoiceRecording(event.uri, text, durationSec, localeRef.current);
+          });
+
+          subscriptionsRef.current = [subStart, subResult, endSub, subError, subAudioStart, subAudioEnd];
         }
       } catch (e: any) {
         console.warn('Native speech recognition init error:', e?.message);
@@ -98,12 +187,14 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   }, []);
 
   const startListening = useCallback(async () => {
+    isPressingRef.current = true;
     setIsListening(true);
     isListeningRef.current = true;
     setError(null);
-    setError(null);
     setTranscript('');
     setInterimTranscript('');
+    segmentTextRef.current = '';
+    segmentStartRef.current = Date.now();
 
     if (Platform.OS === 'web') {
       const SpeechRecognition =
@@ -125,11 +216,18 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
       recognition.continuous = true;
 
       recognition.onstart = () => {
+        if (!isPressingRef.current) {
+          try { recognition.abort(); } catch {}
+          setIsListening(false);
+          isListeningRef.current = false;
+          return;
+        }
         setIsListening(true);
         isListeningRef.current = true;
       };
 
       recognition.onresult = (event: any) => {
+        if (!isPressingRef.current && !isListeningRef.current) return;
         let finalTxt = '';
         let interimTxt = '';
 
@@ -159,7 +257,7 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
       };
 
       recognition.onerror = (e: any) => {
-        setError(e.error);
+        if (isPressingRef.current) setError(e.error);
         setIsListening(false);
         isListeningRef.current = false;
       };
@@ -182,43 +280,59 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
           const perm = await mod.requestPermissionsAsync?.();
           if (perm && !perm.granted) {
             setError('Microphone permission denied');
+            setIsListening(false);
+            isListeningRef.current = false;
+            isPressingRef.current = false;
             return;
           }
 
-          mod.start({
-            lang: currentLocale,
-            interimResults: true,
-            continuous: true,
-            addsPunctuation: true,
-          });
+          // If the user already released their finger while permission check was running:
+          if (!isPressingRef.current) {
+            setIsListening(false);
+            isListeningRef.current = false;
+            return;
+          }
+
+          mod.start(nativeStartOptions(currentLocale, recordAudio));
         } catch (err: any) {
           setError(err.message);
           setIsListening(false);
           isListeningRef.current = false;
+          isPressingRef.current = false;
         }
       } else {
         setError('Speech recognition module not available');
+        setIsListening(false);
+        isListeningRef.current = false;
       }
     }
-  }, [currentLocale]);
+  }, [currentLocale, recordAudio]);
 
-  const stopListening = useCallback(() => {
+  const stopListening = useCallback((opts?: { abort?: boolean }) => {
+    isPressingRef.current = false;
+    isListeningRef.current = false;
+    setIsListening(false);
+
     if (Platform.OS === 'web') {
       if (webRecognitionRef.current) {
         try {
-          webRecognitionRef.current.stop();
+          if (opts?.abort) webRecognitionRef.current.abort();
+          else webRecognitionRef.current.stop();
         } catch {}
       }
     } else {
       const mod = nativeModuleRef.current;
       if (mod) {
         try {
-          mod.stop();
+          if (opts?.abort) {
+            if (typeof mod.abort === 'function') mod.abort();
+            else mod.stop();
+          } else {
+            mod.stop();
+          }
         } catch {}
       }
     }
-    setIsListening(false);
-    isListeningRef.current = false;
   }, []);
 
   return {

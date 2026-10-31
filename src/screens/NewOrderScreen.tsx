@@ -47,6 +47,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
 
   const [search, setSearch] = useState('');
   const [isHolding, setIsHolding] = useState(false);
+  const pressStartRef = useRef(0);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const cached = getCachedMenu();
@@ -229,12 +230,19 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <TouchableOpacity
             onPressIn={() => {
+              pressStartRef.current = Date.now();
               setIsHolding(true);
               voice.startListening();
             }}
             onPressOut={() => {
+              const holdDuration = Date.now() - pressStartRef.current;
               setIsHolding(false);
-              voice.stopListening();
+              if (holdDuration < 250) {
+                // Quick tap without holding: disconnect/abort immediately
+                voice.stopListening({ abort: true });
+              } else {
+                voice.stopListening({ abort: false });
+              }
             }}
             activeOpacity={0.85}
             className="flex-row items-center px-3 py-1.5 rounded-2xl border shadow-md active:scale-95"

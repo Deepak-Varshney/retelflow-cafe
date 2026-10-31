@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { useTheme } from '../services/ThemeContext';
 import { CustomerInfo, CartItem } from '../types';
 import { searchCustomerApi } from '../api/cafeApi';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
-import { parseCustomerVoice } from '../services/customerVoiceParser';
+import { parseCustomerVoice, transliterateDevanagariToLatin } from '../services/customerVoiceParser';
 import { GeminiVoiceOrb } from '../components/GeminiVoiceOrb';
 import { CartReviewModal } from '../components/CartReviewModal';
 import { getCachedMenu } from '../services/cacheService';
@@ -56,6 +56,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
   const [isExistingCustomer, setIsExistingCustomer] = useState(false);
   const [error, setError] = useState('');
   const [isHolding, setIsHolding] = useState(false);
+  const pressStartRef = useRef(0);
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const totalAmount = cart.reduce((sum, it) => sum + it.qty * it.price, 0);
@@ -166,12 +167,18 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
           {/* Voice Auto-Detect Mic (Hold-to-Speak) */}
           <TouchableOpacity
             onPressIn={() => {
+              pressStartRef.current = Date.now();
               setIsHolding(true);
               startListening();
             }}
             onPressOut={() => {
+              const holdDuration = Date.now() - pressStartRef.current;
               setIsHolding(false);
-              stopListening();
+              if (holdDuration < 250) {
+                stopListening({ abort: true });
+              } else {
+                stopListening({ abort: false });
+              }
             }}
             activeOpacity={0.85}
             className="flex-row items-center px-3.5 py-2 rounded-2xl border active:scale-95 shadow-md"
@@ -206,7 +213,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             <GeminiVoiceOrb
               isListening={isHolding || isListening}
               size={68}
-              heardText={transcript || undefined}
+              heardText={transliterateDevanagariToLatin(transcript) || undefined}
               hintText="Hold & speak customer name or 10-digit number..."
             />
           </View>

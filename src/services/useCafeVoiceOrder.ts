@@ -296,11 +296,11 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
     }
   }, [effectiveMode, speech, startLive]);
 
-  const stopListening = useCallback(() => {
-    if (effectiveMode === "live") {
+  const stopListening = useCallback((opts?: { abort?: boolean }) => {
+    if (effectiveMode === 'live') {
       stopLive();
     } else {
-      speech.stopListening();
+      speech.stopListening(opts);
     }
   }, [effectiveMode, speech, stopLive]);
 
