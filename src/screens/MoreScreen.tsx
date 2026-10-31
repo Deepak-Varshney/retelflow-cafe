@@ -235,20 +235,18 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={toggleTheme}
-          activeOpacity={0.8}
-          className="p-2.5 rounded-2xl border active:scale-95 flex-row items-center gap-1.5"
+        <View
+          className="px-3 py-1.5 rounded-2xl border flex-row items-center gap-1.5"
           style={{
-            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.10)',
             borderColor: colors.primary,
           }}
         >
-          <Ionicons name={isDark ? 'moon' : 'sunny'} size={16} color={colors.primary} />
-          <Text className="text-xs font-black text-amber-500">
-            {isDark ? 'Dark' : 'Light'}
+          <Ionicons name="shield-checkmark" size={14} color={colors.primary} />
+          <Text className="text-[11px] font-black" style={{ color: colors.primary }}>
+            POS Active
           </Text>
-        </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
@@ -539,15 +537,34 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         {/* 6. LOGOUT BUTTON */}
         <TouchableOpacity
           onPress={onLogout}
-          activeOpacity={0.8}
-          className="w-full py-4 rounded-3xl border items-center justify-center flex-row gap-2 shadow-lg active:scale-98 mb-6"
+          activeOpacity={0.7}
           style={{
-            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+            width: '100%',
+            paddingVertical: 15,
+            borderRadius: 22,
+            borderWidth: 1.5,
             borderColor: '#f43f5e',
+            backgroundColor: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            gap: 8,
+            overflow: 'hidden',
+            marginBottom: 24,
+            elevation: 0,
+            shadowOpacity: 0,
           }}
         >
-          <Ionicons name="log-out-outline" size={20} color="#f43f5e" />
-          <Text className="text-xs font-black text-rose-500 uppercase tracking-wider">
+          <Ionicons name="log-out-outline" size={20} color="#e11d48" />
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '900',
+              color: '#e11d48',
+              letterSpacing: 0.8,
+              textTransform: 'uppercase',
+            }}
+          >
             Logout Counter Session
           </Text>
         </TouchableOpacity>
