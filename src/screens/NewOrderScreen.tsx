@@ -13,30 +13,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { MenuItem, ItemVariant, CartItem } from '../types';
-import { getMenuItemsApi, parseCafeVoiceOrderApi, seedCafeCatalogApi } from '../api/cafeApi';
+import { getMenuItemsApi } from '../api/cafeApi';
 import { getCachedMenu, setCachedMenu } from '../services/cacheService';
 import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
 import { CategoryTabs } from '../components/CategoryTabs';
 import { FoodItemCard } from '../components/FoodItemCard';
 import { VariantSelectorModal } from '../components/VariantSelectorModal';
-import { DisambiguationModal, DisambiguationItem } from '../components/DisambiguationModal';
+import { DisambiguationModal } from '../components/DisambiguationModal';
 import { FloatingCartBar } from '../components/FloatingCartBar';
 import { FoodItemDetailModal } from '../components/FoodItemDetailModal';
 import { CartReviewModal } from '../components/CartReviewModal';
-import { useVoiceRecognition } from '../services/useVoiceRecognition';
-import { friendlyError } from '../utils/errorMessage';
-
-const norm = (s?: string) => (s || '').trim().toLowerCase();
-
-const findMenuItem = (items: MenuItem[], name: string) =>
-  items.find((m) => norm(m.name) === norm(name)) ||
-  items.find((m) => norm(m.name).includes(norm(name)) || norm(name).includes(norm(m.name)));
+import { useCafeVoiceOrder } from '../services/useCafeVoiceOrder';
+import { CafeVoiceMode } from '../services/voiceSocketService';
 
 interface NewOrderScreenProps {
   cart: CartItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   onProceedToCustomer: () => void;
   shopName?: string;
+  /** Set per shop in the admin panel (default: phone speech-to-text + Gemini stream) */
+  voiceMode?: CafeVoiceMode;
 }
 
 export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
@@ -44,6 +40,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   setCart,
   onProceedToCustomer,
   shopName = 'Cafe Counter',
+  voiceMode = 'stream',
 }) => {
   const { colors, isDark } = useTheme();
 
@@ -63,16 +60,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
 
   // Modals state
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
-  // Voice items that need a size picked, asked one after another
-  const [selectionQueue, setSelectionQueue] = useState<DisambiguationItem[]>([]);
-  const disambiguationData = selectionQueue[0] || null;
   const [cartModalVisible, setCartModalVisible] = useState(false);
-  // Android sometimes delivers the same final phrase twice
-  const lastPhraseRef = useRef<{ text: string; at: number }>({ text: '', at: 0 });
-
-  // Live voice processing status
-  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   // Pulse animation for mic
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -96,129 +84,11 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
     loadMenu();
   }, []);
 
-  // Voice ordering hook
-  const { isListening, startListening, stopListening } =
-    useVoiceRecognition({
-      locale: 'hi-IN',
-      onPhraseSpoken: async (phrase) => {
-        if (!phrase.trim()) return;
-        const now = Date.now();
-        if (norm(phrase) === lastPhraseRef.current.text && now - lastPhraseRef.current.at < 5000) return;
-        lastPhraseRef.current = { text: norm(phrase), at: now };
-        try {
-          setIsProcessingVoice(true);
-          // Do not display raw transcript text on screen
-          setVoiceNotice('Processing order...');
-
-          const res = await parseCafeVoiceOrderApi(phrase, cart);
-
-          if (res?.actions && res.actions.length > 0) {
-            const deleteActions = res.actions.filter((a: any) => a.type === 'DELETE');
-            const addActions: any[] = [];
-            const selectionActions: DisambiguationItem[] = [];
-
-            // Any item with 2+ sizes on the menu goes to the size picker unless
-            // the spoken size matches one of them
-            for (const act of res.actions) {
-              if (act.type !== 'ADD' && act.type !== 'NEEDS_SELECTION') continue;
-              const menu = findMenuItem(menuItems, act.itemName);
-              const variants = menu?.variants?.length ? menu.variants : act.availableVariants || [];
-              const spoken = act.variantName && variants.find((v) => norm(v.name) === norm(act.variantName));
-              if (variants.length > 1 && !(act.type === 'ADD' && spoken)) {
-                selectionActions.push({
-                  itemName: menu?.name || act.itemName,
-                  qty: act.qty || 1,
-                  availableVariants: variants,
-                });
-              } else {
-                addActions.push(spoken ? { ...act, price: spoken.price, unit: spoken.unit || act.unit } : act);
-              }
-            }
-
-            // 1. Process all additions atomically
-            if (addActions.length > 0) {
-              setCart((prev) => {
-                let updated = [...prev];
-                for (const act of addActions) {
-                  const matchedMenu = findMenuItem(menuItems, act.itemName);
-
-                  const itemImg =
-                    matchedMenu?.imageUrl ||
-                    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80';
-
-                  const unitPrice =
-                    act.price ||
-                    (act.totalSpokenAmount && act.qty ? act.totalSpokenAmount / act.qty : 0) ||
-                    matchedMenu?.price ||
-                    0;
-
-                  const qty = act.qty || 1;
-                  const variantObj = act.variantName
-                    ? { name: act.variantName, price: unitPrice, unit: act.unit }
-                    : undefined;
-
-                  const cartId = `${act.itemName}-${act.variantName || 'default'}`;
-                  const existingIdx = updated.findIndex((i) => i.id === cartId);
-                  if (existingIdx !== -1) {
-                    updated[existingIdx] = {
-                      ...updated[existingIdx],
-                      qty: updated[existingIdx].qty + qty,
-                    };
-                  } else {
-                    updated.push({
-                      id: cartId,
-                      menuItemId: matchedMenu?.id,
-                      name: act.itemName,
-                      category: matchedMenu?.category || 'General',
-                      selectedVariant: variantObj,
-                      price: unitPrice,
-                      qty,
-                      unit: act.unit || matchedMenu?.unit || 'pcs',
-                      imageUrl: itemImg,
-                      isVeg: matchedMenu?.isVeg !== false,
-                    });
-                  }
-                }
-                return updated;
-              });
-            }
-
-            // 2. Process deletions
-            if (deleteActions.length > 0) {
-              setCart((prev) =>
-                prev.filter(
-                  (i) =>
-                    !deleteActions.some((d: any) =>
-                      i.name.toLowerCase().includes(d.itemName.toLowerCase())
-                    )
-                )
-              );
-            }
-
-            // 3. Ask the size for every item that needs one, one by one
-            if (selectionActions.length > 0) {
-              setSelectionQueue((prev) => [...prev, ...selectionActions]);
-            }
-
-            setVoiceNotice(
-              selectionActions.length > 0
-                ? `Pick size for ${selectionActions.length} item${selectionActions.length > 1 ? 's' : ''}`
-                : res.summary || 'Added items to order'
-            );
-            setTimeout(() => setVoiceNotice(null), 3500);
-          } else {
-            setVoiceNotice('No items recognized. Speak again.');
-            setTimeout(() => setVoiceNotice(null), 3000);
-          }
-        } catch (e) {
-          console.warn('Voice ordering error:', e);
-          setVoiceNotice(friendlyError(e, 'Could not understand. Please try again.'));
-          setTimeout(() => setVoiceNotice(null), 4000);
-        } finally {
-          setIsProcessingVoice(false);
-        }
-      },
-    });
+  // Real-time voice ordering: menu context is warmed on the server as soon as
+  // this screen opens; items and size questions arrive while the cashier speaks
+  const voice = useCafeVoiceOrder({ mode: voiceMode, menuItems, setCart });
+  const { isListening, selectionQueue } = voice;
+  const disambiguationData = selectionQueue[0] || null;
 
   // Animated pulse when mic is active
   useEffect(() => {
@@ -329,45 +199,6 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
     });
   };
 
-  // Disambiguation selection resolution
-  const handleResolveDisambiguation = (
-    variantName: string,
-    price: number,
-    unit?: string
-  ) => {
-    if (!disambiguationData) return;
-    const item = menuItems.find(
-      (m) => m.name.toLowerCase() === disambiguationData.itemName.toLowerCase()
-    );
-
-    const qty = disambiguationData.qty || 1;
-    const cartId = `${disambiguationData.itemName}-${variantName}`;
-
-    setCart((prev) => {
-      const existingIdx = prev.findIndex((i) => i.id === cartId);
-      if (existingIdx !== -1) {
-        return prev.map((it, i) => (i === existingIdx ? { ...it, qty: it.qty + qty } : it));
-      }
-      return [
-        ...prev,
-        {
-          id: cartId,
-          menuItemId: item?.id,
-          name: disambiguationData.itemName,
-          category: item?.category || 'General',
-          selectedVariant: { name: variantName, price, unit },
-          price,
-          qty,
-          unit: unit || item?.unit || 'pcs',
-          imageUrl: item?.imageUrl,
-          isVeg: item?.isVeg !== false,
-        },
-      ];
-    });
-
-    setSelectionQueue((prev) => prev.slice(1));
-  };
-
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       {/* 1. Header Toolbar */}
@@ -395,7 +226,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         {/* Live Mic Toggle Button */}
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <TouchableOpacity
-            onPress={() => (isListening ? stopListening() : startListening())}
+            onPress={voice.toggleListening}
             activeOpacity={0.8}
             className="flex-row items-center px-3 py-1.5 rounded-2xl border shadow-md active:scale-95"
             style={{
@@ -419,7 +250,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
       </View>
 
       {/* Voice Processing Banner */}
-      {(isListening || isProcessingVoice || voiceNotice) && (
+      {(isListening || voice.busy || voice.notice) && (
         <View
           className="px-4 py-2 border-b flex-row items-center justify-between"
           style={{
@@ -428,7 +259,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           }}
         >
           <View className="flex-row items-center flex-1 pr-2">
-            {isProcessingVoice ? (
+            {voice.busy ? (
               <ActivityIndicator size="small" color={colors.primary} className="mr-2" />
             ) : (
               <View
@@ -441,9 +272,13 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
               style={{ color: isListening ? '#ef4444' : colors.primary }}
               numberOfLines={1}
             >
-              {voiceNotice ||
-                (isListening
-                  ? 'Listening... Speak items & quantities'
+              {voice.notice ||
+                (voice.heard
+                  ? `"${voice.heard}"`
+                  : isListening
+                  ? voice.mode === 'live'
+                    ? 'Live: speak items & quantities'
+                    : 'Listening... Speak items & quantities'
                   : 'Processing speech...')}
             </Text>
           </View>
@@ -566,8 +401,8 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         visible={Boolean(disambiguationData)}
         data={disambiguationData}
         position={selectionQueue.length > 1 ? `1 of ${selectionQueue.length}` : undefined}
-        onSelect={handleResolveDisambiguation}
-        onClose={() => setSelectionQueue((prev) => prev.slice(1))}
+        onSelect={voice.resolveSelection}
+        onClose={voice.skipSelection}
       />
 
       {/* 8. Full order list: change size / qty / remove */}

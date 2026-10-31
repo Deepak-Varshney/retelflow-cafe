@@ -6,6 +6,8 @@ export const loginWithPhonePassword = async (phone: string, pin: string) => {
     phone,
     password: pin,
     pin,
+    // Cafe and retail accounts are separate; the server looks up the cafe one
+    app: 'cafe',
   });
   if (res.data?.token) {
     await authStorage.saveToken(res.data.token);

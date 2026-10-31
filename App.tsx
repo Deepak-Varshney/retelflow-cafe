@@ -200,6 +200,7 @@ function AppContent() {
           setCart={setCart}
           onProceedToCustomer={() => setOrderStep('customer')}
           shopName={user.businessName || user.name || 'RetelFlow Cafe'}
+          voiceMode={user?.cafe?.voiceMode === 'live' ? 'live' : 'stream'}
         />
       )}
 

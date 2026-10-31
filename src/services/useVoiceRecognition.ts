@@ -5,6 +5,7 @@ export interface UseVoiceRecognitionOptions {
   locale?: string;
   onFinalResult?: (transcript: string) => void;
   onPhraseSpoken?: (phrase: string) => void;
+  onInterimResult?: (interim: string) => void;
 }
 
 export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
@@ -23,6 +24,8 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   onFinalResultRef.current = options?.onFinalResult;
   const onPhraseSpokenRef = useRef(options?.onPhraseSpoken);
   onPhraseSpokenRef.current = options?.onPhraseSpoken;
+  const onInterimResultRef = useRef(options?.onInterimResult);
+  onInterimResultRef.current = options?.onInterimResult;
 
   // Initialize native speech recognition safely
   useEffect(() => {
@@ -62,6 +65,9 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
                 setInterimTranscript('');
               } else {
                 setInterimTranscript(best);
+                if (best && best.trim() && onInterimResultRef.current) {
+                  onInterimResultRef.current(best.trim());
+                }
               }
             }
           });
@@ -144,6 +150,9 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
           });
         }
         setInterimTranscript(interimTxt);
+        if (interimTxt && interimTxt.trim() && onInterimResultRef.current) {
+          onInterimResultRef.current(interimTxt.trim());
+        }
       };
 
       recognition.onerror = (e: any) => {

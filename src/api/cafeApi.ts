@@ -7,34 +7,27 @@ import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
  */
 export const getMenuItemsApi = async (category?: string, query?: string): Promise<MenuItem[]> => {
   try {
-    const params: any = { autoSeed: 'true' };
+    const params: any = {};
     if (category && category !== 'all') params.category = category;
     if (query && query.trim()) params.q = query.trim();
 
     const res = await api.get('/store-items', { params });
     if (res.data?.success && Array.isArray(res.data.items) && res.data.items.length > 0) {
-      const itemsList = res.data.items;
-      const hasCafe = itemsList.some((it: any) =>
-        ['Pizza', 'Cold Drinks', 'Waffles', 'Sweets', 'Burgers', 'Snacks', 'Chai & Coffee'].some((c) =>
-          (it.category || '').toLowerCase().includes(c.toLowerCase())
-        )
-      );
+      return res.data.items.map((it: any) => ({
+        ...it,
+        id: it._id || it.id,
+      }));
+    }
 
-      if (hasCafe) {
-        return itemsList.map((it: any) => ({
-          ...it,
-          id: it._id || it.id,
-        }));
-      }
-
-      // If backend has only non-cafe items, trigger seeding of cafe catalog
+    // Only if backend is completely empty (brand new store with 0 items), seed once
+    if (res.data?.success && Array.isArray(res.data.items) && res.data.items.length === 0 && (!category || category === 'all') && !query) {
       try {
         const seedRes = await api.post('/store-items/seed-cafe', { overwrite: false });
         if (seedRes.data?.items && seedRes.data.items.length > 0) {
           return seedRes.data.items.map((it: any) => ({ ...it, id: it._id || it.id }));
         }
       } catch (seedErr) {
-        console.warn('[CafeApi] Auto-seed failed:', seedErr);
+        console.warn('[CafeApi] Initial seed failed:', seedErr);
       }
     }
   } catch (err) {
