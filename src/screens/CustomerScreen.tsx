@@ -147,44 +147,46 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
       >
         {/* Header */}
         <View
-          className="px-4 py-3 flex-row items-center justify-between border-b"
+          className="px-4 py-2.5 flex-row items-center justify-between border-b"
           style={{ backgroundColor: colors.surface, borderColor: colors.border }}
         >
-          <View className="flex-row items-center">
-            <TouchableOpacity onPress={onBack} className="p-2 -ml-2 mr-2">
+          <View className="flex-row items-center flex-1 mr-3 min-w-0">
+            <TouchableOpacity onPress={onBack} className="p-2 -ml-2 mr-1">
               <Ionicons name="arrow-back" size={22} color={colors.text} />
             </TouchableOpacity>
-            <View>
-              <Text className="text-base font-black tracking-tight" style={{ color: colors.text }}>
+            <View className="flex-1 min-w-0">
+              <Text numberOfLines={1} className="text-base font-black tracking-tight" style={{ color: colors.text }}>
                 Customer Details
               </Text>
-              <Text className="text-[11px]" style={{ color: colors.textSecondary }}>
-                Step 2 of 3 • Name or Mobile (At least 1 required)
+              <Text numberOfLines={1} className="text-[11px]" style={{ color: colors.textSecondary }}>
+                Step 2 of 3 • Name or Mobile
               </Text>
             </View>
           </View>
 
           {/* Voice Auto-Detect Mic (Hold-to-Speak) with Self-Contained Pulse */}
-          <PulseMicButton
-            isListening={isListening}
-            isHolding={isHolding}
-            onPressIn={() => {
-              pressStartRef.current = Date.now();
-              setIsHolding(true);
-              startListening();
-            }}
-            onPressOut={() => {
-              const holdDuration = Date.now() - pressStartRef.current;
-              setIsHolding(false);
-              if (holdDuration < 250) {
-                stopListening({ abort: true });
-              } else {
-                stopListening({ abort: false });
-              }
-            }}
-            idleText="Hold & Speak"
-            listeningText="Listening..."
-          />
+          <View style={{ flexShrink: 0, paddingRight: 4 }}>
+            <PulseMicButton
+              isListening={isListening}
+              isHolding={isHolding}
+              onPressIn={() => {
+                pressStartRef.current = Date.now();
+                setIsHolding(true);
+                startListening();
+              }}
+              onPressOut={() => {
+                const holdDuration = Date.now() - pressStartRef.current;
+                setIsHolding(false);
+                if (holdDuration < 250) {
+                  stopListening({ abort: true });
+                } else {
+                  stopListening({ abort: false });
+                }
+              }}
+              idleText="Hold & Speak"
+              listeningText="Listening..."
+            />
+          </View>
         </View>
 
         {/* Floating HUD Chip for Speech Preview / Feedback (Zero layout shift) */}
