@@ -171,7 +171,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       {/* Header */}
       <View
         className="px-4 py-3 flex-row items-center border-b"
@@ -202,7 +202,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
             Total Payable Amount
           </Text>
-          <Text className="text-4xl font-black text-amber-500 font-mono tracking-tight">
+          <Text className="text-4xl font-black text-cyan-400 font-mono tracking-tight">
             ₹{finalTotal.toLocaleString()}
           </Text>
 
@@ -252,11 +252,11 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   <Ionicons
                     name={pm.icon as any}
                     size={20}
-                    color={isSelected ? '#000000' : colors.primary}
+                    color={isSelected ? '#020617' : colors.primary}
                   />
                   <Text
                     className="text-xs font-black"
-                    style={{ color: isSelected ? '#000000' : colors.text }}
+                    style={{ color: isSelected ? '#020617' : colors.text }}
                   >
                     {pm.label}
                   </Text>
@@ -280,11 +280,11 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               activeOpacity={0.8}
               className="flex-row items-center px-2.5 py-1 rounded-xl border active:scale-95"
               style={{
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7',
+                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.16)' : '#e0f2fe',
                 borderColor: colors.primary,
               }}
             >
-              <Text className="text-xs font-black text-amber-500 mr-1 font-mono">
+              <Text className="text-xs font-black text-cyan-400 mr-1 font-mono">
                 {discountType === 'percent' ? '% Percentage' : '₹ Direct Rupees'}
               </Text>
               <Ionicons name="swap-horizontal" size={14} color={colors.primary} />
@@ -295,7 +295,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             className="flex-row items-center px-4 py-2.5 rounded-2xl border"
             style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
           >
-            <Text className="text-base font-bold text-amber-500 mr-2 font-mono">
+            <Text className="text-base font-bold text-cyan-400 mr-2 font-mono">
               {discountType === 'percent' ? '%' : '₹'}
             </Text>
             <TextInput
@@ -341,7 +341,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             className="flex-row items-center px-4 py-3 rounded-2xl border"
             style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
           >
-            <Text className="text-xl font-bold text-amber-500 mr-2">₹</Text>
+            <Text className="text-xl font-bold text-cyan-400 mr-2">₹</Text>
             <TextInput
               keyboardType="numeric"
               value={receivedInput}
@@ -381,9 +381,9 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
           {/* Automatic Credit Notification */}
           {dueAmount > 0 && (
-            <View className="mt-3.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex-row items-center gap-2">
-              <Ionicons name="time" size={18} color="#f59e0b" />
-              <Text className="text-[11px] text-amber-500 flex-1 font-medium">
+            <View className="mt-3.5 p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex-row items-center gap-2">
+              <Ionicons name="time" size={18} color="#00d2ff" />
+              <Text className="text-[11px] text-cyan-400 flex-1 font-medium">
                 Remaining <Text className="font-bold">₹{dueAmount.toLocaleString()}</Text> will automatically be added to {customer.name || 'this customer'}&apos;s Credit/Khata ledger.
               </Text>
             </View>
@@ -428,7 +428,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <Text className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Items in this Order ({cart.length})
             </Text>
-            <Text className="text-xs font-bold text-amber-500">
+            <Text className="text-xs font-bold text-cyan-400">
               Subtotal: ₹{subtotal}
             </Text>
           </View>
@@ -442,7 +442,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               <Text className="text-xs font-semibold flex-1 pr-2" style={{ color: colors.text }}>
                 {it.qty}x {it.name} {it.selectedVariant ? `(${it.selectedVariant.name})` : ''}
               </Text>
-              <Text className="text-xs font-bold text-amber-500 font-mono">
+              <Text className="text-xs font-bold text-cyan-400 font-mono">
                 ₹{it.qty * it.price}
               </Text>
             </View>
@@ -466,8 +466,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <ActivityIndicator size="small" color="#000" />
           ) : (
             <>
-              <Ionicons name="checkmark-done" size={20} color="#000" />
-              <Text className="text-sm font-black text-black tracking-wider uppercase">
+              <Ionicons name="checkmark-done" size={20} color="#020617" />
+              <Text className="text-sm font-black text-slate-950 tracking-wider uppercase">
                 Complete Order & Generate KOT (₹{finalTotal.toLocaleString()})
               </Text>
             </>

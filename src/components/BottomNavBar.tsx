@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
@@ -44,84 +44,99 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
       }}
       className="px-3 pt-1"
     >
-      {/* Floating Frosted Liquid Glass Bar */}
+      {/* Floating Translucent Liquid Glass Bar */}
       <View
-        className="flex-row items-center justify-around rounded-[26px] border py-2 px-1"
-        style={{
-          backgroundColor: isDark ? 'rgba(8, 14, 26, 0.94)' : 'rgba(255, 255, 255, 0.94)',
-          borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-          shadowColor: isDark ? '#000000' : '#64748b',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: isDark ? 0.38 : 0.12,
-          shadowRadius: 16,
-          elevation: 10,
-        }}
+        style={[
+          styles.glassDock,
+          {
+            backgroundColor: isDark ? 'rgba(7, 16, 38, 0.82)' : 'rgba(255, 255, 255, 0.88)',
+            borderColor: isDark ? 'rgba(0, 210, 255, 0.32)' : 'rgba(2, 132, 199, 0.22)',
+            borderTopColor: isDark ? 'rgba(255, 255, 255, 0.40)' : 'rgba(255, 255, 255, 0.95)',
+            shadowColor: isDark ? '#00d2ff' : '#0284c7',
+            shadowOpacity: isDark ? 0.35 : 0.16,
+          },
+        ]}
       >
-        {tabs.map((tab) => {
-          const isActive = currentTab === tab.id;
-          return (
-            <TouchableOpacity
-              key={tab.id}
-              onPress={() => onSelectTab(tab.id)}
-              activeOpacity={0.7}
-              className="flex-1 items-center justify-center py-1 relative"
-            >
-              {/* Active Tab Indicator: Glowing Neon Pill / Soft Ambient Halo */}
-              <View
-                className="items-center justify-center relative px-3 py-1 rounded-2xl"
-                style={{
-                  backgroundColor: isActive
-                    ? (isDark ? 'rgba(245, 158, 11, 0.16)' : 'rgba(217, 119, 6, 0.12)')
-                    : 'transparent',
-                  borderColor: isActive
-                    ? (isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(217, 119, 6, 0.28)')
-                    : 'transparent',
-                  borderWidth: 1,
-                  shadowColor: isActive ? colors.primary : 'transparent',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: isActive ? 0.35 : 0,
-                  shadowRadius: 8,
-                }}
+        <View style={styles.tabsInner}>
+          {tabs.map((tab) => {
+            const isActive = currentTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => onSelectTab(tab.id)}
+                activeOpacity={0.7}
+                className="flex-1 items-center justify-center py-1 relative"
               >
-                <Ionicons
-                  name={tab.icon}
-                  size={20}
-                  color={isActive ? colors.primary : (isDark ? '#94a3b8' : '#64748b')}
-                />
+                {/* Active Tab Indicator: Glowing Liquid Neon Pill */}
+                <View
+                  className="items-center justify-center relative px-3 py-1 rounded-2xl"
+                  style={{
+                    backgroundColor: isActive
+                      ? (isDark ? 'rgba(0, 210, 255, 0.22)' : 'rgba(2, 132, 199, 0.16)')
+                      : 'transparent',
+                    borderWidth: isActive ? 1 : 0,
+                    borderColor: isActive
+                      ? (isDark ? 'rgba(0, 210, 255, 0.40)' : 'rgba(2, 132, 199, 0.30)')
+                      : 'transparent',
+                  }}
+                >
+                  <Ionicons
+                    name={tab.icon}
+                    size={20}
+                    color={
+                      isActive
+                        ? colors.primary
+                        : colors.textMuted
+                    }
+                  />
 
-                {/* Subtle tactile micro-pill badge for cart item count */}
-                {tab.badge && tab.badge > 0 ? (
-                  <View
-                    className="absolute -top-1.5 -right-1 px-1.5 py-0.2 rounded-full border border-black/30 items-center justify-center"
-                    style={{
-                      backgroundColor: isDark ? '#00d2ff' : colors.primary,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 2,
-                    }}
-                  >
-                    <Text className="text-[9px] font-black text-black">
-                      {tab.badge}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
+                  {/* Notification badge for cart */}
+                  {tab.badge && tab.badge > 0 ? (
+                    <View
+                      className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full items-center justify-center shadow-sm"
+                      style={{ backgroundColor: '#f43f5e' }}
+                    >
+                      <Text className="text-[9px] font-black text-white">
+                        {tab.badge > 99 ? '99+' : tab.badge}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
 
-              <Text
-                className="text-[10px] mt-1 text-center"
-                numberOfLines={1}
-                style={{
-                  color: isActive ? colors.primary : (isDark ? '#64748b' : '#94a3b8'),
-                  fontWeight: isActive ? '800' : '600',
-                }}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+                {/* Tab Label */}
+                <Text
+                  className="text-[10px] mt-1 tracking-tight"
+                  style={{
+                    color: isActive ? colors.primary : colors.textMuted,
+                    fontWeight: isActive ? '800' : '600',
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  glassDock: {
+    borderRadius: 26,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderTopWidth: 1.5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 18,
+    elevation: 12,
+  },
+  tabsInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+});

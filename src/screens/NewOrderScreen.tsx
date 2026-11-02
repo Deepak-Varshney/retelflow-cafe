@@ -17,7 +17,7 @@ import { getMenuItemsApi } from '../api/cafeApi';
 import { getCachedMenu, setCachedMenu } from '../services/cacheService';
 import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
 import { CategoryTabs } from '../components/CategoryTabs';
-import { GeminiVoiceOrb } from '../components/GeminiVoiceOrb';
+import { PulseMicButton } from '../components/PulseMicButton';
 import { FoodItemCard } from '../components/FoodItemCard';
 import { VariantSelectorModal } from '../components/VariantSelectorModal';
 import { DisambiguationModal } from '../components/DisambiguationModal';
@@ -203,7 +203,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       {/* 1. Header Toolbar */}
       <View
         className="px-4 py-3 flex-row items-center justify-between border-b"
@@ -220,97 +220,115 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
             <Text className="text-base font-black tracking-tight" style={{ color: colors.text }}>
               {shopName}
             </Text>
-            <Text className="text-[11px] font-semibold text-amber-500">
+            <Text className="text-[11px] font-semibold text-cyan-400">
               New Dine-In / Takeaway Order
             </Text>
           </View>
         </View>
 
-        {/* Live Mic Push-to-Talk (Hold-to-Speak) Button */}
-        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <TouchableOpacity
-            onPressIn={() => {
-              pressStartRef.current = Date.now();
-              setIsHolding(true);
-              voice.startListening();
-            }}
-            onPressOut={() => {
-              const holdDuration = Date.now() - pressStartRef.current;
-              setIsHolding(false);
-              if (holdDuration < 250) {
-                // Quick tap without holding: disconnect/abort immediately
-                voice.stopListening({ abort: true });
-              } else {
-                voice.stopListening({ abort: false });
-              }
-            }}
-            activeOpacity={0.85}
-            className="flex-row items-center px-3 py-1.5 rounded-2xl border shadow-md active:scale-95"
-            style={{
-              backgroundColor: (isHolding || isListening) ? '#06202a' : colors.primary,
-              borderColor: (isHolding || isListening) ? '#00d2ff' : colors.primaryGlow,
-            }}
-          >
-            <Ionicons
-              name={isListening ? 'radio' : 'mic'}
-              size={17}
-              color={(isHolding || isListening) ? '#00d2ff' : '#000000'}
-            />
-            <Text
-              className="text-xs font-black ml-1.5 uppercase tracking-wide"
-              style={{ color: isListening ? '#00d2ff' : '#000000' }}
-            >
-              {(isHolding || isListening) ? 'Listening...' : 'Hold & Speak'}
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+        {/* Live Mic Push-to-Talk (Hold-to-Speak) Button with Self-Contained Pulse Animation */}
+        <PulseMicButton
+          isListening={isListening}
+          isHolding={isHolding}
+          busy={voice.busy}
+          onPressIn={() => {
+            pressStartRef.current = Date.now();
+            setIsHolding(true);
+            voice.startListening();
+          }}
+          onPressOut={() => {
+            const holdDuration = Date.now() - pressStartRef.current;
+            setIsHolding(false);
+            if (holdDuration < 250) {
+              voice.stopListening({ abort: true });
+            } else {
+              voice.stopListening({ abort: false });
+            }
+          }}
+          idleText="Hold & Speak"
+          listeningText="Listening..."
+          busyText="Adding..."
+        />
       </View>
 
-      {/* Gemini Voice Pulse Orb */}
-      {(isHolding || isListening) && (
+      {/* Floating HUD Chip for Speech Preview / Processing (Absolute overlay - zero layout resize) */}
+      {Boolean((isHolding || isListening) && voice.heard) && (
         <View
-          className="border-b py-2"
+          pointerEvents="none"
           style={{
-            backgroundColor: 'rgba(6, 18, 30, 0.96)',
-            borderColor: 'rgba(0, 210, 255, 0.25)',
+            position: 'absolute',
+            top: 60,
+            left: 16,
+            right: 16,
+            zIndex: 999,
+            backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+            borderColor: colors.primary,
+            borderWidth: 1,
+            borderRadius: 16,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            shadowColor: colors.primary,
+            shadowOpacity: 0.35,
+            shadowRadius: 10,
+            elevation: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
           }}
         >
-          <GeminiVoiceOrb
-            isListening={isHolding || isListening}
-            size={68}
-            heardText={voice.heard || undefined}
-            hintText={
-              voice.mode === 'live'
-                ? 'Live: speak items & quantities freely...'
-                : 'Hold & speak items (e.g. "Do burger ek cold coffee")'
-            }
-          />
+          <Ionicons name="mic" size={14} color={colors.primary} style={{ marginRight: 8 }} />
+          <Text
+            numberOfLines={1}
+            style={{
+              flex: 1,
+              color: colors.text,
+              fontSize: 12,
+              fontWeight: '700',
+            }}
+          >
+            "{voice.heard}"
+          </Text>
         </View>
       )}
 
-      {/* Voice Notice / Processing Banner when not holding */}
-      {!isListening && (voice.busy || voice.notice) && (
+      {Boolean(!isListening && (voice.busy || voice.notice)) && (
         <View
-          className="px-4 py-2 border-b flex-row items-center justify-between"
+          pointerEvents="none"
           style={{
-            backgroundColor: 'rgba(245, 158, 11, 0.12)',
-            borderColor: 'rgba(245, 158, 11, 0.25)',
+            position: 'absolute',
+            top: 60,
+            left: 16,
+            right: 16,
+            zIndex: 999,
+            backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+            borderColor: colors.primary,
+            borderWidth: 1,
+            borderRadius: 16,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            shadowColor: colors.primary,
+            shadowOpacity: 0.35,
+            shadowRadius: 10,
+            elevation: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
           }}
         >
-          <View className="flex-row items-center flex-1 pr-2">
-            {voice.busy ? (
-              <ActivityIndicator size="small" color={colors.primary} className="mr-2" />
-            ) : (
-              <Ionicons name="sparkles" size={15} color={colors.primary} className="mr-2" />
-            )}
-            <Text
-              className="text-xs font-bold"
-              style={{ color: colors.primary }}
-              numberOfLines={1}
-            >
-              {voice.notice || (voice.busy ? 'AI is processing your order...' : '')}
-            </Text>
-          </View>
+          {voice.busy ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
+          ) : (
+            <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginRight: 8 }} />
+          )}
+          <Text
+            numberOfLines={1}
+            style={{
+              flex: 1,
+              color: colors.primary,
+              fontSize: 12,
+              fontWeight: '700',
+            }}
+          >
+            {voice.notice || (voice.busy ? 'AI is processing your order...' : '')}
+          </Text>
         </View>
       )}
 
@@ -397,7 +415,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
                   loadMenu();
                 }}
                 activeOpacity={0.8}
-                className="flex-row items-center px-4 py-2.5 rounded-2xl bg-amber-500 shadow-md active:scale-95"
+                className="flex-row items-center px-4 py-2.5 rounded-2xl bg-cyan-500 shadow-md active:scale-95"
               >
                 <Ionicons name="reload" size={16} color="#000000" className="mr-1.5" />
                 <Text className="text-xs font-black text-black uppercase tracking-wider ml-1">

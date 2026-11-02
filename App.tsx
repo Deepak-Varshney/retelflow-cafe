@@ -25,6 +25,7 @@ import { initCache, setCachedConfig } from './src/services/cacheService';
 import { getAppConfigApi } from './src/api/cafeApi';
 import { getPrintSettings, getShopFeatures, getStoreInfo } from './src/utils/shopSettings';
 import { GlobalPrinterSetupModal } from './src/components/PrinterSetupModal';
+import { LiquidGlassBackground } from './src/components/LiquidGlassBackground';
 
 type OrderStep = 'menu' | 'customer' | 'payment' | 'complete';
 
@@ -139,10 +140,10 @@ function AppContent() {
 
   if (!user) {
     return (
-      <View className="flex-1" style={{ backgroundColor: colors.background }}>
+      <LiquidGlassBackground>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <LoginScreen onLoginSuccess={(u) => setUser(u)} />
-      </View>
+      </LiquidGlassBackground>
     );
   }
 
@@ -150,7 +151,7 @@ function AppContent() {
   if (currentTab === 'order') {
     if (orderStep === 'customer') {
       return (
-        <View className="flex-1" style={{ backgroundColor: colors.background }}>
+        <LiquidGlassBackground>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
           <CustomerScreen
             customer={customer}
@@ -160,13 +161,13 @@ function AppContent() {
             onProceedToPayment={() => setOrderStep('payment')}
             onBack={() => setOrderStep('menu')}
           />
-        </View>
+        </LiquidGlassBackground>
       );
     }
 
     if (orderStep === 'payment') {
       return (
-        <View className="flex-1" style={{ backgroundColor: colors.background }}>
+        <LiquidGlassBackground>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
           <PaymentScreen
             cart={cart}
@@ -178,13 +179,13 @@ function AppContent() {
             }}
             onBack={() => setOrderStep('customer')}
           />
-        </View>
+        </LiquidGlassBackground>
       );
     }
 
     if (orderStep === 'complete' && completedInvoice) {
       return (
-        <View className="flex-1" style={{ backgroundColor: colors.background }}>
+        <LiquidGlassBackground>
           <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
           <OrderCompleteScreen
             invoice={completedInvoice}
@@ -192,13 +193,13 @@ function AppContent() {
             storeInfo={getStoreInfo(user)}
             printSettings={getPrintSettings(user)}
           />
-        </View>
+        </LiquidGlassBackground>
       );
     }
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+    <LiquidGlassBackground>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {/* Main Tab Content */}
       {currentTab === 'order' && (
@@ -207,7 +208,7 @@ function AppContent() {
           setCart={setCart}
           onProceedToCustomer={() => setOrderStep('customer')}
           shopName={user.businessName || user.name || 'RetelFlow Cafe'}
-          voiceMode={user?.cafe?.voiceMode === 'live' ? 'live' : 'stream'}
+          voiceMode={user?.cafe?.voiceMode || 'stream'}
         />
       )}
 
@@ -242,7 +243,7 @@ function AppContent() {
         }}
         cartCount={cart.reduce((sum, it) => sum + it.qty, 0)}
       />
-    </View>
+    </LiquidGlassBackground>
   );
 }
 

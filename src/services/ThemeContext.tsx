@@ -2,9 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { safeStorage } from './storage';
 
 export type CafeThemePreset =
-  | 'frosted_neo_bento'
   | 'liquid_glass'
+  | 'liquid_glass_light'
   | 'dark_liquid_glass'
+  | 'frosted_neo_bento'
   | 'glassmorphism'
   | 'neumorphism'
   | 'retro_cafe'
@@ -68,33 +69,62 @@ const FROSTED_NEO_BENTO: ThemeColors = {
   pillBg: 'rgba(255, 255, 255, 0.05)',
 };
 
-// 2. Liquid Glass (Cyber Sapphire & Electric Neon)
+// 2. Liquid Glass (Cyber Sapphire & Electric Neon - Default Theme)
 const LIQUID_GLASS: ThemeColors = {
-  background: '#030712', // Obsidian sapphire
-  surface: '#080f24',
-  card: '#0c1633',
-  cardHover: '#11204a',
-  elevated: '#0e1b3d',
-  border: 'rgba(0, 210, 255, 0.14)',
-  text: '#f8fafc',
-  textSecondary: '#93c5fd',
-  textMuted: '#475569',
+  background: '#030712', // Crystalline obsidian sapphire base
+  surface: 'rgba(7, 15, 36, 0.68)',
+  card: 'rgba(10, 20, 48, 0.62)',
+  cardHover: 'rgba(16, 30, 68, 0.78)',
+  elevated: 'rgba(12, 24, 56, 0.72)',
+  border: 'rgba(0, 210, 255, 0.22)',
+  text: '#ffffff',
+  textSecondary: '#94a3b8',
+  textMuted: '#64748b',
   primary: '#00d2ff', // Electric Cyber Cyan
   primaryGlow: 'rgba(0, 210, 255, 0.45)',
-  accent: '#a855f7', // Electric Violet
+  accent: '#a855f7', // Prismatic Violet
   accentGlow: 'rgba(168, 85, 247, 0.40)',
-  inputBg: '#050c1e',
-  badgeBg: 'rgba(0, 210, 255, 0.15)',
+  inputBg: 'rgba(5, 12, 30, 0.65)',
+  badgeBg: 'rgba(0, 210, 255, 0.16)',
 
-  glassBg: 'rgba(8, 16, 38, 0.92)',
-  glassBorder: 'rgba(0, 210, 255, 0.22)',
-  glassBorderActive: 'rgba(168, 85, 247, 0.45)',
+  glassBg: 'rgba(7, 15, 36, 0.60)',
+  glassBorder: 'rgba(0, 210, 255, 0.25)',
+  glassBorderActive: 'rgba(0, 210, 255, 0.60)',
   neonCyan: '#00d2ff',
-  neonMint: '#38bdf8',
-  neonAmber: '#f59e0b',
-  cardBento: '#070e24',
-  bentoBorder: 'rgba(0, 210, 255, 0.18)',
-  pillBg: 'rgba(0, 210, 255, 0.08)',
+  neonMint: '#0df2a4',
+  neonAmber: '#38bdf8', // Luminous Ice Cyan for highlighted pricing and badges
+  cardBento: 'rgba(8, 16, 40, 0.64)',
+  bentoBorder: 'rgba(0, 210, 255, 0.22)',
+  pillBg: 'rgba(0, 210, 255, 0.10)',
+};
+
+// 2b. Liquid Glass Light Mode (Crystal Frost & Prismatic Sapphire Daylight)
+const LIQUID_GLASS_LIGHT: ThemeColors = {
+  background: '#f1f5f9', // Crystal cool daylight background
+  surface: 'rgba(255, 255, 255, 0.72)',
+  card: 'rgba(255, 255, 255, 0.78)',
+  cardHover: 'rgba(255, 255, 255, 0.90)',
+  elevated: 'rgba(255, 255, 255, 0.85)',
+  border: 'rgba(2, 132, 199, 0.18)',
+  text: '#090e17', // High-contrast black/slate for ultra-clean readability
+  textSecondary: '#475569',
+  textMuted: '#94a3b8',
+  primary: '#0284c7', // Liquid Sapphire Sky Cyan
+  primaryGlow: 'rgba(2, 132, 199, 0.35)',
+  accent: '#7c3aed', // Prismatic Violet
+  accentGlow: 'rgba(124, 58, 237, 0.30)',
+  inputBg: 'rgba(241, 245, 249, 0.75)',
+  badgeBg: 'rgba(2, 132, 199, 0.12)',
+
+  glassBg: 'rgba(255, 255, 255, 0.70)',
+  glassBorder: 'rgba(2, 132, 199, 0.22)',
+  glassBorderActive: 'rgba(2, 132, 199, 0.55)',
+  neonCyan: '#0284c7',
+  neonMint: '#059669',
+  neonAmber: '#0284c7', // Sapphire Cyan for prices in light mode
+  cardBento: 'rgba(255, 255, 255, 0.76)',
+  bentoBorder: 'rgba(2, 132, 199, 0.18)',
+  pillBg: 'rgba(2, 132, 199, 0.08)',
 };
 
 // 3. Glassmorphism (Prismatic Frost & Translucent Glass)
@@ -214,19 +244,24 @@ const CLASSIC_LIGHT_RETAIL: ThemeColors = {
 };
 
 export const THEME_PRESETS: Record<CafeThemePreset, { name: string; colors: ThemeColors; isDark: boolean }> = {
+  liquid_glass: {
+    name: 'Liquid Glass (Dark Sapphire)',
+    colors: LIQUID_GLASS,
+    isDark: true,
+  },
+  liquid_glass_light: {
+    name: 'Liquid Glass (Light Crystal)',
+    colors: LIQUID_GLASS_LIGHT,
+    isDark: false,
+  },
+  dark_liquid_glass: {
+    name: 'Liquid Glass (Dark Sapphire)',
+    colors: LIQUID_GLASS,
+    isDark: true,
+  },
   frosted_neo_bento: {
     name: 'Frosted Neo-Bento',
     colors: FROSTED_NEO_BENTO,
-    isDark: true,
-  },
-  liquid_glass: {
-    name: 'Liquid Glass (Cyber Sapphire)',
-    colors: LIQUID_GLASS,
-    isDark: true,
-  },
-  dark_liquid_glass: {
-    name: 'Liquid Glass (Cyber Sapphire)',
-    colors: LIQUID_GLASS,
     isDark: true,
   },
   glassmorphism: {
@@ -246,7 +281,7 @@ export const THEME_PRESETS: Record<CafeThemePreset, { name: string; colors: Them
   },
   classic_light_retail: {
     name: 'Classic Light Retail (Daylight Mode)',
-    colors: CLASSIC_LIGHT_RETAIL,
+    colors: LIQUID_GLASS_LIGHT,
     isDark: false,
   },
 };
@@ -262,8 +297,8 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  preset: 'frosted_neo_bento',
-  colors: FROSTED_NEO_BENTO,
+  preset: 'liquid_glass',
+  colors: LIQUID_GLASS,
   isDark: true,
   setPreset: () => {},
   toggleTheme: () => {},
@@ -271,14 +306,14 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [preset, setPresetState] = useState<CafeThemePreset>('frosted_neo_bento');
+  const [preset, setPresetState] = useState<CafeThemePreset>('liquid_glass');
 
   useEffect(() => {
     safeStorage.getItem('retelflow_cafe_theme_preset').then((saved: string | null) => {
       if (saved && THEME_PRESETS[saved as CafeThemePreset]) {
         setPresetState(saved as CafeThemePreset);
       } else {
-        setPresetState('frosted_neo_bento');
+        setPresetState('liquid_glass');
       }
     });
   }, []);
@@ -290,15 +325,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const currentTheme = THEME_PRESETS[preset] || THEME_PRESETS.frosted_neo_bento;
+  const currentTheme = THEME_PRESETS[preset] || THEME_PRESETS.liquid_glass;
 
   const toggleTheme = () => {
-    const next = currentTheme.isDark ? 'classic_light_retail' : 'frosted_neo_bento';
+    const next = currentTheme.isDark ? 'liquid_glass_light' : 'liquid_glass';
     setPreset(next);
   };
 
   const setMode = (mode: 'dark' | 'light') => {
-    setPreset(mode === 'light' ? 'classic_light_retail' : 'frosted_neo_bento');
+    setPreset(mode === 'light' ? 'liquid_glass_light' : 'liquid_glass');
   };
 
   return (

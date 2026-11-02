@@ -24,7 +24,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
       style={[
         styles.container,
         {
-          backgroundColor: isDark ? (colors.glassBg || 'rgba(13, 21, 39, 0.82)') : colors.surface,
+          backgroundColor: isDark ? (colors.glassBg || 'rgba(7, 15, 36, 0.90)') : colors.surface,
           borderBottomColor: colors.glassBorder || colors.border,
         },
       ]}
@@ -47,19 +47,19 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                 styles.tabPill,
                 isSelected
                   ? {
-                      // Active: Glowing electric border, subtle glow shadow, bold text
-                      backgroundColor: isDark ? 'rgba(0, 210, 255, 0.12)' : 'rgba(2, 132, 199, 0.08)',
+                      // Active: Glowing electric cyan border, subtle glow shadow, bold text
+                      backgroundColor: isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(2, 132, 199, 0.10)',
                       borderColor: activeBorderColor,
                       shadowColor: activeBorderColor,
                       shadowOffset: { width: 0, height: 2 },
                       shadowOpacity: isDark ? 0.45 : 0.2,
-                      shadowRadius: 6,
+                      shadowRadius: 8,
                       elevation: 3,
                     }
                   : {
-                      // Inactive: Frosted glass background, subtle 1px border
-                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
-                      borderColor: isDark ? (colors.glassBorder || 'rgba(255, 255, 255, 0.08)') : 'rgba(0, 0, 0, 0.06)',
+                      // Inactive: Translucent liquid glass background, subtle 1px border
+                      backgroundColor: isDark ? 'rgba(0, 210, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                      borderColor: isDark ? (colors.glassBorder || 'rgba(0, 210, 255, 0.12)') : 'rgba(0, 0, 0, 0.06)',
                       elevation: 0,
                     },
               ]}

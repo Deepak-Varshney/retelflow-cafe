@@ -132,7 +132,7 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
               style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' }}
             >
               <Ionicons name="print" size={16} color="#f59e0b" />
-              <Text className="text-xs font-bold text-amber-500 flex-1">
+              <Text className="text-xs font-bold text-cyan-400 flex-1">
                 {reason || 'Connect your printer to resume printing the bill automatically.'}
               </Text>
             </View>
@@ -162,7 +162,7 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
                 <TouchableOpacity
                   onPress={handleTestPrint}
                   disabled={testing}
-                  className="flex-1 py-2 rounded-xl items-center justify-center bg-amber-500 flex-row gap-1.5"
+                  className="flex-1 py-2 rounded-xl items-center justify-center bg-cyan-500 flex-row gap-1.5"
                 >
                   {testing ? <ActivityIndicator size="small" color="#000" /> : null}
                   <Text className="text-xs font-black text-black">Test Print</Text>

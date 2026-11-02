@@ -369,7 +369,7 @@ export const MenuInventoryScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       {/* 1. Header Toolbar */}
       <View
         className="px-4 py-3 flex-row items-center justify-between border-b"
@@ -392,13 +392,13 @@ export const MenuInventoryScreen: React.FC = () => {
             style={{ backgroundColor: colors.badgeBg, borderColor: colors.primary }}
           >
             <Ionicons name="mic" size={16} color={colors.primary} />
-            <Text className="text-xs font-bold text-amber-500 ml-1">Voice Add</Text>
+            <Text className="text-xs font-bold ml-1" style={{ color: colors.primary }}>Voice Add</Text>
           </TouchableOpacity>
 
           {/* Manual Add Button */}
           <TouchableOpacity
             onPress={() => setAddModalVisible(true)}
-            className="flex-row items-center px-3.5 py-2 rounded-2xl bg-amber-500 active:scale-95 shadow-md"
+            className="flex-row items-center px-3.5 py-2 rounded-2xl active:scale-95 shadow-md" style={{ backgroundColor: colors.primary }}
           >
             <Ionicons name="add" size={16} color="#000" />
             <Text className="text-xs font-black text-black ml-1">New Dish</Text>
@@ -475,14 +475,14 @@ export const MenuInventoryScreen: React.FC = () => {
                   {item.category === 'General' ? 'Without Category' : item.category} • {item.unit || 'pcs'}
                 </Text>
                 {item.variants && item.variants.length > 0 && (
-                  <Text className="text-[10px] text-amber-500 font-medium">
+                  <Text className="text-[10px] font-medium" style={{ color: colors.primary }}>
                     {item.variants.length} Sizes/Variants
                   </Text>
                 )}
               </View>
 
               <View className="items-end mr-3">
-                <Text className="text-sm font-extrabold text-amber-500 font-mono">
+                <Text className="text-sm font-extrabold font-mono" style={{ color: colors.primary }}>
                   ₹{item.price}
                 </Text>
               </View>
@@ -490,7 +490,7 @@ export const MenuInventoryScreen: React.FC = () => {
               {/* Edit Icon Button */}
               <TouchableOpacity
                 onPress={() => handleOpenEdit(item)}
-                className="p-2 rounded-xl active:bg-amber-500/10 mr-1"
+                className="p-2 rounded-xl active:bg-cyan-500/10 mr-1"
               >
                 <Ionicons name="pencil-outline" size={17} color={colors.primary} />
               </TouchableOpacity>
@@ -518,7 +518,7 @@ export const MenuInventoryScreen: React.FC = () => {
               </Text>
               <TouchableOpacity
                 onPress={() => setAddModalVisible(true)}
-                className="mt-3 px-4 py-2 rounded-xl bg-amber-500"
+                className="mt-3 px-4 py-2 rounded-xl" style={{ backgroundColor: colors.primary }}
               >
                 <Text className="text-xs font-black text-black">
                   + Add First Dish to Menu
@@ -544,7 +544,7 @@ export const MenuInventoryScreen: React.FC = () => {
         animationType="slide"
         onRequestClose={() => setAddModalVisible(false)}
       >
-        <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+        <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
           {/* Header */}
           <View
             className="px-4 py-3 flex-row items-center justify-between border-b"
@@ -635,7 +635,7 @@ export const MenuInventoryScreen: React.FC = () => {
                         className="px-3 py-1.5 rounded-xl border"
                         style={{ borderColor: colors.border, backgroundColor: colors.surface }}
                       >
-                        <Text className="text-[11px] font-bold text-amber-500">Change</Text>
+                        <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>Change</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => setNewImageUrl('')}
@@ -719,7 +719,7 @@ export const MenuInventoryScreen: React.FC = () => {
                 className="px-3 py-1.5 rounded-xl border"
                 style={{ backgroundColor: colors.badgeBg, borderColor: colors.primary }}
               >
-                <Text className="text-[11px] font-bold text-amber-500">Toggle</Text>
+                <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>Toggle</Text>
               </TouchableOpacity>
             </View>
 
@@ -798,7 +798,7 @@ export const MenuInventoryScreen: React.FC = () => {
                           setNewVariants(updated);
                           if (idx === 0) setNewPrice(t);
                         }}
-                        className="w-20 text-xs font-black font-mono px-2 py-1.5 rounded-lg border text-amber-500"
+                        className="w-20 text-xs font-black font-mono px-2 py-1.5 rounded-lg border"
                         style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
                       />
                       <TextInput
@@ -833,7 +833,7 @@ export const MenuInventoryScreen: React.FC = () => {
                     style={{ borderColor: colors.primary }}
                   >
                     <Ionicons name="add-circle" size={16} color={colors.primary} />
-                    <Text className="text-xs font-bold text-amber-500">
+                    <Text className="text-xs font-bold" style={{ color: colors.primary }}>
                       Add Another Size / Portion
                     </Text>
                   </TouchableOpacity>
@@ -896,7 +896,7 @@ export const MenuInventoryScreen: React.FC = () => {
               onPress={handleSaveManualItem}
               disabled={savingItem}
               activeOpacity={0.8}
-              className="py-4 rounded-2xl items-center justify-center bg-amber-500 shadow-xl active:scale-98"
+              className="py-4 rounded-2xl items-center justify-center shadow-xl active:scale-98" style={{ backgroundColor: colors.primary }}
             >
               {savingItem ? (
                 <ActivityIndicator size="small" color="#000" />
@@ -916,7 +916,7 @@ export const MenuInventoryScreen: React.FC = () => {
         animationType="slide"
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+        <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
           {/* Header */}
           <View
             className="px-4 py-3 flex-row items-center justify-between border-b"
@@ -926,7 +926,7 @@ export const MenuInventoryScreen: React.FC = () => {
               <Text className="text-base font-black" style={{ color: colors.text }}>
                 Edit Store Dish
               </Text>
-              <Text className="text-[11px] text-amber-500 font-semibold">
+              <Text className="text-[11px] font-semibold" style={{ color: colors.primary }}>
                 Custom pricing, sizes & photo for this counter
               </Text>
             </View>
@@ -1007,7 +1007,7 @@ export const MenuInventoryScreen: React.FC = () => {
                         className="px-3 py-1.5 rounded-xl border"
                         style={{ borderColor: colors.border, backgroundColor: colors.surface }}
                       >
-                        <Text className="text-[11px] font-bold text-amber-500">Change</Text>
+                        <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>Change</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => setEditImageUrl('')}
@@ -1091,7 +1091,7 @@ export const MenuInventoryScreen: React.FC = () => {
                 className="px-3 py-1.5 rounded-xl border"
                 style={{ backgroundColor: colors.badgeBg, borderColor: colors.primary }}
               >
-                <Text className="text-[11px] font-bold text-amber-500">Toggle</Text>
+                <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>Toggle</Text>
               </TouchableOpacity>
             </View>
 
@@ -1170,7 +1170,7 @@ export const MenuInventoryScreen: React.FC = () => {
                           setEditVariants(updated);
                           if (idx === 0) setEditPrice(t);
                         }}
-                        className="w-20 text-xs font-black font-mono px-2 py-1.5 rounded-lg border text-amber-500"
+                        className="w-20 text-xs font-black font-mono px-2 py-1.5 rounded-lg border"
                         style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
                       />
                       <TextInput
@@ -1205,7 +1205,7 @@ export const MenuInventoryScreen: React.FC = () => {
                     style={{ borderColor: colors.primary }}
                   >
                     <Ionicons name="add-circle" size={16} color={colors.primary} />
-                    <Text className="text-xs font-bold text-amber-500">
+                    <Text className="text-xs font-bold" style={{ color: colors.primary }}>
                       Add Another Size / Portion
                     </Text>
                   </TouchableOpacity>
@@ -1268,7 +1268,7 @@ export const MenuInventoryScreen: React.FC = () => {
               onPress={handleSaveEdit}
               disabled={updatingItem}
               activeOpacity={0.8}
-              className="py-4 rounded-2xl items-center justify-center bg-amber-500 shadow-xl active:scale-98"
+              className="py-4 rounded-2xl items-center justify-center shadow-xl active:scale-98" style={{ backgroundColor: colors.primary }}
             >
               {updatingItem ? (
                 <ActivityIndicator size="small" color="#000" />
@@ -1346,7 +1346,7 @@ export const MenuInventoryScreen: React.FC = () => {
                 >
                   <View className="flex-row items-center">
                     <Ionicons name="add-circle" size={18} color={colors.primary} className="mr-2" />
-                    <Text className="text-xs font-black text-amber-500">
+                    <Text className="text-xs font-black" style={{ color: colors.primary }}>
                       Add New Category: &quot;{categorySearchQuery.trim()}&quot;
                     </Text>
                   </View>

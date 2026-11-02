@@ -7,7 +7,7 @@ import { authStorage } from '../auth/authStorage';
  * One shared connection; screens subscribe to the events they need.
  */
 
-export type CafeVoiceMode = 'stream' | 'live';
+export type CafeVoiceMode = 'stream' | 'audio' | 'live';
 
 export interface CafeVoiceItem {
   itemName: string;

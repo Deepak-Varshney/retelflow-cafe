@@ -16,7 +16,7 @@ import { CustomerInfo, CartItem } from '../types';
 import { searchCustomerApi } from '../api/cafeApi';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
 import { parseCustomerVoice, transliterateDevanagariToLatin } from '../services/customerVoiceParser';
-import { GeminiVoiceOrb } from '../components/GeminiVoiceOrb';
+import { PulseMicButton } from '../components/PulseMicButton';
 import { CartReviewModal } from '../components/CartReviewModal';
 import { getCachedMenu } from '../services/cacheService';
 import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
@@ -140,7 +140,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1"
@@ -164,8 +164,10 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             </View>
           </View>
 
-          {/* Voice Auto-Detect Mic (Hold-to-Speak) */}
-          <TouchableOpacity
+          {/* Voice Auto-Detect Mic (Hold-to-Speak) with Self-Contained Pulse */}
+          <PulseMicButton
+            isListening={isListening}
+            isHolding={isHolding}
             onPressIn={() => {
               pressStartRef.current = Date.now();
               setIsHolding(true);
@@ -180,56 +182,83 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                 stopListening({ abort: false });
               }
             }}
-            activeOpacity={0.85}
-            className="flex-row items-center px-3.5 py-2 rounded-2xl border active:scale-95 shadow-md"
-            style={{
-              backgroundColor: (isHolding || isListening) ? '#06202a' : colors.primary,
-              borderColor: (isHolding || isListening) ? '#00d2ff' : colors.primaryGlow,
-            }}
-          >
-            <Ionicons
-              name={isListening ? 'radio' : 'mic'}
-              size={18}
-              color={(isHolding || isListening) ? '#00d2ff' : '#000000'}
-            />
-            <Text
-              className="text-xs font-black ml-1.5 uppercase tracking-wide"
-              style={{ color: isListening ? '#00d2ff' : '#000000' }}
-            >
-              {(isHolding || isListening) ? 'Listening...' : 'Hold & Speak'}
-            </Text>
-          </TouchableOpacity>
+            idleText="Hold & Speak"
+            listeningText="Listening..."
+          />
         </View>
 
-        {/* Gemini Voice Pulse Orb */}
-        {(isHolding || isListening) && (
+        {/* Floating HUD Chip for Speech Preview / Feedback (Zero layout shift) */}
+        {Boolean((isHolding || isListening) && transcript) && (
           <View
-            className="border-b py-2"
+            pointerEvents="none"
             style={{
-              backgroundColor: 'rgba(6, 18, 30, 0.96)',
-              borderColor: 'rgba(0, 210, 255, 0.25)',
+              position: 'absolute',
+              top: 60,
+              left: 16,
+              right: 16,
+              zIndex: 999,
+              backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+              borderColor: colors.primary,
+              borderWidth: 1,
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              shadowColor: colors.primary,
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              elevation: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
             }}
           >
-            <GeminiVoiceOrb
-              isListening={isHolding || isListening}
-              size={68}
-              heardText={transliterateDevanagariToLatin(transcript) || undefined}
-              hintText="Hold & speak customer name or 10-digit number..."
-            />
+            <Ionicons name="mic" size={14} color={colors.primary} style={{ marginRight: 8 }} />
+            <Text
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                color: colors.text,
+                fontSize: 12,
+                fontWeight: '700',
+              }}
+            >
+              "{transliterateDevanagariToLatin(transcript)}"
+            </Text>
           </View>
         )}
 
-        {/* Voice Feedback Banner when completed */}
-        {!isListening && voiceNotice && (
+        {Boolean(!isListening && voiceNotice) && (
           <View
-            className="px-4 py-2.5 border-b flex-row items-center justify-between"
+            pointerEvents="none"
             style={{
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              borderColor: 'rgba(16, 185, 129, 0.3)',
+              position: 'absolute',
+              top: 60,
+              left: 16,
+              right: 16,
+              zIndex: 999,
+              backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+              borderColor: '#10b981',
+              borderWidth: 1,
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              shadowColor: '#10b981',
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              elevation: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
             }}
           >
-            <Ionicons name="checkmark-circle" size={16} color="#10b981" className="mr-2" />
-            <Text className="text-xs font-bold text-emerald-400 flex-1">
+            <Ionicons name="checkmark-circle" size={14} color="#10b981" style={{ marginRight: 8 }} />
+            <Text
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                color: '#10b981',
+                fontSize: 12,
+                fontWeight: '700',
+              }}
+            >
               {voiceNotice}
             </Text>
           </View>
@@ -247,7 +276,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             <View className="flex-row items-center justify-between pb-2.5 border-b" style={{ borderColor: colors.border }}>
               <View className="flex-row items-center">
                 <Ionicons name="receipt-outline" size={16} color={colors.primary} />
-                <Text className="text-xs font-black uppercase tracking-wider ml-1.5 text-amber-500">
+                <Text className="text-xs font-black uppercase tracking-wider ml-1.5 text-cyan-400">
                   Items in this Order ({cart.length})
                 </Text>
               </View>
@@ -274,9 +303,9 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                   <View className="flex-row items-center flex-1 pr-2">
                     <View
                       className="px-2 py-0.5 rounded-md mr-2"
-                      style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7' }}
+                      style={{ backgroundColor: isDark ? 'rgba(0, 210, 255, 0.15)' : '#e0f2fe' }}
                     >
-                      <Text className="text-xs font-black text-amber-500 font-mono">
+                      <Text className="text-xs font-black text-cyan-400 font-mono">
                         {item.qty}x
                       </Text>
                     </View>
@@ -291,7 +320,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                       ) : null}
                     </View>
                   </View>
-                  <Text className="text-xs font-black text-amber-500 font-mono">
+                  <Text className="text-xs font-black text-cyan-400 font-mono">
                     ₹{item.qty * item.price}
                   </Text>
                 </View>
@@ -299,7 +328,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             </View>
             <View className="flex-row justify-end pt-2">
               <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
-                Total: <Text className="font-mono font-black text-amber-500">₹{totalAmount.toLocaleString()}</Text>
+                Total: <Text className="font-mono font-black text-cyan-400">₹{totalAmount.toLocaleString()}</Text>
               </Text>
             </View>
           </View>
@@ -317,7 +346,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             className="rounded-3xl p-5 border shadow-xl"
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
-            <Text className="text-xs font-extrabold uppercase tracking-wider mb-4 text-amber-500">
+            <Text className="text-xs font-extrabold uppercase tracking-wider mb-4 text-cyan-400">
               Customer Info (Either is Required)
             </Text>
 
@@ -355,7 +384,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                 <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
                   Mobile Number
                 </Text>
-                <Text className="text-[10px] text-amber-500 font-medium">
+                <Text className="text-[10px] text-cyan-400 font-medium">
                   {isExistingCustomer ? 'Registered Customer' : 'Required for Credit / Khata'}
                 </Text>
               </View>
@@ -367,7 +396,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                   borderColor: isExistingCustomer ? '#10b981' : colors.border,
                 }}
               >
-                <Text className="text-sm font-bold text-amber-500 mr-2">+91</Text>
+                <Text className="text-sm font-bold mr-2" style={{ color: colors.primary }}>+91</Text>
                 <TextInput
                   placeholder="10-digit mobile number"
                   placeholderTextColor={colors.textMuted}
@@ -432,10 +461,10 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             className="w-full py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-xl active:scale-98"
             style={{ backgroundColor: colors.primary }}
           >
-            <Text className="text-sm font-black text-black tracking-wider uppercase">
+            <Text className="text-sm font-black text-slate-950 tracking-wider uppercase">
               Proceed to Payment (₹{totalAmount.toLocaleString()})
             </Text>
-            <Ionicons name="arrow-forward" size={18} color="#000" />
+            <Ionicons name="arrow-forward" size={18} color="#020617" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

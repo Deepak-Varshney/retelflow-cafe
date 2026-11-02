@@ -177,7 +177,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                 </TouchableOpacity>
                 <View className="flex-1">
                   <View className="flex-row items-center gap-2">
-                    <Text className="text-sm font-black text-amber-500 font-mono">
+                    <Text className="text-sm font-black font-mono" style={{ color: colors.primary }}>
                       #{activeTicket.ticketNumber}
                     </Text>
                     {(() => {
@@ -201,7 +201,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                 <Text className="text-base font-black" style={{ color: colors.text }}>
                   Customer Support & Helpdesk
                 </Text>
-                <Text className="text-[11px] text-amber-500 font-bold">
+                <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>
                   Raise issues directly to RetelFlow Tech Team
                 </Text>
               </View>
@@ -226,7 +226,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                   style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderColor: colors.border }}
                 >
                   <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-[10px] font-bold text-amber-500 uppercase">
+                    <Text className="text-[10px] font-bold uppercase" style={{ color: colors.primary }}>
                       Category: {activeTicket.category}
                     </Text>
                     <Text className="text-[10px] text-slate-400">
@@ -297,8 +297,8 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                 <TouchableOpacity
                   onPress={handleSendReply}
                   disabled={replying || !replyText.trim()}
-                  className="px-3.5 py-2 rounded-xl bg-amber-500 items-center justify-center active:scale-95"
-                  style={{ opacity: replyText.trim() ? 1 : 0.5 }}
+                  className="px-3.5 py-2 rounded-xl items-center justify-center active:scale-95"
+                  style={{ backgroundColor: colors.primary, opacity: replyText.trim() ? 1 : 0.5 }}
                 >
                   {replying ? (
                     <ActivityIndicator size="small" color="#000" />
@@ -363,7 +363,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                       </Text>
                       <TouchableOpacity
                         onPress={() => setActiveTab('create')}
-                        className="mt-4 px-4 py-2 rounded-xl bg-amber-500 active:scale-95"
+                        className="mt-4 px-4 py-2 rounded-xl active:scale-95" style={{ backgroundColor: colors.primary }}
                       >
                         <Text className="text-xs font-black text-black uppercase">Raise Your First Ticket</Text>
                       </TouchableOpacity>
@@ -382,7 +382,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                         >
                           <View className="flex-row items-center justify-between mb-1">
                             <View className="flex-row items-center gap-2">
-                              <Text className="text-xs font-black text-amber-500 font-mono">
+                              <Text className="text-xs font-black font-mono" style={{ color: colors.primary }}>
                                 #{t.ticketNumber}
                               </Text>
                               <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: badge.bg }}>
@@ -517,7 +517,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                     onPress={handleCreateTicket}
                     disabled={submitting}
                     activeOpacity={0.8}
-                    className="py-3.5 rounded-2xl items-center justify-center bg-amber-500 shadow-xl active:scale-98"
+                    className="py-3.5 rounded-2xl items-center justify-center shadow-xl active:scale-98" style={{ backgroundColor: colors.primary }}
                   >
                     {submitting ? (
                       <ActivityIndicator size="small" color="#000" />

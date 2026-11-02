@@ -60,7 +60,7 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
   }, [orders, search]);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       {/* Header */}
       <View
         className="px-4 py-3 flex-row items-center justify-between border-b"
@@ -87,7 +87,7 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
           <Text className="text-[11px] font-bold text-slate-400">Total Sales</Text>
-          <Text className="text-xl font-black text-amber-500 font-mono mt-1">
+          <Text className="text-xl font-black text-cyan-400 font-mono mt-1">
             ₹{totalSales.toLocaleString()}
           </Text>
         </View>
@@ -157,8 +157,8 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
               >
                 <View className="flex-row items-center justify-between mb-1.5">
                   <View className="flex-row items-center gap-2 flex-1 pr-2 flex-wrap">
-                    <View className="px-2 py-0.5 rounded-md bg-amber-500/20">
-                      <Text className="text-[10px] font-black text-amber-500">
+                    <View className="px-2 py-0.5 rounded-md bg-cyan-500/20">
+                      <Text className="text-[10px] font-black text-cyan-400">
                         Token #{item.orderNumber || item.invoiceNumber?.slice(-3) || item.id?.slice(-3) || '01'}
                       </Text>
                     </View>
@@ -173,7 +173,7 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
                   </View>
 
                   <View className="items-end">
-                    <Text className="text-sm font-black text-amber-500 font-mono">
+                    <Text className="text-sm font-black text-cyan-400 font-mono">
                       ₹{billAmount.toLocaleString()}
                     </Text>
                     {orderTime ? (

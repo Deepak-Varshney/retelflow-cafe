@@ -97,7 +97,7 @@ export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b" style={{ borderColor: colors.border }}>
             <View className="flex-row items-center">
-              <View className="w-10 h-10 rounded-2xl items-center justify-center mr-3 bg-amber-500/20">
+              <View className="w-10 h-10 rounded-2xl items-center justify-center mr-3" style={{ backgroundColor: 'rgba(0, 210, 255, 0.15)' }}>
                 <Ionicons name="mic" size={22} color={colors.primary} />
               </View>
               <View>
@@ -196,7 +196,7 @@ export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
                         {it.category} • {it.variants?.[0]?.name || it.unit || 'pcs'}
                       </Text>
                     </View>
-                    <Text className="text-sm font-black text-amber-500 font-mono">
+                    <Text className="text-sm font-black font-mono" style={{ color: colors.primary }}>
                       ₹{it.price}
                     </Text>
                   </View>
@@ -213,7 +213,7 @@ export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
                 className="flex-1 py-3 rounded-2xl items-center justify-center border"
                 style={{ borderColor: colors.primary, backgroundColor: colors.badgeBg }}
               >
-                <Text className="text-xs font-bold text-amber-500">Re-Parse Speech</Text>
+                <Text className="text-xs font-bold" style={{ color: colors.primary }}>Re-Parse Speech</Text>
               </TouchableOpacity>
             ) : null}
 

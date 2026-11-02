@@ -122,6 +122,64 @@ export const parseCafeVoiceOrderApi = async (
 /**
  * Voice Menu Item Add: Parses spoken items into inventory objects
  */
+
+/**
+ * Direct Audio Cafe Voice Ordering: Sends recorded audio clip directly to Gemini Multimodal Audio
+ */
+export const parseCafeVoiceOrderAudioApi = async (
+  audioUri: string,
+  mimeType: string = 'audio/m4a',
+  currentCartItems: CartItem[] = []
+): Promise<{
+  actions: Array<{
+    type: 'ADD' | 'UPDATE' | 'DELETE' | 'NEEDS_SELECTION';
+    itemName: string;
+    variantName?: string;
+    qty?: number;
+    unit?: string;
+    price?: number;
+    totalSpokenAmount?: number;
+    availableVariants?: Array<{ name: string; price: number; unit?: string }>;
+  }>;
+  transcript?: string;
+  summary: string;
+  modelUsed?: string;
+}> => {
+  try {
+    const formData = new FormData();
+    const filename = audioUri.split('/').pop() || 'recording.m4a';
+    formData.append('audio', {
+      uri: audioUri,
+      name: filename,
+      type: mimeType || 'audio/m4a',
+    } as any);
+
+    if (currentCartItems && currentCartItems.length > 0) {
+      formData.append(
+        'currentItems',
+        JSON.stringify(
+          currentCartItems.map((c) => ({
+            name: c.name,
+            qty: c.qty,
+            price: c.price,
+            variantName: c.selectedVariant?.name,
+          }))
+        )
+      );
+    }
+
+    const res = await api.post('/voice/cafe-order-audio', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return res.data;
+  } catch (err: any) {
+    console.warn('[Cafe Voice Audio Order Error]:', err.message);
+    throw err;
+  }
+};
+
 export const parseVoiceAddItemsApi = async (
   transcript: string
 ): Promise<{

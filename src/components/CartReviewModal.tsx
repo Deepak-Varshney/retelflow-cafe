@@ -94,8 +94,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
         <View
           className="border-t px-4 pt-3 pb-6 w-full self-center"
           style={{
-            backgroundColor: isDark ? 'rgba(10, 16, 28, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+            backgroundColor: isDark ? 'rgba(7, 15, 36, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            borderColor: isDark ? 'rgba(0, 210, 255, 0.25)' : 'rgba(0, 0, 0, 0.08)',
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             maxHeight: '90%',
@@ -122,8 +122,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
               <View
                 className="w-9 h-9 rounded-xl items-center justify-center border"
                 style={{
-                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.15)',
-                  borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : 'rgba(245, 158, 11, 0.35)',
+                  backgroundColor: isDark ? 'rgba(0, 210, 255, 0.14)' : 'rgba(2, 132, 199, 0.12)',
+                  borderColor: isDark ? 'rgba(0, 210, 255, 0.35)' : 'rgba(2, 132, 199, 0.25)',
                 }}
               >
                 <Ionicons name="receipt-outline" size={18} color={colors.primary} />
@@ -135,11 +135,11 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                   </Text>
                   <View
                     className="px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: isDark ? 'rgba(0, 210, 255, 0.15)' : 'rgba(245, 158, 11, 0.15)' }}
+                    style={{ backgroundColor: isDark ? 'rgba(0, 210, 255, 0.15)' : 'rgba(2, 132, 199, 0.15)' }}
                   >
                     <Text
                       className="text-[10px] font-black"
-                      style={{ color: isDark ? '#38bdf8' : '#d97706' }}
+                      style={{ color: isDark ? '#38bdf8' : '#0284c7' }}
                     >
                       {totalQty} {totalQty === 1 ? 'item' : 'items'}
                     </Text>
@@ -217,8 +217,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                     key={item.id}
                     className="p-3 mb-2.5 rounded-2xl border"
                     style={{
-                      backgroundColor: isDark ? 'rgba(16, 24, 40, 0.75)' : 'rgba(248, 250, 252, 0.95)',
-                      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.07)',
+                      backgroundColor: isDark ? 'rgba(9, 18, 44, 0.85)' : 'rgba(248, 250, 252, 0.95)',
+                      borderColor: isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(0, 0, 0, 0.07)',
                     }}
                   >
                     {/* Top Row: Name, Diet Icon & High-Contrast Price */}
@@ -302,8 +302,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                       <View
                         className="flex-row items-center rounded-xl border"
                         style={{
-                          borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)',
-                          backgroundColor: isDark ? 'rgba(10, 16, 28, 0.8)' : '#f1f5f9',
+                          borderColor: isDark ? 'rgba(0, 210, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
+                          backgroundColor: isDark ? 'rgba(5, 12, 30, 0.85)' : '#f1f5f9',
                         }}
                       >
                         <TouchableOpacity
@@ -352,8 +352,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
             <View
               className="mt-3 p-3.5 rounded-2xl border"
               style={{
-                backgroundColor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(241, 245, 249, 0.95)',
-                borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : 'rgba(245, 158, 11, 0.35)',
+                backgroundColor: isDark ? 'rgba(9, 18, 44, 0.90)' : 'rgba(241, 245, 249, 0.95)',
+                borderColor: isDark ? 'rgba(0, 210, 255, 0.35)' : 'rgba(2, 132, 199, 0.30)',
               }}
             >
               <View className="flex-row items-center justify-between">
@@ -410,10 +410,10 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                 elevation: 6,
               }}
             >
-              <Text className="text-xs font-black text-black uppercase tracking-wider">
+              <Text className="text-xs font-black text-slate-950 uppercase tracking-wider">
                 {onProceed ? proceedLabel : 'Done'}
               </Text>
-              {onProceed ? <Ionicons name="arrow-forward" size={17} color="#000" /> : null}
+              {onProceed ? <Ionicons name="arrow-forward" size={17} color="#020617" /> : null}
             </TouchableOpacity>
           </View>
         </View>

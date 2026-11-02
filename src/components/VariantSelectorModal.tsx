@@ -88,8 +88,8 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
                       {v.name}
                     </Text>
                     {v.isDefault && (
-                      <View className="px-2 py-0.5 rounded-md bg-amber-500/20">
-                        <Text className="text-[10px] font-bold text-amber-500">Popular</Text>
+                      <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: 'rgba(0, 210, 255, 0.15)' }}>
+                        <Text className="text-[10px] font-bold" style={{ color: colors.primary }}>Popular</Text>
                       </View>
                     )}
                   </View>
@@ -101,7 +101,7 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
                 </View>
 
                 <View className="flex-row items-center gap-3">
-                  <Text className="text-base font-extrabold text-amber-500 font-mono">
+                  <Text className="text-base font-extrabold font-mono" style={{ color: colors.primary }}>
                     ₹{v.price}
                   </Text>
                   <View

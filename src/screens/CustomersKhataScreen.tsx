@@ -94,7 +94,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       {/* 1. Header Toolbar */}
       <View
         className="px-4 py-3 flex-row items-center justify-between border-b"
@@ -109,7 +109,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
           </Text>
         </View>
 
-        <TouchableOpacity onPress={loadKhata} className="p-2 rounded-xl bg-slate-800/40">
+        <TouchableOpacity onPress={loadKhata} className="p-2 rounded-xl border" style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}>
           <Ionicons name="refresh" size={18} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -124,8 +124,8 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
             borderColor: totalDue > 0 ? '#f43f5e' : colors.border,
           }}
         >
-          <Text className="text-[10px] font-bold uppercase text-slate-400">Total Udhar / Due</Text>
-          <Text className="text-lg font-black text-rose-500 font-mono mt-0.5">
+          <Text className="text-[10px] font-bold uppercase" style={{ color: colors.textSecondary }}>Total Udhar / Due</Text>
+          <Text className="text-lg font-black font-mono mt-0.5" style={{ color: '#f43f5e' }}>
             ₹{totalDue.toLocaleString()}
           </Text>
         </View>
@@ -135,7 +135,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
           className="flex-1 p-3.5 rounded-2xl border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
-          <Text className="text-[10px] font-bold uppercase text-slate-400">All Customers</Text>
+          <Text className="text-[10px] font-bold uppercase" style={{ color: colors.textSecondary }}>All Customers</Text>
           <Text className="text-lg font-black font-mono mt-0.5" style={{ color: colors.text }}>
             {customers.length}
           </Text>
@@ -236,7 +236,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
                         borderColor: colors.primary,
                       }}
                     >
-                      <Text className="text-xs font-black text-amber-500">
+                      <Text className="text-xs font-black" style={{ color: colors.primary }}>
                         {item.avatar || (item.name ? item.name.slice(0, 2).toUpperCase() : 'CU')}
                       </Text>
                     </View>
@@ -249,7 +249,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
                       >
                         {item.name || 'Walk-in Guest'}
                       </Text>
-                      <Text className="text-[11px] font-mono text-slate-400">
+                      <Text className="text-[11px] font-mono" style={{ color: colors.textSecondary }}>
                         {item.phone ? `+91 ${item.phone}` : 'No phone linked'}
                       </Text>
                     </View>
@@ -259,10 +259,10 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
                   <View className="items-end">
                     {dueAmt > 0 ? (
                       <>
-                        <Text className="text-[10px] text-rose-500 font-bold uppercase">
+                        <Text className="text-[10px] font-bold uppercase" style={{ color: '#f43f5e' }}>
                           Credit Due
                         </Text>
-                        <Text className="text-sm font-black text-rose-500 font-mono">
+                        <Text className="text-sm font-black font-mono" style={{ color: '#f43f5e' }}>
                           ₹{dueAmt.toLocaleString()}
                         </Text>
                       </>
@@ -274,7 +274,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
                             All Paid
                           </Text>
                         </View>
-                        <Text className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        <Text className="text-[10px] font-mono mt-0.5" style={{ color: colors.textSecondary }}>
                           Spent: ₹{totalSpent.toLocaleString()}
                         </Text>
                       </>

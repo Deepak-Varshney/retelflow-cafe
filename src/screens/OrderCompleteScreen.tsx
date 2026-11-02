@@ -111,7 +111,7 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       <ScrollView contentContainerStyle={{ padding: 20, alignItems: 'center' }}>
         <View className="w-full max-w-md items-center">
           {/* Success Icon */}
@@ -146,8 +146,8 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
               className="w-full py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-xl"
               style={{ backgroundColor: colors.primary }}
             >
-              <Ionicons name="home" size={20} color="#000" />
-              <Text className="text-sm font-black text-black tracking-wider uppercase">Back to Home</Text>
+              <Ionicons name="home" size={20} color="#020617" />
+              <Text className="text-sm font-black text-slate-950 tracking-wider uppercase">Back to Home</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -155,7 +155,7 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
               disabled={isPrinting}
               activeOpacity={0.8}
               className="w-full py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-md"
-              style={{ backgroundColor: '#1e293b', borderWidth: 1.5, borderColor: '#38bdf8' }}
+              style={{ backgroundColor: 'rgba(7, 15, 36, 0.9)', borderWidth: 1.5, borderColor: '#00d2ff' }}
             >
               {isPrinting ? (
                 <ActivityIndicator size="small" color="#38bdf8" />

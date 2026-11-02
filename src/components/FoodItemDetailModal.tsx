@@ -103,7 +103,7 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
               <Text className="text-base font-black flex-1 mr-2" style={{ color: colors.text }}>
                 {item.name}
               </Text>
-              <Text className="text-xl font-black text-amber-500 font-mono">
+              <Text className="text-xl font-black text-cyan-400 font-mono">
                 ₹{currentPrice}
               </Text>
             </View>
@@ -167,7 +167,7 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
               <Text className="text-[10px] text-slate-400 font-bold uppercase">
                 Item Total
               </Text>
-              <Text className="text-lg font-black text-amber-500 font-mono">
+              <Text className="text-lg font-black text-cyan-400 font-mono">
                 ₹{currentPrice}
               </Text>
             </View>
@@ -175,7 +175,7 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
             <TouchableOpacity
               onPress={handleAdd}
               activeOpacity={0.8}
-              className="px-6 py-3 rounded-2xl flex-row items-center gap-2 bg-amber-500 shadow-lg active:scale-95"
+              className="px-6 py-3 rounded-2xl flex-row items-center gap-2 bg-cyan-500 shadow-lg active:scale-95"
             >
               <Ionicons name="cart" size={16} color="#000" />
               <Text className="text-xs font-black text-black uppercase tracking-wider">

@@ -93,7 +93,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
   const renderEntry = (e: LedgerEntry) =>
     e.type === 'bill' ? (
       <View key={e.id} className="flex-row items-start py-2.5 border-b" style={{ borderColor: colors.border }}>
-        <View className="w-8 h-8 rounded-xl items-center justify-center mr-2.5 bg-amber-500/15">
+        <View className="w-8 h-8 rounded-xl items-center justify-center mr-2.5 bg-cyan-500/15">
           <Ionicons name="receipt-outline" size={15} color="#f59e0b" />
         </View>
         <View className="flex-1 pr-2">
@@ -196,7 +196,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
                     className="flex-1 flex-row items-center px-3 py-2 rounded-xl border"
                     style={{ borderColor: colors.border, backgroundColor: colors.inputBg }}
                   >
-                    <Text className="text-sm font-bold text-amber-500 mr-1">₹</Text>
+                    <Text className="text-sm font-bold text-cyan-400 mr-1">₹</Text>
                     <TextInput
                       value={payAmount}
                       onChangeText={setPayAmount}

@@ -16,7 +16,8 @@ import {
   subscribeCafeVoice,
 } from './voiceSocketService';
 import { isPcmRecorderAvailable, startPcmStream } from '../../modules/pcm-recorder';
-import { parseCafeVoiceOrderApi } from '../api/cafeApi';
+import { parseCafeVoiceOrderApi, parseCafeVoiceOrderAudioApi } from '../api/cafeApi';
+import { startAudioRecording, stopAudioRecording } from './audioRecorderService';
 import { friendlyError } from '../utils/errorMessage';
 
 const norm = (s?: string) => (s || '').trim().toLowerCase();
@@ -52,6 +53,7 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
   const [heard, setHeard] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [liveOn, setLiveOn] = useState(false);
+  const [audioRecording, setAudioRecording] = useState(false);
 
   const menuRef = useRef(menuItems);
   menuRef.current = menuItems;
@@ -63,7 +65,8 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
   const noticeTimer = useRef<any>(null);
 
   // Live needs the native mic module (new app build); otherwise stream
-  const effectiveMode: CafeVoiceMode = mode === 'live' && isPcmRecorderAvailable ? 'live' : 'stream';
+  const effectiveMode: CafeVoiceMode =
+    mode === 'live' && isPcmRecorderAvailable ? 'live' : mode === 'audio' ? 'audio' : 'stream';
 
   const flash = useCallback((text: string, ms = 3500) => {
     setNotice(text);
@@ -285,7 +288,73 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
     setLiveOn(false);
   }, []);
 
-  const isListening = effectiveMode === 'live' ? liveOn : speech.isListening;
+  
+  // ── audio mode: direct audio to Gemini Multimodal ──
+  const startAudio = useCallback(async () => {
+    try {
+      setHeard('Listening...');
+      const started = await startAudioRecording();
+      if (started) {
+        setAudioRecording(true);
+      } else {
+        flash('Could not access microphone.');
+      }
+    } catch (err) {
+      flash(friendlyError(err, 'Microphone error'));
+    }
+  }, [flash]);
+
+  const stopAudio = useCallback(
+    async (opts?: { abort?: boolean }) => {
+      setAudioRecording(false);
+      const { uri, durationSec } = await stopAudioRecording();
+      if (opts?.abort || !uri || durationSec < 0.25) {
+        setHeard('');
+        return;
+      }
+
+      try {
+        setBusy(true);
+        setHeard('Processing audio...');
+        const id = String(utterance.current++);
+        const res = await parseCafeVoiceOrderAudioApi(uri, 'audio/m4a', []);
+        if (res?.transcript) {
+          setHeard(res.transcript);
+        }
+        (res?.actions || []).forEach((a, i) => {
+          if (a.type !== 'ADD' && a.type !== 'NEEDS_SELECTION' && a.type !== 'DELETE') return;
+          const menu = menuRef.current.find((m) => norm(m.name) === norm(a.itemName));
+          const variants = menu?.variants || a.availableVariants || [];
+          const chosen = a.variantName ? variants.find((v) => norm(v.name) === norm(a.variantName)) : undefined;
+          applyEvent({
+            utteranceId: `audio-${id}`,
+            key: String(i),
+            action: a.type === 'DELETE' ? 'remove' : 'add',
+            item: {
+              itemName: menu?.name || a.itemName,
+              qty: a.qty || 1,
+              variantName: chosen?.name,
+              price: chosen?.price ?? a.price ?? menu?.price ?? 0,
+              unit: chosen?.unit || a.unit || menu?.unit || 'pcs',
+              needsSelection: variants.length > 1 && !chosen,
+              availableVariants: variants,
+            },
+          });
+        });
+        if (res?.summary) {
+          flash(res.summary);
+        }
+      } catch (err) {
+        flash(friendlyError(err, 'Could not understand order. Please try again.'), 4000);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [applyEvent, flash]
+  );
+
+  const isListening =
+    effectiveMode === 'live' ? liveOn : effectiveMode === 'audio' ? audioRecording : speech.isListening;
 
   const startListening = useCallback(() => {
     if (effectiveMode === "live") {
@@ -299,10 +368,12 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
   const stopListening = useCallback((opts?: { abort?: boolean }) => {
     if (effectiveMode === 'live') {
       stopLive();
+    } else if (effectiveMode === 'audio') {
+      stopAudio(opts);
     } else {
       speech.stopListening(opts);
     }
-  }, [effectiveMode, speech, stopLive]);
+  }, [effectiveMode, speech, stopAudio, stopLive]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {

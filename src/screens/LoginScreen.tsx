@@ -53,7 +53,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, paddingBottom: 48 }}
@@ -65,7 +65,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <View
               className="w-20 h-20 rounded-3xl items-center justify-center mb-3 shadow-2xl border"
               style={{
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7',
+                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.16)' : '#e0f2fe',
                 borderColor: colors.primary,
               }}
             >
@@ -167,7 +167,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               {loading ? (
                 <ActivityIndicator size="small" color="#000" />
               ) : (
-                <Text className="text-sm font-black text-black tracking-wider uppercase">
+                <Text className="text-sm font-black text-slate-950 tracking-wider uppercase">
                   Login to Counter
                 </Text>
               )}

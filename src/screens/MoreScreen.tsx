@@ -37,7 +37,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   onLogout,
   onUserUpdated,
 }) => {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors, isDark, toggleTheme, setMode, preset, setPreset } = useTheme();
 
   const [currentUser, setCurrentUser] = useState<any>(user || {});
 
@@ -220,14 +220,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   const daysLeft = access?.daysLeft ?? 28;
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
       {/* Top Header */}
       <View
         className="px-5 py-3.5 border-b flex-row items-center justify-between"
         style={{ backgroundColor: colors.surface, borderColor: colors.border }}
       >
         <View>
-          <Text className="text-[10px] font-black uppercase tracking-wider text-amber-500">
+          <Text className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
             Counter Management
           </Text>
           <Text className="text-xl font-black mt-0.5" style={{ color: colors.text }}>
@@ -238,7 +238,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         <View
           className="px-3 py-1.5 rounded-2xl border flex-row items-center gap-1.5"
           style={{
-            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.10)',
+            backgroundColor: isDark ? 'rgba(0, 210, 255, 0.14)' : 'rgba(2, 132, 199, 0.10)',
             borderColor: colors.primary,
           }}
         >
@@ -259,11 +259,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             <View
               className="w-14 h-14 rounded-2xl items-center justify-center mr-3.5 border"
               style={{
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7',
+                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.15)' : '#e0f2fe',
                 borderColor: colors.primary,
               }}
             >
-              <Text className="text-lg font-black text-amber-500">
+              <Text className="text-lg font-black text-cyan-400">
                 {getInitials(currentUser.shopName || currentUser.name)}
               </Text>
             </View>
@@ -276,11 +276,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <View
                   className="px-2 py-0.5 rounded-full border"
                   style={{
-                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                    backgroundColor: 'rgba(0, 210, 255, 0.15)',
                     borderColor: colors.primary,
                   }}
                 >
-                  <Text className="text-[9px] font-black text-amber-500 uppercase">
+                  <Text className="text-[9px] font-black text-cyan-400 uppercase">
                     {currentUser.role || 'COUNTER'}
                   </Text>
                 </View>
@@ -291,7 +291,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               </Text>
               <View className="flex-row items-center gap-1 mt-0.5">
                 <Ionicons name="call" size={11} color={colors.primary} />
-                <Text className="text-xs font-bold text-amber-500 font-mono">
+                <Text className="text-xs font-bold text-cyan-400 font-mono">
                   {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
                 </Text>
               </View>
@@ -315,14 +315,116 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           </TouchableOpacity>
         </View>
 
+        {/* THEME & APPEARANCE (LIQUID GLASS LIGHT & DARK MODE) */}
+        <View
+          className="rounded-3xl p-4 border shadow-sm mb-4"
+          style={{
+            backgroundColor: colors.card,
+            borderColor: colors.glassBorder || colors.border,
+          }}
+        >
+          <View className="flex-row items-center justify-between mb-3">
+            <View className="flex-row items-center gap-2">
+              <View
+                className="w-8 h-8 rounded-xl items-center justify-center border"
+                style={{
+                  backgroundColor: colors.badgeBg,
+                  borderColor: colors.primary,
+                }}
+              >
+                <Ionicons name="color-palette-outline" size={16} color={colors.primary} />
+              </View>
+              <View>
+                <Text className="text-xs font-black tracking-tight" style={{ color: colors.text }}>
+                  Liquid Glass Theme
+                </Text>
+                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
+                  {isDark ? 'Dark Sapphire (Cyber Obsidian)' : 'Light Crystal (Daylight Frost)'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick 1-tap Pill Switch */}
+            <TouchableOpacity
+              onPress={toggleTheme}
+              activeOpacity={0.8}
+              className="px-3 py-1.5 rounded-xl border flex-row items-center gap-1.5 active:scale-95"
+              style={{
+                backgroundColor: colors.badgeBg,
+                borderColor: colors.primary,
+              }}
+            >
+              <Ionicons name={isDark ? 'sunny' : 'moon'} size={13} color={colors.primary} />
+              <Text className="text-[10px] font-black" style={{ color: colors.primary }}>
+                {isDark ? 'Light' : 'Dark'} Mode
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Mode Selector Tabs (Dark vs Light) */}
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              onPress={() => setMode('dark')}
+              activeOpacity={0.8}
+              className="flex-1 py-3 px-3 rounded-2xl border items-center justify-center flex-row gap-2 active:scale-95"
+              style={{
+                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(0, 0, 0, 0.04)',
+                borderColor: isDark ? colors.primary : colors.border,
+                shadowColor: isDark ? colors.primary : 'transparent',
+                shadowOpacity: isDark ? 0.3 : 0,
+                shadowRadius: 8,
+              }}
+            >
+              <Ionicons name="moon" size={16} color={isDark ? colors.primary : colors.textMuted} />
+              <View>
+                <Text
+                  className="text-xs font-black"
+                  style={{ color: isDark ? colors.primary : colors.text }}
+                >
+                  Dark Liquid Glass
+                </Text>
+                <Text className="text-[9px]" style={{ color: colors.textSecondary }}>
+                  Obsidian & Cyan
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setMode('light')}
+              activeOpacity={0.8}
+              className="flex-1 py-3 px-3 rounded-2xl border items-center justify-center flex-row gap-2 active:scale-95"
+              style={{
+                backgroundColor: !isDark ? 'rgba(2, 132, 199, 0.14)' : 'rgba(255, 255, 255, 0.04)',
+                borderColor: !isDark ? colors.primary : colors.border,
+                shadowColor: !isDark ? colors.primary : 'transparent',
+                shadowOpacity: !isDark ? 0.3 : 0,
+                shadowRadius: 8,
+              }}
+            >
+              <Ionicons name="sunny" size={16} color={!isDark ? colors.primary : colors.textMuted} />
+              <View>
+                <Text
+                  className="text-xs font-black"
+                  style={{ color: !isDark ? colors.primary : colors.text }}
+                >
+                  Light Liquid Glass
+                </Text>
+                <Text className="text-[9px]" style={{ color: colors.textSecondary }}>
+                  Crystal & Sapphire
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* 2. LIVE COUNTER STATS (Fast Offline Cache) */}
         <View className="flex-row gap-2.5 mb-4">
           <View
             className="flex-1 p-3.5 rounded-2xl border shadow-sm"
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
-            <Text className="text-[10px] font-black uppercase text-slate-400">Today&apos;s Sales</Text>
-            <Text className="text-base font-black text-amber-500 font-mono mt-0.5">
+            <Text className="text-[10px] font-black uppercase" style={{ color: colors.textSecondary }}>Today&apos;s Sales</Text>
+            <Text className="text-base font-black text-cyan-400 font-mono mt-0.5">
               ₹{metrics.todaySales.toLocaleString()}
             </Text>
           </View>
@@ -331,7 +433,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             className="flex-1 p-3.5 rounded-2xl border shadow-sm"
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
-            <Text className="text-[10px] font-black uppercase text-slate-400">Total Bills</Text>
+            <Text className="text-[10px] font-black uppercase" style={{ color: colors.textSecondary }}>Total Bills</Text>
             <Text className="text-base font-black text-emerald-400 font-mono mt-0.5">
               {metrics.totalOrders}
             </Text>
@@ -341,15 +443,15 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             className="flex-1 p-3.5 rounded-2xl border shadow-sm"
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
-            <Text className="text-[10px] font-black uppercase text-slate-400">Total Khata Due</Text>
-            <Text className="text-base font-black text-rose-500 font-mono mt-0.5">
+            <Text className="text-[10px] font-black uppercase" style={{ color: colors.textSecondary }}>Total Khata Due</Text>
+            <Text className="text-base font-black font-mono mt-0.5" style={{ color: '#f43f5e' }}>
               ₹{metrics.totalDue.toLocaleString()}
             </Text>
           </View>
         </View>
 
         {/* 3. SUBSCRIPTION & LICENSE CARD */}
-        <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
+        <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1" style={{ color: colors.textSecondary }}>
           POS License & Validity
         </Text>
         <TouchableOpacity
@@ -391,13 +493,13 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           </View>
 
           <View className="flex-row items-center gap-1">
-            <Text className="text-xs font-black text-amber-500">Upgrade</Text>
+            <Text className="text-xs font-black text-cyan-400">Upgrade</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </View>
         </TouchableOpacity>
 
         {/* 4. BILLING & HARDWARE PREFERENCES */}
-        <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
+        <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1" style={{ color: colors.textSecondary }}>
           Hardware & Printing Config
         </Text>
         <View
@@ -426,7 +528,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               </View>
             </View>
             <View className="flex-row items-center gap-1">
-              <Text className="text-xs font-bold text-amber-500 font-mono">
+              <Text className="text-xs font-bold text-cyan-400 font-mono">
                 {savedPrinter ? 'Change' : 'Setup'}
               </Text>
               <Ionicons name="chevron-forward" size={16} color={colors.primary} />
@@ -452,7 +554,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         </View>
 
         {/* 5. SUPPORT & CUSTOMER CARE */}
-        <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1 text-slate-400">
+        <Text className="text-[11px] font-extrabold uppercase tracking-wider mb-2 px-1" style={{ color: colors.textSecondary }}>
           Official Support & Helpdesk
         </Text>
         <View
@@ -480,7 +582,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <Text className="text-xs font-black" style={{ color: colors.text }}>
                   Raise Support Ticket
                 </Text>
-                <View className="px-1.5 py-0.5 rounded-full bg-amber-500">
+                <View className="px-1.5 py-0.5 rounded-full bg-cyan-500">
                   <Text className="text-[8px] font-black text-black uppercase">Direct</Text>
                 </View>
               </View>
@@ -516,9 +618,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           {supportPhone ? (
           <TouchableOpacity
             onPress={handleCallSupport}
-            className="flex-row items-center p-3 rounded-2xl active:bg-amber-500/10"
+            className="flex-row items-center p-3 rounded-2xl active:bg-cyan-500/10"
           >
-            <View className="w-10 h-10 rounded-xl bg-amber-500/15 items-center justify-center mr-3">
+            <View className="w-10 h-10 rounded-xl bg-cyan-500/15 items-center justify-center mr-3">
               <Ionicons name="call-outline" size={20} color={colors.primary} />
             </View>
             <View className="flex-1">
@@ -636,7 +738,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   </Text>
                   <View className="flex-row items-center gap-1">
                     <Ionicons name="lock-closed" size={11} color="#f59e0b" />
-                    <Text className="text-[10px] text-amber-500 font-bold">Locked / Read Only</Text>
+                    <Text className="text-[10px] text-cyan-400 font-bold">Locked / Read Only</Text>
                   </View>
                 </View>
                 <TextInput
@@ -684,7 +786,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               <TouchableOpacity
                 onPress={handleSaveStoreDetails}
                 disabled={savingSettings}
-                className="py-3.5 rounded-2xl items-center justify-center bg-amber-500 shadow-lg active:scale-98"
+                className="py-3.5 rounded-2xl items-center justify-center bg-cyan-500 shadow-lg active:scale-98"
               >
                 {savingSettings ? (
                   <ActivityIndicator size="small" color="#000" />
@@ -712,7 +814,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <Text className="text-base font-black" style={{ color: colors.text }}>
                   RetelFlow Cafe Plans
                 </Text>
-                <Text className="text-[11px] text-amber-500 font-bold">
+                <Text className="text-[11px] text-cyan-400 font-bold">
                   All-in-One Restaurant, Cafe & Sweets POS
                 </Text>
               </View>
@@ -731,7 +833,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   <Text className="text-sm font-black" style={{ color: colors.text }}>
                     Pro Monthly
                   </Text>
-                  <Text className="text-lg font-black text-amber-500 font-mono">
+                  <Text className="text-lg font-black text-cyan-400 font-mono">
                     ₹299<Text className="text-xs text-slate-400 font-normal"> / month</Text>
                   </Text>
                 </View>
@@ -754,7 +856,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   borderColor: colors.primary,
                 }}
               >
-                <View className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-amber-500">
+                <View className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-cyan-500">
                   <Text className="text-[9px] font-black text-black uppercase tracking-wider">
                     Save ₹589
                   </Text>
@@ -764,7 +866,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   <Text className="text-sm font-black" style={{ color: colors.text }}>
                     Pro Annual (1 Year)
                   </Text>
-                  <Text className="text-lg font-black text-amber-500 font-mono">
+                  <Text className="text-lg font-black text-cyan-400 font-mono">
                     ₹2,999<Text className="text-xs text-slate-400 font-normal"> / year</Text>
                   </Text>
                 </View>

@@ -7,16 +7,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        void: '#05080e',
-        surface: '#0a0f19',
-        card: '#0d1420',
-        cardHover: '#121c2c',
-        elevated: '#111a2b',
-        input: '#070c14',
+        void: '#030712',
+        surface: '#081026',
+        card: '#0c1633',
+        cardHover: '#11204a',
+        elevated: '#0e1b3d',
+        input: '#050c1e',
+        primary: {
+          DEFAULT: '#00d2ff',
+          glow: 'rgba(0, 210, 255, 0.4)',
+          dark: '#0284c7',
+        },
+        cyan: {
+          DEFAULT: '#00d2ff',
+          glow: 'rgba(0, 210, 255, 0.35)',
+          dark: '#0284c7',
+        },
         amber: {
-          DEFAULT: '#f59e0b',
-          glow: 'rgba(245, 158, 11, 0.3)',
-          dark: '#b45309',
+          DEFAULT: '#00d2ff', // Liquid glass remapped default for seamless theme transition
+          glow: 'rgba(0, 210, 255, 0.3)',
+          dark: '#0284c7',
         },
         orange: {
           DEFAULT: '#f97316',
@@ -30,7 +40,9 @@ module.exports = {
         textPrimary: '#ffffff',
         textSecondary: '#94a3b8',
         textMuted: '#64748b',
-        glassBorder: 'rgba(255, 255, 255, 0.08)',
+        glassBorder: 'rgba(0, 210, 255, 0.18)',
+        glassBorderActive: 'rgba(0, 210, 255, 0.55)',
+        liquidGlass: 'rgba(8, 16, 38, 0.92)',
       },
     },
   },

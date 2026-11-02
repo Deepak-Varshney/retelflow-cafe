@@ -49,7 +49,7 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
               <Ionicons name="help-circle-outline" size={26} color={colors.primary} />
             </View>
             {position ? (
-              <Text className="text-[10px] font-black text-amber-500 uppercase mb-0.5">{position}</Text>
+              <Text className="text-[10px] font-black text-cyan-400 uppercase mb-0.5">{position}</Text>
             ) : null}
             <Text className="text-base font-black text-center" style={{ color: colors.text }}>
               Which {data.itemName}?{data.qty && data.qty > 1 ? ` (x${data.qty})` : ''}
@@ -77,12 +77,12 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
                     {v.name}
                   </Text>
                   {data.qty && data.qty > 1 ? (
-                    <Text className="text-[11px] text-amber-500 font-medium">
+                    <Text className="text-[11px] text-cyan-400 font-medium">
                       Qty: {data.qty} (Total: ₹{data.qty * v.price})
                     </Text>
                   ) : null}
                 </View>
-                <Text className="text-base font-extrabold text-amber-500 font-mono">
+                <Text className="text-base font-extrabold text-cyan-400 font-mono">
                   ₹{v.price}
                 </Text>
               </TouchableOpacity>

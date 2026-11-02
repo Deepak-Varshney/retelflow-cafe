@@ -40,10 +40,10 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
   const isVeg = item.isVeg !== false;
   const vegColor = isVeg ? (colors.neonMint || '#10b981') : '#ef4444';
 
-  // Luminous Neo-Bento border: rgba(255, 255, 255, 0.08) -> rgba(245, 158, 11, 0.25) when in cart
+  // Liquid Glass luminous border: subtle translucent cyan rim -> glowing electric cyan when in cart
   const borderColor = inCart
-    ? (isDark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(217, 119, 6, 0.35)')
-    : (colors.bentoBorder || (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'));
+    ? (isDark ? 'rgba(0, 210, 255, 0.50)' : 'rgba(2, 132, 199, 0.40)')
+    : (colors.bentoBorder || (isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(0, 0, 0, 0.08)'));
 
   return (
     <TouchableOpacity
@@ -55,10 +55,13 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
         {
           backgroundColor: isDark ? colors.cardBento : colors.surface,
           borderColor,
-          shadowColor: inCart ? (colors.neonAmber || colors.primary) : '#000000',
-          shadowOpacity: inCart ? (isDark ? 0.35 : 0.15) : (isDark ? 0.22 : 0.05),
-          shadowRadius: inCart ? 8 : 4,
-          elevation: inCart ? 3 : 1,
+          borderTopColor: inCart
+            ? (isDark ? 'rgba(0, 210, 255, 0.70)' : '#0284c7')
+            : (isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.7)'),
+          shadowColor: inCart ? (colors.primary || '#00d2ff') : '#000000',
+          shadowOpacity: inCart ? (isDark ? 0.42 : 0.18) : (isDark ? 0.22 : 0.05),
+          shadowRadius: inCart ? 10 : 4,
+          elevation: inCart ? 4 : 1,
         },
       ]}
     >
@@ -82,7 +85,7 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
               <LinearGradient id={`imgGrad-${item.id}`} x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0%" stopColor="#000000" stopOpacity="0.04" />
                 <Stop offset="60%" stopColor="#000000" stopOpacity="0.18" />
-                <Stop offset="100%" stopColor="#0c1322" stopOpacity="0.72" />
+                <Stop offset="100%" stopColor="#070f24" stopOpacity="0.75" />
               </LinearGradient>
             </Defs>
             <Rect x="0" y="0" width="100%" height="100%" fill={`url(#imgGrad-${item.id})`} />
@@ -94,7 +97,7 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
           style={[
             styles.vegBadgePill,
             {
-              backgroundColor: isDark ? 'rgba(12, 19, 34, 0.88)' : 'rgba(255, 255, 255, 0.95)',
+              backgroundColor: isDark ? 'rgba(7, 15, 36, 0.90)' : 'rgba(255, 255, 255, 0.95)',
               borderColor: `${vegColor}40`,
             },
           ]}
@@ -122,7 +125,7 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
         </Text>
 
         <View style={styles.priceRow}>
-          <Text style={[styles.price, { color: colors.neonAmber || colors.primary }]}>
+          <Text style={[styles.price, { color: colors.primary }]}>
             {priceLabel}
           </Text>
 
@@ -131,8 +134,8 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
               style={[
                 styles.optionsPill,
                 {
-                  backgroundColor: colors.pillBg || 'rgba(255, 255, 255, 0.05)',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.08)',
+                  backgroundColor: colors.pillBg || 'rgba(0, 210, 255, 0.08)',
+                  borderColor: isDark ? 'rgba(0, 210, 255, 0.20)' : 'rgba(0, 0, 0, 0.08)',
                 },
               ]}
             >
@@ -146,18 +149,18 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
         </View>
       </View>
 
-      {/* Right: Tactile Neo-Bento Actions */}
+      {/* Right: Tactile Liquid Glass Actions */}
       <View style={styles.actionContainer}>
         {!inCart ? (
-          /* Sleek frosted pill with + Add in warm cafe amber gold */
+          /* Sleek frosted pill with + Add in liquid cyan */
           <TouchableOpacity
             onPress={() => onAddPress(item, hasVariants ? undefined : defaultVariant)}
             activeOpacity={0.78}
             style={[
               styles.addButton,
               {
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(217, 119, 6, 0.10)',
-                borderColor: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(217, 119, 6, 0.30)',
+                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.14)' : 'rgba(2, 132, 199, 0.10)',
+                borderColor: isDark ? 'rgba(0, 210, 255, 0.40)' : 'rgba(2, 132, 199, 0.30)',
                 shadowColor: colors.primary,
               },
             ]}
@@ -190,7 +193,7 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
               style={[
                 styles.qtyBadge,
                 {
-                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.18)' : 'rgba(217, 119, 6, 0.12)',
+                  backgroundColor: isDark ? 'rgba(0, 210, 255, 0.20)' : 'rgba(2, 132, 199, 0.12)',
                 },
               ]}
             >

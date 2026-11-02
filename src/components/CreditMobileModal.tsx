@@ -44,7 +44,7 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
         >
           {/* Icon & Title */}
           <View className="items-center mb-3">
-            <View className="w-14 h-14 rounded-full bg-amber-500/20 border border-amber-500/40 items-center justify-center mb-2">
+            <View className="w-14 h-14 rounded-full bg-cyan-500/20 border border-cyan-500/40 items-center justify-center mb-2">
               <Ionicons name="alert-circle" size={32} color="#f59e0b" />
             </View>
             <Text className="text-base font-black text-center" style={{ color: colors.text }}>
@@ -95,7 +95,7 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
                 borderColor: error ? '#f43f5e' : colors.border,
               }}
             >
-              <Text className="text-sm font-bold text-amber-500 mr-2">+91</Text>
+              <Text className="text-sm font-bold text-cyan-400 mr-2">+91</Text>
               <TextInput
                 placeholder="98765 43210"
                 placeholderTextColor={colors.textMuted}
@@ -130,7 +130,7 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
 
             <TouchableOpacity
               onPress={handleConfirm}
-              className="flex-1 py-3 rounded-xl items-center justify-center bg-amber-500 shadow-md"
+              className="flex-1 py-3 rounded-xl items-center justify-center bg-cyan-500 shadow-md"
             >
               <Text className="text-xs font-black text-black">
                 Confirm & Bill
