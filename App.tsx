@@ -26,6 +26,9 @@ import { getAppConfigApi } from './src/api/cafeApi';
 import { getPrintSettings, getShopFeatures, getStoreInfo } from './src/utils/shopSettings';
 import { GlobalPrinterSetupModal } from './src/components/PrinterSetupModal';
 import { LiquidGlassBackground } from './src/components/LiquidGlassBackground';
+import Constants from 'expo-constants';
+import { ForceUpdateModal } from './src/components/ForceUpdateModal';
+import { isVersionOlder } from './src/utils/versionCheck';
 
 type OrderStep = 'menu' | 'customer' | 'payment' | 'complete';
 
@@ -49,6 +52,19 @@ function AppContent() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customer, setCustomer] = useState<CustomerInfo>({ name: '', phone: '' });
   const [completedInvoice, setCompletedInvoice] = useState<OrderInvoice | null>(null);
+  const currentAppVersion = Constants.expoConfig?.version || '1.0.0';
+  const [updateInfo, setUpdateInfo] = useState<{
+    visible: boolean;
+    latestVersion: string;
+    apkUrl: string;
+    title?: string;
+    message?: string;
+    releaseNotes?: string;
+  }>({
+    visible: false,
+    latestVersion: currentAppVersion,
+    apkUrl: '',
+  });
 
   const resetOrder = () => {
     setCart([]);
@@ -133,6 +149,23 @@ function AppContent() {
       },
     ]);
   };
+
+    if (updateInfo.visible) {
+    return (
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.background }}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <ForceUpdateModal
+          visible={true}
+          currentVersion={currentAppVersion}
+          latestVersion={updateInfo.latestVersion}
+          apkUrl={updateInfo.apkUrl}
+          title={updateInfo.title}
+          message={updateInfo.message}
+          releaseNotes={updateInfo.releaseNotes}
+        />
+      </View>
+    );
+  }
 
   if (authLoading) {
     return <CafeSplashScreen />;

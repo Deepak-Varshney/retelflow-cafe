@@ -9,7 +9,8 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.retelflow.in/api"
-      }
+      },
+      "channel": "preview"
     },
     "development": {
       "developmentClient": true,
@@ -21,7 +22,8 @@
     "production": {
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.retelflow.in/api"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
