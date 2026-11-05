@@ -1,23 +1,20 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   FlatList,
   ActivityIndicator,
-  Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { MenuItem, ItemVariant, CartItem } from '../types';
-import { getMenuItemsApi } from '../api/cafeApi';
-import { getCachedMenu, setCachedMenu } from '../services/cacheService';
+import { getCachedMenu, subscribeMenu, syncMenu } from '../services/cacheService';
 import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
 import { CategoryTabs } from '../components/CategoryTabs';
-import { PulseMicButton } from '../components/PulseMicButton';
 import { FoodItemCard } from '../components/FoodItemCard';
 import { VariantSelectorModal } from '../components/VariantSelectorModal';
 import { DisambiguationModal } from '../components/DisambiguationModal';
@@ -26,6 +23,8 @@ import { FoodItemDetailModal } from '../components/FoodItemDetailModal';
 import { CartReviewModal } from '../components/CartReviewModal';
 import { useCafeVoiceOrder } from '../services/useCafeVoiceOrder';
 import { CafeVoiceMode } from '../services/voiceSocketService';
+import { registerVoiceTarget, setExternalVoiceStatus } from '../services/voiceTargets';
+import { InsightsStrip } from '../components/InsightsStrip';
 
 interface NewOrderScreenProps {
   cart: CartItem[];
@@ -46,17 +45,15 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   const { colors, isDark } = useTheme();
 
   const [search, setSearch] = useState('');
-  const [isHolding, setIsHolding] = useState(false);
   const pressStartRef = useRef(0);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const cached = getCachedMenu();
     return cached && cached.length > 0 ? cached : DEFAULT_MENU_ITEMS;
   });
-  const [loading, setLoading] = useState(() => {
-    const cached = getCachedMenu();
-    return !(cached && cached.length > 0);
-  });
+  // Spinner only on a fresh install (nothing cached yet)
+  const [loading, setLoading] = useState(() => getCachedMenu().length === 0);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Long press food detail modal
   const [detailModalItem, setDetailModalItem] = useState<MenuItem | null>(null);
@@ -65,26 +62,19 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   const [selectedVariantItem, setSelectedVariantItem] = useState<MenuItem | null>(null);
   const [cartModalVisible, setCartModalVisible] = useState(false);
 
-  // Pulse animation for mic
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Load menu items with background cache update
-  const loadMenu = async () => {
-    try {
-      const items = await getMenuItemsApi();
-      if (items && items.length > 0) {
-        setMenuItems(items);
-        setCachedMenu(items);
-      }
-    } catch (e) {
-      console.warn('Failed to load menu items:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Menu comes from the cache; App syncs it with the server in the background
+  // on launch and this screen re-renders only when the menu actually changed
   useEffect(() => {
-    loadMenu();
+    const unsub = subscribeMenu(setMenuItems);
+    const cached = getCachedMenu();
+    if (cached.length > 0) setMenuItems(cached);
+    if (loading) syncMenu().finally(() => setLoading(false));
+    return unsub;
+  }, []);
+
+  const refreshMenu = useCallback(() => {
+    setRefreshing(true);
+    syncMenu().finally(() => setRefreshing(false));
   }, []);
 
   // Real-time voice ordering: menu context is warmed on the server as soon as
@@ -93,27 +83,36 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   const { isListening, selectionQueue } = voice;
   const disambiguationData = selectionQueue[0] || null;
 
-  // Animated pulse when mic is active
+  // The global floating mic drives realtime ordering on this screen
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
   useEffect(() => {
-    if (isListening) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.15,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [isListening]);
+    const reg = registerVoiceTarget({
+      screen: 'new_order',
+      hold: {
+        start: () => {
+          pressStartRef.current = Date.now();
+          voiceRef.current.startListening();
+        },
+        // A very short press is a mis-tap: drop it instead of sending noise
+        stop: (abort) =>
+          voiceRef.current.stopListening({ abort: abort || Date.now() - pressStartRef.current < 250 }),
+      },
+    });
+    return () => {
+      reg.remove();
+      setExternalVoiceStatus(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    setExternalVoiceStatus({
+      listening: isListening,
+      heard: voice.heard || '',
+      busy: Boolean(voice.busy),
+      notice: voice.notice || '',
+    });
+  }, [isListening, voice.heard, voice.busy, voice.notice]);
 
   // Cart quantity map per menu item
   const cartQtyMap = useMemo(() => {
@@ -154,8 +153,8 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
     return result;
   }, [menuItems, selectedCategory, search]);
 
-  // Add Item to cart
-  const handleAddItem = (item: MenuItem, variant?: ItemVariant) => {
+  // Add Item to cart (stable callback so memoized cards don't re-render)
+  const handleAddItem = useCallback((item: MenuItem, variant?: ItemVariant) => {
     if (item.variants && item.variants.length > 1 && !variant) {
       setSelectedVariantItem(item);
       return;
@@ -185,13 +184,19 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         },
       ];
     });
-  };
+  }, [setCart]);
 
   // Remove Item from cart
-  const handleRemoveItem = (item: MenuItem) => {
+  const handleRemoveItem = useCallback((item: MenuItem) => {
     setCart((prev) => {
-      // Find last added variant of this item
-      const idx = prev.findIndex((i) => i.name === item.name);
+      // Last added size of this item
+      let idx = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].name === item.name) {
+          idx = i;
+          break;
+        }
+      }
       if (idx === -1) return prev;
 
       if (prev[idx].qty > 1) {
@@ -200,7 +205,22 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         return prev.filter((_, i) => i !== idx);
       }
     });
-  };
+  }, [setCart]);
+
+  const handleLongPress = useCallback((it: MenuItem) => setDetailModalItem(it), []);
+
+  const renderMenuItem = useCallback(
+    ({ item }: { item: MenuItem }) => (
+      <FoodItemCard
+        item={item}
+        currentQty={cartQtyMap[item.name] || 0}
+        onAddPress={handleAddItem}
+        onRemovePress={handleRemoveItem}
+        onLongPress={handleLongPress}
+      />
+    ),
+    [cartQtyMap, handleAddItem, handleRemoveItem, handleLongPress]
+  );
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
@@ -226,111 +246,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           </View>
         </View>
 
-        {/* Live Mic Push-to-Talk (Hold-to-Speak) Button with Self-Contained Pulse Animation */}
-        <PulseMicButton
-          isListening={isListening}
-          isHolding={isHolding}
-          busy={voice.busy}
-          onPressIn={() => {
-            pressStartRef.current = Date.now();
-            setIsHolding(true);
-            voice.startListening();
-          }}
-          onPressOut={() => {
-            const holdDuration = Date.now() - pressStartRef.current;
-            setIsHolding(false);
-            if (holdDuration < 250) {
-              voice.stopListening({ abort: true });
-            } else {
-              voice.stopListening({ abort: false });
-            }
-          }}
-          idleText="Hold & Speak"
-          listeningText="Listening..."
-          busyText="Adding..."
-        />
       </View>
-
-      {/* Floating HUD Chip for Speech Preview / Processing (Absolute overlay - zero layout resize) */}
-      {Boolean((isHolding || isListening) && voice.heard) && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 60,
-            left: 16,
-            right: 16,
-            zIndex: 999,
-            backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-            borderColor: colors.primary,
-            borderWidth: 1,
-            borderRadius: 16,
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            shadowColor: colors.primary,
-            shadowOpacity: 0.35,
-            shadowRadius: 10,
-            elevation: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <Ionicons name="mic" size={14} color={colors.primary} style={{ marginRight: 8 }} />
-          <Text
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              color: colors.text,
-              fontSize: 12,
-              fontWeight: '700',
-            }}
-          >
-            "{voice.heard}"
-          </Text>
-        </View>
-      )}
-
-      {Boolean(!isListening && (voice.busy || voice.notice)) && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 60,
-            left: 16,
-            right: 16,
-            zIndex: 999,
-            backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-            borderColor: colors.primary,
-            borderWidth: 1,
-            borderRadius: 16,
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            shadowColor: colors.primary,
-            shadowOpacity: 0.35,
-            shadowRadius: 10,
-            elevation: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          {voice.busy ? (
-            <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 8 }} />
-          ) : (
-            <Ionicons name="sparkles" size={14} color={colors.primary} style={{ marginRight: 8 }} />
-          )}
-          <Text
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              color: colors.primary,
-              fontSize: 12,
-              fontWeight: '700',
-            }}
-          >
-            {voice.notice || (voice.busy ? 'AI is processing your order...' : '')}
-          </Text>
-        </View>
-      )}
 
       {/* 2. Search Box */}
       <View className="px-4 pt-3 pb-2" style={{ backgroundColor: colors.glassBg || colors.surface }}>
@@ -355,6 +271,8 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
         </View>
       </View>
 
+      <InsightsStrip variant="order" />
+
       {/* 3. Category Tabs (Swiggy / Zomato Kiosk Style) */}
       <CategoryTabs
         selectedCategory={selectedCategory}
@@ -375,17 +293,13 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
           key="cafe-menu-list"
           data={filteredItems}
           keyExtractor={(item) => item.id || item.name}
-          refreshing={loading}
-          onRefresh={loadMenu}
-          renderItem={({ item }) => (
-            <FoodItemCard
-              item={item}
-              currentQty={cartQtyMap[item.name] || 0}
-              onAddPress={handleAddItem}
-              onRemovePress={handleRemoveItem}
-              onLongPress={(it) => setDetailModalItem(it)}
-            />
-          )}
+          refreshing={refreshing}
+          onRefresh={refreshMenu}
+          renderItem={renderMenuItem}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
             paddingHorizontal: 12,
             paddingTop: 8,
@@ -412,7 +326,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
                 onPress={() => {
                   setSearch('');
                   setSelectedCategory('all');
-                  loadMenu();
+                  refreshMenu();
                 }}
                 activeOpacity={0.8}
                 className="flex-row items-center px-4 py-2.5 rounded-2xl bg-cyan-500 shadow-md active:scale-95"

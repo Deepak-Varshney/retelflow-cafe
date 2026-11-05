@@ -1,87 +1,101 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
-import { parseVoiceAddItemsApi, bulkAddMenuItemsApi } from '../api/cafeApi';
-import { MenuItem } from '../types';
+import { parseVoiceAddItemsApi } from '../api/cafeApi';
+import { ItemVariant, MenuItem } from '../types';
 
 interface VoiceAddItemsModalProps {
   visible: boolean;
   onClose: () => void;
-  onItemsAdded: (newItems: MenuItem[]) => void;
+  /** Parsed dishes, to be reviewed one by one in the Add Dish form (nothing saved yet). */
+  onDraftsReady: (drafts: MenuItem[]) => void;
+}
+
+const normName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+
+/**
+ * One draft per dish: when the same dish comes back more than once (one entry
+ * per size), its sizes are merged into a single item with variants.
+ */
+export function mergeVoiceDrafts(items: any[]): MenuItem[] {
+  const drafts = new Map<string, { item: MenuItem; sizes: ItemVariant[]; spokenSizes: boolean }>();
+  for (const it of items) {
+    if (!it?.name) continue;
+    const unit = it.unit || 'pcs';
+    const spokenSizes = Array.isArray(it.variants) && it.variants.length > 0;
+    const sizes: ItemVariant[] = spokenSizes
+      ? it.variants.map((v: any) => ({
+          name: String(v.name || '').trim(),
+          price: Number(v.price) || 0,
+          unit: v.unit || unit,
+        }))
+      : [{ name: unit !== 'pcs' ? unit : 'Regular', price: Number(it.price) || 0, unit }];
+
+    const key = normName(it.name);
+    const existing = drafts.get(key);
+    if (existing) {
+      existing.sizes.push(...sizes);
+      existing.spokenSizes = true; // same dish twice = two sizes
+      continue;
+    }
+    drafts.set(key, {
+      spokenSizes,
+      sizes,
+      item: {
+        name: it.name,
+        category: it.category || 'General',
+        price: Number(it.price) || sizes[0]?.price || 0,
+        unit,
+        imageUrl: it.imageUrl,
+        description: it.description || '',
+        isVeg: it.isVeg !== false,
+      },
+    });
+  }
+
+  return Array.from(drafts.values()).map(({ item, sizes, spokenSizes }) => {
+    if (!spokenSizes) return { ...item, variants: [] };
+    const variants = sizes
+      .filter((v, i) => sizes.findIndex((o) => normName(o.name) === normName(v.name)) === i)
+      .map((v, i) => ({ ...v, isDefault: i === 0 }));
+    return { ...item, variants, price: variants[0]?.price || item.price };
+  });
 }
 
 export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
   visible,
   onClose,
-  onItemsAdded,
+  onDraftsReady,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [analyzing, setAnalyzing] = useState(false);
-  const [extractedItems, setExtractedItems] = useState<any[]>([]);
-  const [summary, setSummary] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [parseError, setParseError] = useState('');
 
-  const { isListening, transcript, startListening, stopListening } = useVoiceRecognition({
-    locale: 'hi-IN',
-    onPhraseSpoken: async (phrase) => {
-      // Analyze once phrase has been spoken
-      if (phrase.trim()) {
-        try {
-          setAnalyzing(true);
-          const res = await parseVoiceAddItemsApi(phrase);
-          if (res.items && res.items.length > 0) {
-            setExtractedItems(res.items);
-            setSummary(res.summary);
-          }
-        } catch (e) {
-          console.warn('Voice add items parse failed:', e);
-        } finally {
-          setAnalyzing(false);
-        }
-      }
-    },
-  });
-
-  const handleManualAnalyze = async () => {
-    if (!transcript.trim()) return;
+  // Parse the speech and hand the dishes to the Add Dish form as drafts
+  const analyze = async (text: string) => {
+    if (!text.trim()) return;
     try {
       setAnalyzing(true);
-      const res = await parseVoiceAddItemsApi(transcript);
-      if (res.items && res.items.length > 0) {
-        setExtractedItems(res.items);
-        setSummary(res.summary);
-      }
+      setParseError('');
+      const res = await parseVoiceAddItemsApi(text);
+      const drafts = mergeVoiceDrafts(res.items || []);
+      if (drafts.length > 0) onDraftsReady(drafts);
+      else setParseError('No dish detected. Speak the name with its price, e.g. "Onion pizza small 200, medium 300".');
     } catch (e) {
       console.warn('Voice add items parse failed:', e);
+      setParseError('Could not understand that. Tap Re-Parse or speak again.');
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const handleSaveToInventory = async () => {
-    if (extractedItems.length === 0) return;
-    try {
-      setSaving(true);
-      const saved = await bulkAddMenuItemsApi(extractedItems);
-      onItemsAdded(saved);
-      onClose();
-    } catch (e) {
-      console.warn('Save to inventory failed:', e);
-    } finally {
-      setSaving(false);
-    }
-  };
+  const { isListening, transcript, startListening, stopListening } = useVoiceRecognition({
+    locale: 'hi-IN',
+    onPhraseSpoken: (phrase) => analyze(phrase),
+  });
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -105,7 +119,7 @@ export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
                   Voice Add Menu Items
                 </Text>
                 <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                  Speak multiple items (e.g. &ldquo;Onion pizza 300 rs small...&rdquo;)
+                  e.g. &ldquo;Onion pizza small 200, medium 300, large 400&rdquo;
                 </Text>
               </View>
             </View>
@@ -157,80 +171,26 @@ export const VoiceAddItemsModal: React.FC<VoiceAddItemsModalProps> = ({
             <View className="items-center my-3 flex-row justify-center gap-2">
               <ActivityIndicator size="small" color={colors.primary} />
               <Text className="text-xs font-bold" style={{ color: colors.primary }}>
-                Gemini AI is parsing items & images...
+                Drafting dishes & sizes...
               </Text>
             </View>
           )}
 
-          {/* Extracted Items Preview */}
-          {extractedItems.length > 0 && (
-            <View className="flex-1 mb-3">
-              <View className="flex-row items-center justify-between mb-2">
-                <View className="flex-row items-center">
-                  <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                  <Text className="text-xs font-bold text-emerald-500 ml-1">
-                    {extractedItems.length} Items Detected:
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => setExtractedItems([])}>
-                  <Text className="text-[11px] text-slate-400">Clear</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView className="max-h-56">
-                {extractedItems.map((it, idx) => (
-                  <View
-                    key={idx}
-                    className="flex-row items-center p-2.5 mb-2 rounded-2xl border"
-                    style={{ backgroundColor: colors.surface, borderColor: colors.border }}
-                  >
-                    <Image
-                      source={{ uri: it.imageUrl }}
-                      className="w-12 h-12 rounded-xl mr-3 bg-slate-800"
-                    />
-                    <View className="flex-1">
-                      <Text className="text-xs font-bold" style={{ color: colors.text }}>
-                        {it.name}
-                      </Text>
-                      <Text className="text-[10px]" style={{ color: colors.textMuted }}>
-                        {it.category} • {it.variants?.[0]?.name || it.unit || 'pcs'}
-                      </Text>
-                    </View>
-                    <Text className="text-sm font-black font-mono" style={{ color: colors.primary }}>
-                      ₹{it.price}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
+          {parseError && !analyzing ? (
+            <View className="p-2.5 mb-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+              <Text className="text-[11px] font-semibold text-rose-500">{parseError}</Text>
             </View>
-          )}
+          ) : null}
 
           {/* Action Buttons */}
           <View className="flex-row gap-2 mt-2">
-            {!isListening && transcript && extractedItems.length === 0 && !analyzing ? (
+            {!isListening && transcript && !analyzing ? (
               <TouchableOpacity
-                onPress={handleManualAnalyze}
+                onPress={() => analyze(transcript)}
                 className="flex-1 py-3 rounded-2xl items-center justify-center border"
                 style={{ borderColor: colors.primary, backgroundColor: colors.badgeBg }}
               >
                 <Text className="text-xs font-bold" style={{ color: colors.primary }}>Re-Parse Speech</Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {extractedItems.length > 0 ? (
-              <TouchableOpacity
-                onPress={handleSaveToInventory}
-                disabled={saving}
-                className="flex-1 py-3 rounded-2xl items-center justify-center shadow-lg"
-                style={{ backgroundColor: colors.primary }}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#000" />
-                ) : (
-                  <Text className="text-xs font-black text-black uppercase tracking-wider">
-                    Add All to Menu ({extractedItems.length})
-                  </Text>
-                )}
               </TouchableOpacity>
             ) : null}
           </View>

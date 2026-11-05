@@ -37,7 +37,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   onLogout,
   onUserUpdated,
 }) => {
-  const { colors, isDark, toggleTheme, setMode, preset, setPreset } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const [currentUser, setCurrentUser] = useState<any>(user || {});
 
@@ -313,108 +313,6 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               Edit Cafe Name, Address & GSTIN
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* THEME & APPEARANCE (LIQUID GLASS LIGHT & DARK MODE) */}
-        <View
-          className="rounded-3xl p-4 border shadow-sm mb-4"
-          style={{
-            backgroundColor: colors.card,
-            borderColor: colors.glassBorder || colors.border,
-          }}
-        >
-          <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row items-center gap-2">
-              <View
-                className="w-8 h-8 rounded-xl items-center justify-center border"
-                style={{
-                  backgroundColor: colors.badgeBg,
-                  borderColor: colors.primary,
-                }}
-              >
-                <Ionicons name="color-palette-outline" size={16} color={colors.primary} />
-              </View>
-              <View>
-                <Text className="text-xs font-black tracking-tight" style={{ color: colors.text }}>
-                  Liquid Glass Theme
-                </Text>
-                <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
-                  {isDark ? 'Dark Sapphire (Cyber Obsidian)' : 'Light Crystal (Daylight Frost)'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Quick 1-tap Pill Switch */}
-            <TouchableOpacity
-              onPress={toggleTheme}
-              activeOpacity={0.8}
-              className="px-3 py-1.5 rounded-xl border flex-row items-center gap-1.5 active:scale-95"
-              style={{
-                backgroundColor: colors.badgeBg,
-                borderColor: colors.primary,
-              }}
-            >
-              <Ionicons name={isDark ? 'sunny' : 'moon'} size={13} color={colors.primary} />
-              <Text className="text-[10px] font-black" style={{ color: colors.primary }}>
-                {isDark ? 'Light' : 'Dark'} Mode
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Mode Selector Tabs (Dark vs Light) */}
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              onPress={() => setMode('dark')}
-              activeOpacity={0.8}
-              className="flex-1 py-3 px-3 rounded-2xl border items-center justify-center flex-row gap-2 active:scale-95"
-              style={{
-                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(0, 0, 0, 0.04)',
-                borderColor: isDark ? colors.primary : colors.border,
-                shadowColor: isDark ? colors.primary : 'transparent',
-                shadowOpacity: isDark ? 0.3 : 0,
-                shadowRadius: 8,
-              }}
-            >
-              <Ionicons name="moon" size={16} color={isDark ? colors.primary : colors.textMuted} />
-              <View>
-                <Text
-                  className="text-xs font-black"
-                  style={{ color: isDark ? colors.primary : colors.text }}
-                >
-                  Dark Liquid Glass
-                </Text>
-                <Text className="text-[9px]" style={{ color: colors.textSecondary }}>
-                  Obsidian & Cyan
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setMode('light')}
-              activeOpacity={0.8}
-              className="flex-1 py-3 px-3 rounded-2xl border items-center justify-center flex-row gap-2 active:scale-95"
-              style={{
-                backgroundColor: !isDark ? 'rgba(2, 132, 199, 0.14)' : 'rgba(255, 255, 255, 0.04)',
-                borderColor: !isDark ? colors.primary : colors.border,
-                shadowColor: !isDark ? colors.primary : 'transparent',
-                shadowOpacity: !isDark ? 0.3 : 0,
-                shadowRadius: 8,
-              }}
-            >
-              <Ionicons name="sunny" size={16} color={!isDark ? colors.primary : colors.textMuted} />
-              <View>
-                <Text
-                  className="text-xs font-black"
-                  style={{ color: !isDark ? colors.primary : colors.text }}
-                >
-                  Light Liquid Glass
-                </Text>
-                <Text className="text-[9px]" style={{ color: colors.textSecondary }}>
-                  Crystal & Sapphire
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* 2. LIVE COUNTER STATS (Fast Offline Cache) */}

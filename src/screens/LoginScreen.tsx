@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
@@ -63,19 +64,37 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           {/* Logo & Cafe Header */}
           <View className="items-center mb-8">
             <View
-              className="w-20 h-20 rounded-3xl items-center justify-center mb-3 shadow-2xl border"
+              className="w-20 h-20 rounded-[22px] items-center justify-center mb-3.5 border shadow-lg bg-white"
               style={{
-                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.16)' : '#e0f2fe',
-                borderColor: colors.primary,
+                borderColor: 'rgba(2, 132, 199, 0.25)',
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.15,
+                shadowRadius: 10,
+                elevation: 4,
               }}
             >
-              <Ionicons name="restaurant" size={36} color={colors.primary} />
+              <Image
+                source={require('../../assets/app-icon/icon.png')}
+                style={{ width: 64, height: 64, borderRadius: 18 }}
+                resizeMode="contain"
+              />
             </View>
 
-            <Text className="text-2xl font-black tracking-tight" style={{ color: colors.text }}>
-              RetelFlow Cafe
-            </Text>
-            <Text className="text-xs text-center mt-1" style={{ color: colors.textSecondary }}>
+            <View className="flex-row items-center">
+              <Text className="text-3xl font-black tracking-tight" style={{ color: colors.text }}>
+                Retel
+              </Text>
+              <Text className="text-3xl font-black tracking-tight" style={{ color: colors.primary }}>
+                Flow
+              </Text>
+              <View className="ml-2 px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200">
+                <Text className="text-[11px] font-black text-sky-600 uppercase tracking-wider">
+                  Cafe
+                </Text>
+              </View>
+            </View>
+            <Text className="text-xs text-center mt-1.5" style={{ color: colors.textSecondary }}>
               Restaurant, Cafe & Sweets Shop POS
             </Text>
           </View>

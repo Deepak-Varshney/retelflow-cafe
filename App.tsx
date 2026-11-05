@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StatusBar, Alert, TouchableOpacity, Text, ScrollView } from 'react-native';
+import { View, StatusBar, Alert, TouchableOpacity, Text, ScrollView, BackHandler } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,14 +21,24 @@ import { CustomersKhataScreen } from './src/screens/CustomersKhataScreen';
 import { MoreScreen } from './src/screens/MoreScreen';
 import { BottomNavBar, CafeTab } from './src/components/BottomNavBar';
 import { CafeSplashScreen } from './src/components/CafeSplashScreen';
-import { initCache, setCachedConfig } from './src/services/cacheService';
+import { clearCache, initCache, setCachedConfig, syncMenu } from './src/services/cacheService';
 import { getAppConfigApi } from './src/api/cafeApi';
 import { getPrintSettings, getShopFeatures, getStoreInfo } from './src/utils/shopSettings';
 import { GlobalPrinterSetupModal } from './src/components/PrinterSetupModal';
 import { LiquidGlassBackground } from './src/components/LiquidGlassBackground';
 import Constants from 'expo-constants';
+import * as SplashScreen from 'expo-splash-screen';
 import { ForceUpdateModal } from './src/components/ForceUpdateModal';
+import { GlobalVoiceBubble } from './src/components/GlobalVoiceBubble';
+import { setAnalyticsDisplay, setBaseVoiceScreen, setVoiceNavigator } from './src/services/voiceTargets';
 import { isVersionOlder } from './src/utils/versionCheck';
+
+// Keep the native splash up until the first real screen can render. Without
+// this it hides on the first JS frame and an empty white root view flashes
+// (then the JS splash fades in) before the app appears.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.setOptions({ fade: true, duration: 250 });
+const hideNativeSplash = () => SplashScreen.hideAsync().catch(() => {});
 
 type OrderStep = 'menu' | 'customer' | 'payment' | 'complete';
 
@@ -75,46 +85,113 @@ function AppContent() {
 
   const checkAuth = async () => {
     try {
-      const token = await authStorage.getToken();
+      const [token] = await Promise.all([authStorage.getToken(), initCache()]);
       if (!token) {
         setUser(null);
         setAuthLoading(false);
         return;
       }
 
-      // 1. Instant Fast Path: Load cached user so the app opens in under 100ms
+      // Open instantly with the saved profile; verify with the server behind it
       const cachedUser = await authStorage.getUser();
       if (cachedUser) {
         setUser(cachedUser);
         setAuthLoading(false);
       }
 
-      // 2. Background Refresh: Validate session and update profile silently
-      getCurrentUser()
-        .then((fresh) => {
-          if (fresh) {
-            setUser(fresh);
-            authStorage.saveUser(fresh);
+      try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser) throw new Error('User not found');
+        setUser(currentUser);
+        await authStorage.saveUser(currentUser);
+      } catch (err: any) {
+        // Only a rejected session logs out. No internet / slow or failing
+        // server keeps the cashier signed in on the saved profile.
+        if (err?.response?.status === 401 || err?.message === 'User not found' || !cachedUser) {
+          if (err?.response?.status === 401 || err?.message === 'User not found') {
+            await authStorage.removeToken();
+            await authStorage.removeUser();
           }
-        })
-        .catch(() => {})
-        .finally(() => {
-          setAuthLoading(false);
-        });
+          setUser(null);
+          if (err?.response?.status === 401) {
+            Alert.alert(
+              'Session Expired',
+              'You have been logged out because your account was logged in from another device.'
+            );
+          }
+        }
+      }
     } catch {
-      await logout();
       setUser(null);
+    } finally {
       setAuthLoading(false);
     }
   };
 
+  // Voice assistant: shop settings + tab switching by voice
   useEffect(() => {
-    // 1. Initialize local cache from persistent disk storage
-    initCache().catch(() => {});
+    setAnalyticsDisplay(user?.cafe?.analyticsDisplay);
+  }, [user?.cafe?.analyticsDisplay]);
 
-    // 2. Load remote branding and support numbers from superadmin
+  useEffect(() => {
+    setVoiceNavigator((tab) => {
+      setCurrentTab(tab);
+      if (tab === 'order') setOrderStep('menu');
+    });
+    return () => setVoiceNavigator(null);
+  }, []);
+
+  useEffect(() => {
+    const names: Record<string, string> = { history: 'orders_history', khata: 'customers_khata', more: 'more' };
+    setBaseVoiceScreen(currentTab === 'order' ? `order_${orderStep}` : names[currentTab] || currentTab);
+  }, [currentTab, orderStep]);
+
+  // Android back: step back through the billing flow instead of leaving the app
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (currentTab !== 'order') {
+        setCurrentTab('order');
+        setOrderStep('menu');
+        return true;
+      }
+      if (orderStep === 'payment') {
+        setOrderStep('customer');
+        return true;
+      }
+      if (orderStep === 'customer') {
+        setOrderStep('menu');
+        return true;
+      }
+      if (orderStep === 'complete') {
+        resetOrder();
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [currentTab, orderStep]);
+
+  // As soon as a shop is signed in (app open or fresh login): check the menu
+  // against the server in the background; the cache only updates if it changed
+  useEffect(() => {
+    if (user) syncMenu();
+  }, [user ? user._id || user.id || 'signed-in' : null]);
+
+  // Real screen (login or app) is ready: drop the native splash
+  useEffect(() => {
+    if (!authLoading || updateInfo.visible) hideNativeSplash();
+  }, [authLoading, updateInfo.visible]);
+
+  useEffect(() => {
+    // Slow network on a first login check: fall back to the JS splash
+    const fallback = setTimeout(hideNativeSplash, 4000);
+
+    // 1. Initialize local cache from persistent disk storage
+    initCache();
+
+    // 2. Load remote branding and check force update from superadmin
     getAppConfigApi()
-      .then((cfg) => {
+      .then((cfg: any) => {
         if (cfg) {
           setCachedConfig({
             helpPhone: cfg.cafe?.helpPhone || cfg.branding?.helpPhone || '',
@@ -123,6 +200,21 @@ function AppContent() {
             logoUrl: cfg.cafe?.logoUrl || cfg.branding?.appLogoUrl || '',
             splashUrl: cfg.cafe?.splashUrl || '',
           });
+
+          const cafeUpdate = cfg?.updates?.cafe;
+          if (cafeUpdate && cafeUpdate.forceUpdate) {
+            const isOlder = isVersionOlder(currentAppVersion, cafeUpdate.latestVersion);
+            if (isOlder) {
+              setUpdateInfo({
+                visible: true,
+                latestVersion: cafeUpdate.latestVersion,
+                apkUrl: cafeUpdate.apkUrl || 'https://downloads.retelflow.in/retelflow-cafe-latest.apk',
+                title: cafeUpdate.title || 'Update Required',
+                message: cafeUpdate.message || 'A new version of RetelFlow Cafe is available. Please update to continue.',
+                releaseNotes: cafeUpdate.releaseNotes,
+              });
+            }
+          }
         }
       })
       .catch(() => {});
@@ -130,9 +222,15 @@ function AppContent() {
     checkAuth();
     const unsub = onSessionExpired(() => {
       setUser(null);
-      Alert.alert('Session Expired', 'Please login again to continue.');
+      Alert.alert(
+        'Session Expired',
+        'You have been logged out because your account was logged in from another device.'
+      );
     });
-    return () => unsub();
+    return () => {
+      clearTimeout(fallback);
+      unsub();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -143,6 +241,7 @@ function AppContent() {
         style: 'destructive',
         onPress: async () => {
           await logout();
+          await clearCache();
           setUser(null);
           resetOrder();
         },
@@ -194,6 +293,7 @@ function AppContent() {
             onProceedToPayment={() => setOrderStep('payment')}
             onBack={() => setOrderStep('menu')}
           />
+          <GlobalVoiceBubble />
         </LiquidGlassBackground>
       );
     }
@@ -212,6 +312,7 @@ function AppContent() {
             }}
             onBack={() => setOrderStep('customer')}
           />
+          <GlobalVoiceBubble />
         </LiquidGlassBackground>
       );
     }
@@ -226,6 +327,7 @@ function AppContent() {
             storeInfo={getStoreInfo(user)}
             printSettings={getPrintSettings(user)}
           />
+          <GlobalVoiceBubble />
         </LiquidGlassBackground>
       );
     }
@@ -276,6 +378,7 @@ function AppContent() {
         }}
         cartCount={cart.reduce((sum, it) => sum + it.qty, 0)}
       />
+      <GlobalVoiceBubble />
     </LiquidGlassBackground>
   );
 }

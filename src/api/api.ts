@@ -37,14 +37,15 @@ export const getBaseUrl = (): string => {
       ? envUrl.replace(/\/+$/, '')
       : '';
 
-  if (!base && typeof __DEV__ !== 'undefined' && !__DEV__) {
+  // 1. If not running in development, or if a valid non-localhost URL was provided -> use it
+  if (base && !base.includes('localhost') && !base.includes('127.0.0.1')) {
+    return base;
+  }
+  if (typeof __DEV__ !== 'undefined' && !__DEV__) {
     return 'https://api.retelflow.in/api';
   }
 
-  if (!base) {
-    base = 'http://localhost:5004/api';
-  }
-
+  // 2. Web browser: if not on localhost, use production API
   if (Platform.OS === 'web') {
     if (
       typeof window !== 'undefined' &&
@@ -54,18 +55,17 @@ export const getBaseUrl = (): string => {
     ) {
       return 'https://api.retelflow.in/api';
     }
-    return base;
+    return base || 'http://localhost:5004/api';
   }
 
-  if (base.includes('localhost') || base.includes('127.0.0.1')) {
-    const host = getHostFromConstants();
-    if (host) {
-      return base.replace('localhost', host).replace('127.0.0.1', host);
-    }
-    return base.replace('localhost', '10.122.234.211').replace('127.0.0.1', '10.122.234.211');
+  // 3. Mobile in local development: check Metro bundler IP
+  const host = getHostFromConstants();
+  if (host) {
+    return `http://${host}:5004/api`;
   }
 
-  return base;
+  // 4. Default fallback on real devices / standalone APKs: production API
+  return 'https://api.retelflow.in/api';
 };
 
 export const api = axios.create({

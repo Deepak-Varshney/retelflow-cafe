@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,12 +18,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../services/ThemeContext';
 import { MenuItem, ItemVariant } from '../types';
 import {
-  getMenuItemsApi,
   addMenuItemApi,
   updateMenuItemApi,
   deleteMenuItemApi,
 } from '../api/cafeApi';
+import { getCachedMenu, setCachedMenu, subscribeMenu, syncMenu } from '../services/cacheService';
 import { VoiceAddItemsModal } from '../components/VoiceAddItemsModal';
+import { GlobalVoiceBubble } from '../components/GlobalVoiceBubble';
+import { DishSizeSales, InsightsStrip } from '../components/InsightsStrip';
+import { VoiceForm, registerVoiceTarget } from '../services/voiceTargets';
 import { getFoodImageUrl } from '../utils/imageHelper';
 
 const PRESET_CATEGORIES = [
@@ -45,8 +48,8 @@ const PRESET_CATEGORIES = [
 export const MenuInventoryScreen: React.FC = () => {
   const { colors, isDark } = useTheme();
 
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<MenuItem[]>(() => getCachedMenu());
+  const [loading, setLoading] = useState(() => getCachedMenu().length === 0);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -73,6 +76,10 @@ export const MenuInventoryScreen: React.FC = () => {
   const [showNewManualUrlInput, setShowNewManualUrlInput] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
 
+  // Voice drafts waiting for review in the Add Dish form ([0] = the one shown)
+  const [voiceDrafts, setVoiceDrafts] = useState<MenuItem[]>([]);
+  const [voiceDraftTotal, setVoiceDraftTotal] = useState(0);
+
   // Edit Item Form State
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [editName, setEditName] = useState('');
@@ -87,11 +94,15 @@ export const MenuInventoryScreen: React.FC = () => {
   const [showEditManualUrlInput, setShowEditManualUrlInput] = useState(false);
   const [updatingItem, setUpdatingItem] = useState(false);
 
+  // Shares the menu cache with the order screen: shows cached items instantly,
+  // syncs with the server in the background
   const loadItems = async () => {
     try {
-      setLoading(true);
-      const data = await getMenuItemsApi();
-      setItems(data);
+      if (items.length === 0) setLoading(true);
+      await syncMenu();
+      // Offline with nothing cached: stay empty rather than caching demo items
+      const cached = getCachedMenu();
+      if (cached.length > 0) setItems(cached);
     } catch (e) {
       console.warn('Load items failed:', e);
     } finally {
@@ -101,7 +112,14 @@ export const MenuInventoryScreen: React.FC = () => {
 
   useEffect(() => {
     loadItems();
+    return subscribeMenu(setItems);
   }, []);
+
+  // Local add / edit / delete: push into the cache so the order screen
+  // picks it up immediately (no-op when nothing changed)
+  useEffect(() => {
+    setCachedMenu(items);
+  }, [items]);
 
   // Distinct category list dynamically computed from presets + store items
   const allCategories = useMemo(() => {
@@ -243,13 +261,13 @@ export const MenuInventoryScreen: React.FC = () => {
         imageUrl: editImageUrl.trim() || getFoodImageUrl('', editCategory),
         description: editDesc.trim(),
         isVeg: editIsVeg,
-        variants: sanitizedVariants,
+        variants: sanitizedVariants ?? [],
       });
 
       setItems((prev) =>
         prev.map((i) =>
           i.id === editingItem.id || i.name === editingItem.name
-            ? { ...i, ...updated, price: finalPrice, variants: sanitizedVariants }
+            ? { ...i, ...updated, price: finalPrice, variants: sanitizedVariants ?? [] }
             : i
         )
       );
@@ -261,6 +279,131 @@ export const MenuInventoryScreen: React.FC = () => {
     } finally {
       setUpdatingItem(false);
     }
+  };
+
+  // Global mic edits whichever dish form is open ("price 80 se 120 kardo",
+  // "regular size hata do", "description me likho…", "variants band kardo")
+  const voiceFormRef = useRef<{ get: () => VoiceForm; set: (f: VoiceForm) => void } | null>(null);
+  voiceFormRef.current = editModalVisible
+    ? {
+        get: () => ({
+          name: editName,
+          category: editCategory,
+          price: Number(editPrice) || 0,
+          unit: editUnit,
+          description: editDesc,
+          isVeg: editIsVeg,
+          variants: editHasVariants ? editVariants : [],
+        }),
+        set: (f) => {
+          setEditName(f.name || '');
+          setEditCategory(f.category || 'General');
+          setEditPrice(String(f.price || ''));
+          setEditUnit(f.unit || 'pcs');
+          setEditDesc(f.description || '');
+          setEditIsVeg(f.isVeg !== false);
+          setEditHasVariants(f.variants.length > 0);
+          setEditVariants(f.variants.map((v) => ({ ...v })));
+        },
+      }
+    : addModalVisible
+      ? {
+          get: () => ({
+            name: newName,
+            category: newCategory,
+            price: Number(newPrice) || 0,
+            unit: newUnit,
+            description: newDesc,
+            isVeg: newIsVeg,
+            variants: newHasVariants ? newVariants : [],
+          }),
+          set: (f) => {
+            setNewName(f.name || '');
+            setNewCategory(f.category || 'General');
+            setNewPrice(String(f.price || ''));
+            setNewUnit(f.unit || 'pcs');
+            setNewDesc(f.description || '');
+            setNewIsVeg(f.isVeg !== false);
+            setNewHasVariants(f.variants.length > 0);
+            setNewVariants(f.variants.map((v) => ({ ...v })));
+          },
+        }
+      : null;
+
+  useEffect(() => {
+    const formOpen = addModalVisible || editModalVisible;
+    const reg = registerVoiceTarget({
+      screen: editModalVisible ? 'edit_dish' : addModalVisible ? 'add_dish' : 'menu',
+      getForm: formOpen ? () => voiceFormRef.current!.get() : undefined,
+      applyForm: formOpen ? (f) => voiceFormRef.current?.set(f) : undefined,
+    });
+    return () => reg.remove();
+  }, [addModalVisible, editModalVisible]);
+
+  const resetAddForm = () => {
+    setNewName('');
+    setNewCategory('Pizza');
+    setNewPrice('');
+    setNewUnit('pcs');
+    setNewImageUrl('');
+    setNewDesc('');
+    setNewIsVeg(true);
+    setNewVariants([]);
+    setNewHasVariants(false);
+    setShowNewManualUrlInput(false);
+  };
+
+  // Pre-fill the Add Dish form with a voice draft (all sizes included)
+  const fillAddForm = (d: MenuItem) => {
+    const variants = d.variants || [];
+    setNewName(d.name || '');
+    setNewCategory(d.category || 'General');
+    setNewPrice(String(d.price || variants[0]?.price || ''));
+    setNewUnit(d.unit || 'pcs');
+    setNewImageUrl(d.imageUrl || '');
+    setNewDesc(d.description || '');
+    setNewIsVeg(d.isVeg !== false);
+    setNewHasVariants(variants.length > 0);
+    setNewVariants(variants.map((v) => ({ ...v })));
+    setShowNewManualUrlInput(false);
+  };
+
+  const handleVoiceDraftsReady = (drafts: MenuItem[]) => {
+    setVoiceModalVisible(false);
+    setVoiceDrafts(drafts);
+    setVoiceDraftTotal(drafts.length);
+    fillAddForm(drafts[0]);
+    // Let the voice sheet finish closing before the form slides in
+    setTimeout(() => setAddModalVisible(true), 350);
+  };
+
+  /** Next voice draft (after save or skip), or close the form when done. */
+  const advanceVoiceDraft = () => {
+    const rest = voiceDrafts.slice(1);
+    setVoiceDrafts(rest);
+    if (rest.length > 0) {
+      fillAddForm(rest[0]);
+      return true;
+    }
+    setAddModalVisible(false);
+    resetAddForm();
+    return false;
+  };
+
+  const closeAddForm = () => {
+    setAddModalVisible(false);
+    if (voiceDrafts.length > 0) {
+      setVoiceDrafts([]);
+      resetAddForm();
+    }
+  };
+
+  const openManualAdd = () => {
+    if (voiceDrafts.length > 0) {
+      setVoiceDrafts([]);
+      resetAddForm();
+    }
+    setAddModalVisible(true);
   };
 
   // Save New Manual Item
@@ -308,15 +451,13 @@ export const MenuInventoryScreen: React.FC = () => {
       });
 
       setItems((prev) => [created, ...prev]);
+      if (voiceDrafts.length > 0) {
+        // Voice flow: straight to the next drafted dish
+        if (!advanceVoiceDraft()) Alert.alert('Success', `Added ${voiceDraftTotal} voice dish(es) to store menu!`);
+        return;
+      }
       setAddModalVisible(false);
-      // Reset form
-      setNewName('');
-      setNewPrice('');
-      setNewImageUrl('');
-      setNewDesc('');
-      setNewVariants([]);
-      setNewHasVariants(false);
-      setShowNewManualUrlInput(false);
+      resetAddForm();
       Alert.alert('Success', `Added "${created.name}" to store menu!`);
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to add item to menu');
@@ -332,8 +473,12 @@ export const MenuInventoryScreen: React.FC = () => {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await deleteMenuItemApi(id);
-          setItems((prev) => prev.filter((i) => i.id !== id && i.name !== name));
+          try {
+            await deleteMenuItemApi(id);
+            setItems((prev) => prev.filter((i) => i.id !== id));
+          } catch (e: any) {
+            Alert.alert('Error', e?.response?.data?.message || e?.message || `Could not delete "${name}"`);
+          }
         },
       },
     ]);
@@ -397,7 +542,7 @@ export const MenuInventoryScreen: React.FC = () => {
 
           {/* Manual Add Button */}
           <TouchableOpacity
-            onPress={() => setAddModalVisible(true)}
+            onPress={openManualAdd}
             className="flex-row items-center px-3.5 py-2 rounded-2xl active:scale-95 shadow-md" style={{ backgroundColor: colors.primary }}
           >
             <Ionicons name="add" size={16} color="#000" />
@@ -428,6 +573,8 @@ export const MenuInventoryScreen: React.FC = () => {
           ) : null}
         </View>
       </View>
+
+      <InsightsStrip variant="menu" />
 
       {/* 3. Menu Items List */}
       {loading ? (
@@ -517,7 +664,7 @@ export const MenuInventoryScreen: React.FC = () => {
                 No items in inventory
               </Text>
               <TouchableOpacity
-                onPress={() => setAddModalVisible(true)}
+                onPress={openManualAdd}
                 className="mt-3 px-4 py-2 rounded-xl" style={{ backgroundColor: colors.primary }}
               >
                 <Text className="text-xs font-black text-black">
@@ -533,16 +680,14 @@ export const MenuInventoryScreen: React.FC = () => {
       <VoiceAddItemsModal
         visible={voiceModalVisible}
         onClose={() => setVoiceModalVisible(false)}
-        onItemsAdded={(newItems) => {
-          setItems((prev) => [...newItems, ...prev]);
-        }}
+        onDraftsReady={handleVoiceDraftsReady}
       />
 
       {/* 5. ADD NEW DISH MODAL (Full Height + KeyboardAwareScrollView) */}
       <Modal
         visible={addModalVisible}
         animationType="slide"
-        onRequestClose={() => setAddModalVisible(false)}
+        onRequestClose={closeAddForm}
       >
         <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
           {/* Header */}
@@ -552,14 +697,18 @@ export const MenuInventoryScreen: React.FC = () => {
           >
             <View>
               <Text className="text-base font-black" style={{ color: colors.text }}>
-                Add New Menu Dish
+                {voiceDrafts.length > 0
+                  ? `Voice Draft ${voiceDraftTotal - voiceDrafts.length + 1} of ${voiceDraftTotal}`
+                  : 'Add New Menu Dish'}
               </Text>
               <Text className="text-[11px]" style={{ color: colors.textSecondary }}>
-                Photo upload, dropdown category & size variants
+                {voiceDrafts.length > 0
+                  ? 'Check details & sizes, then save'
+                  : 'Photo upload, dropdown category & size variants'}
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => setAddModalVisible(false)}
+              onPress={closeAddForm}
               className="p-2 rounded-xl bg-slate-800/40"
             >
               <Ionicons name="close" size={20} color={colors.text} />
@@ -902,11 +1051,25 @@ export const MenuInventoryScreen: React.FC = () => {
                 <ActivityIndicator size="small" color="#000" />
               ) : (
                 <Text className="text-sm font-black text-black uppercase tracking-wider">
-                  Save Dish to Menu
+                  {voiceDrafts.length > 1 ? 'Save & Next Dish' : 'Save Dish to Menu'}
                 </Text>
               )}
             </TouchableOpacity>
+
+            {voiceDrafts.length > 0 ? (
+              <TouchableOpacity
+                onPress={advanceVoiceDraft}
+                disabled={savingItem}
+                className="mt-3 py-3 rounded-2xl items-center justify-center border"
+                style={{ borderColor: colors.border }}
+              >
+                <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
+                  {voiceDrafts.length > 1 ? 'Skip This Dish' : 'Skip & Close'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </KeyboardAwareScrollView>
+          <GlobalVoiceBubble inModal />
         </SafeAreaView>
       </Modal>
 
@@ -945,6 +1108,8 @@ export const MenuInventoryScreen: React.FC = () => {
             keyboardShouldPersistTaps="handled"
             bottomOffset={Platform.OS === 'ios' ? 40 : 25}
           >
+            <DishSizeSales name={editName} />
+
             {/* Dish Name */}
             <View className="mb-4">
               <Text className="text-xs font-bold mb-1.5" style={{ color: colors.textSecondary }}>
@@ -1279,6 +1444,7 @@ export const MenuInventoryScreen: React.FC = () => {
               )}
             </TouchableOpacity>
           </KeyboardAwareScrollView>
+          <GlobalVoiceBubble inModal />
         </SafeAreaView>
       </Modal>
 

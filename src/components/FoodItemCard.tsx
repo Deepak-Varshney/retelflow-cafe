@@ -14,13 +14,15 @@ interface FoodItemCardProps {
   onLongPress?: (item: MenuItem) => void;
 }
 
-export const FoodItemCard: React.FC<FoodItemCardProps> = ({
+// Memoized: tapping + / - re-renders only the card whose qty changed,
+// not every card in the menu list
+export const FoodItemCard = React.memo(function FoodItemCard({
   item,
   currentQty,
   onAddPress,
   onRemovePress,
   onLongPress,
-}) => {
+}: FoodItemCardProps) {
   const { colors, isDark } = useTheme();
   const [imgError, setImgError] = useState(false);
 
@@ -215,7 +217,7 @@ export const FoodItemCard: React.FC<FoodItemCardProps> = ({
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {

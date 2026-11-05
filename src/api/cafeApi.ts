@@ -49,6 +49,26 @@ export const getMenuItemsApi = async (category?: string, query?: string): Promis
 };
 
 /**
+ * Strict menu fetch for the cache sync: the store's real items, or null when
+ * the request fails (unlike getMenuItemsApi, never falls back to demo items).
+ */
+export const fetchStoreMenuApi = async (): Promise<MenuItem[] | null> => {
+  try {
+    const res = await api.get('/store-items');
+    if (!res.data?.success || !Array.isArray(res.data.items)) return null;
+    if (res.data.items.length > 0) {
+      return res.data.items.map((it: any) => ({ ...it, id: it._id || it.id }));
+    }
+    // Brand new store with 0 items: seed once
+    const seeded = await seedCafeCatalogApi(false).catch(() => []);
+    return seeded.length > 0 ? seeded : null;
+  } catch (err) {
+    console.warn('[CafeApi] Menu sync failed:', err);
+    return null;
+  }
+};
+
+/**
  * Reset or seed the cafe catalog with standard pre-seeded items
  */
 export const seedCafeCatalogApi = async (overwrite = false): Promise<MenuItem[]> => {
@@ -224,9 +244,12 @@ export const createOrderInvoiceApi = async (order: {
   subtotal: number;
   discount: number;
   notes?: string;
+  // One key per order; the server returns the already-saved invoice on a retry
+  clientRef?: string;
 }): Promise<{ success: boolean; invoice: any; message?: string }> => {
   const payload = {
-    customerName: order.customer.name || 'Walk-in Guest',
+    // Empty for walk-ins; the server never makes a khata customer from a placeholder name
+    customerName: (order.customer.name || '').trim(),
     customerPhone: order.customer.phone || '',
     customer: order.customer,
     items: order.items.map((i) => ({
@@ -245,6 +268,7 @@ export const createOrderInvoiceApi = async (order: {
     dueAmount: order.dueAmount,
     paymentMethod: order.paymentMethod,
     notes: order.notes || '',
+    clientRef: order.clientRef || '',
   };
 
   const res = await api.post('/invoices', payload);
@@ -271,41 +295,33 @@ export const updateShopSettingsApi = async (settings: {
 };
 
 /**
- * Fetch all past invoices for today / history
+ * Fetch all past invoices for today / history.
+ * Throws on failure so callers keep their cached list instead of showing empty.
  */
 export const getInvoicesApi = async (): Promise<any[]> => {
-  try {
-    const res = await api.get('/invoices');
-    if (Array.isArray(res.data)) {
-      return res.data;
-    }
-    if (Array.isArray(res.data?.invoices)) {
-      return res.data.invoices;
-    }
-    return [];
-  } catch (err) {
-    console.warn('[CafeApi] Failed to fetch invoices:', err);
-    return [];
+  const res = await api.get('/invoices');
+  if (Array.isArray(res.data)) {
+    return res.data;
   }
+  if (Array.isArray(res.data?.invoices)) {
+    return res.data.invoices;
+  }
+  throw new Error('Unexpected invoices response');
 };
 
 /**
- * Fetch all customers with due balance
+ * Fetch all customers with due balance.
+ * Throws on failure so callers keep their cached list instead of showing ₹0.
  */
 export const getCustomersWithDueApi = async (): Promise<any[]> => {
-  try {
-    const res = await api.get('/customers');
-    if (Array.isArray(res.data)) {
-      return res.data;
-    }
-    if (Array.isArray(res.data?.customers)) {
-      return res.data.customers;
-    }
-    return [];
-  } catch (err) {
-    console.warn('[CafeApi] Failed to fetch customers:', err);
-    return [];
+  const res = await api.get('/customers');
+  if (Array.isArray(res.data)) {
+    return res.data;
   }
+  if (Array.isArray(res.data?.customers)) {
+    return res.data.customers;
+  }
+  throw new Error('Unexpected customers response');
 };
 
 export interface LedgerEntry {
@@ -347,7 +363,9 @@ export const getCustomerLedgerApi = async (phone?: string, name?: string): Promi
  * Record a dues payment; the server applies it to the oldest unpaid bills first
  */
 export const settleCustomerDueApi = async (data: {
-  phone: string;
+  // 10-digit mobile, or the exact customer name when there is no mobile
+  phone?: string;
+  name?: string;
   amount: number;
   paymentMethod: 'cash' | 'online';
   notes?: string;

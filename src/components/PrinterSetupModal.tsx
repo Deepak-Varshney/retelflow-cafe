@@ -66,11 +66,10 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
       setSaved(device);
       setConnected(true);
       onPrinterChanged?.(device);
+      // The parent hides the modal in onConnected; calling onClose here too
+      // would cancel the pending print it is about to resume
       if (onConnected) {
-        setTimeout(() => {
-          onClose();
-          onConnected(device);
-        }, 300);
+        setTimeout(() => onConnected(device), 300);
       }
     } catch (err: any) {
       setConnected(false);
@@ -266,7 +265,10 @@ export const GlobalPrinterSetupModal: React.FC = () => {
     <PrinterSetupModal
       visible={Boolean(request)}
       reason={request.reason}
-      onClose={() => setRequest(null)}
+      onClose={() => {
+        setRequest(null);
+        request.onCancel?.();
+      }}
       onConnected={(device) => {
         const cb = request.onConnected;
         setRequest(null);

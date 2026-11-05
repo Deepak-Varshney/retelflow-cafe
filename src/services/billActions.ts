@@ -1,6 +1,8 @@
 import { Alert, Linking } from 'react-native';
 import * as Print from 'expo-print';
-import * as MediaLibrary from 'expo-media-library';
+// The root "expo-media-library" export (v57+) is the new class API; its old
+// function exports (createAssetAsync etc.) only throw a deprecation error.
+import * as MediaLibrary from 'expo-media-library/legacy';
 import {
   classifyPrinterError,
   getSavedPrinter,
@@ -14,7 +16,11 @@ import { ReceiptData, buildBillText, buildReceiptHtml } from '../utils/receipt';
 import { buildThermalReceipt, paperWidthDots } from '../utils/thermalReceipt';
 
 export interface PrintBillOptions {
-  onRequirePrinterSetup?: (onConnected: () => void) => void;
+  /**
+   * Show the printer picker. Call onConnected to resume printing, or onCancel
+   * when it is closed without connecting (so the print button stops loading).
+   */
+  onRequirePrinterSetup?: (onConnected: () => void, onCancel: () => void) => void;
 }
 
 export const printViaSystemDialog = (r: ReceiptData, store: StoreInfo, settings: PrintSettings) =>
@@ -32,6 +38,25 @@ export async function printBill(
   settings: PrintSettings,
   options?: PrintBillOptions
 ): Promise<boolean> {
+  // Opens printer setup; the bill prints automatically once a printer connects,
+  // and the pending promise always settles (closing the picker resolves false)
+  const requestPrinterSetup = (resolve: (ok: boolean) => void) => {
+    const onConnected = () => {
+      printBill(r, store, settings, options).then(resolve);
+    };
+    const onCancel = () => resolve(false);
+    if (options?.onRequirePrinterSetup) {
+      options.onRequirePrinterSetup(onConnected, onCancel);
+    } else {
+      openPrinterSetupModal({
+        onConnected,
+        onCancel,
+        title: 'Connect Printer',
+        reason: 'Connect your printer to resume printing the bill.',
+      });
+    }
+  };
+
   if (!isPrinterSdkAvailable) {
     try {
       await printViaSystemDialog(r, store, settings);
@@ -51,23 +76,7 @@ export async function printBill(
         'No printer is connected with RetelFlow Cafe. Please connect your Bluetooth printer to print.',
         [
           { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          {
-            text: 'Connect Printer Now',
-            onPress: () => {
-              const handleResume = () => {
-                printBill(r, store, settings, options).then(resolve);
-              };
-              if (options?.onRequirePrinterSetup) {
-                options.onRequirePrinterSetup(handleResume);
-              } else {
-                openPrinterSetupModal({
-                  onConnected: handleResume,
-                  title: 'Connect Printer',
-                  reason: 'Connect your printer to resume printing the bill.',
-                });
-              }
-            },
-          },
+          { text: 'Connect Printer Now', onPress: () => requestPrinterSetup(resolve) },
           {
             text: 'System Print',
             onPress: () =>
@@ -90,20 +99,7 @@ export async function printBill(
     const errorInfo = classifyPrinterError(err);
 
     return new Promise((resolve) => {
-      const handleConnectPrinter = () => {
-        const handleResume = () => {
-          printBill(r, store, settings, options).then(resolve);
-        };
-        if (options?.onRequirePrinterSetup) {
-          options.onRequirePrinterSetup(handleResume);
-        } else {
-          openPrinterSetupModal({
-            onConnected: handleResume,
-            title: 'Connect Printer',
-            reason: 'Connect your printer to resume printing the bill.',
-          });
-        }
-      };
+      const handleConnectPrinter = () => requestPrinterSetup(resolve);
 
       const handleRetry = () => {
         printBill(r, store, settings, options).then(resolve);
@@ -214,31 +210,25 @@ export async function openWhatsAppBill(r: ReceiptData, store: StoreInfo, footerT
  */
 export async function saveBillImageToGallery(uri: string): Promise<boolean> {
   try {
-    let perm = await MediaLibrary.getPermissionsAsync();
+    // Saving only needs write access (no READ_MEDIA_IMAGES prompt on Android 13+)
+    let perm = await MediaLibrary.getPermissionsAsync(true);
+    if (!perm.granted) perm = await MediaLibrary.requestPermissionsAsync(true);
     if (!perm.granted) {
-      perm = await MediaLibrary.requestPermissionsAsync();
-    }
-    if (!perm.granted) {
-      perm = await MediaLibrary.requestPermissionsAsync(true);
-      if (!perm.granted) {
-        console.warn('MediaLibrary permission denied');
-        return false;
-      }
+      console.warn('MediaLibrary permission denied');
+      return false;
     }
 
-    const asset = await MediaLibrary.createAssetAsync(uri);
-    if (asset) {
-      try {
-        const album = await MediaLibrary.getAlbumAsync('RetelFlow');
-        if (album) {
-          await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-        } else {
-          await MediaLibrary.createAlbumAsync('RetelFlow', asset, false);
-        }
-      } catch {}
-      return true;
-    }
-    return false;
+    const fileUri = uri.startsWith('file://') ? uri : `file://${uri}`;
+    const asset = await MediaLibrary.createAssetAsync(fileUri);
+
+    // Optional "RetelFlow" album; needs read access, so failures are ignored
+    // (the image is already in the gallery at this point).
+    try {
+      const album = await MediaLibrary.getAlbumAsync('RetelFlow');
+      if (album) await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      else await MediaLibrary.createAlbumAsync('RetelFlow', asset, false);
+    } catch {}
+    return true;
   } catch (err) {
     console.warn('Bill image save failed:', err);
     return false;

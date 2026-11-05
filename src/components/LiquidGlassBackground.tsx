@@ -346,9 +346,9 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
             <Defs>
               <RadialGradient id="sapphireOrb" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
-                <Stop offset="0%" stopColor="#0ea5e9" stopOpacity={isDark ? "0.70" : "0.45"} />
-                <Stop offset="60%" stopColor="#1e3a8a" stopOpacity={isDark ? "0.32" : "0.20"} />
-                <Stop offset="100%" stopColor="#1e3a8a" stopOpacity="0" />
+                <Stop offset="0%" stopColor="#38bdf8" stopOpacity={isDark ? "0.70" : "0.30"} />
+                <Stop offset="60%" stopColor="#0284c7" stopOpacity={isDark ? "0.32" : "0.10"} />
+                <Stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
               </RadialGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#sapphireOrb)" rx={SCREEN_WIDTH} />

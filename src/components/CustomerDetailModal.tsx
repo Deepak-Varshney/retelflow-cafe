@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -39,6 +39,8 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState<'cash' | 'online'>('cash');
   const [saving, setSaving] = useState(false);
+  // Synchronous guard: a double tap must not record the payment twice
+  const savingRef = useRef(false);
 
   const phone = String(customer?.phone || '').replace(/\D/g, '').slice(-10);
   const hasPhone = phone.length === 10;
@@ -67,6 +69,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
   const lastBill = bills[0];
 
   const handleReceive = async () => {
+    if (savingRef.current) return;
     const amount = Math.round(Number(payAmount) || 0);
     if (amount <= 0) {
       Alert.alert('Enter amount', 'Enter how much the customer is paying.');
@@ -76,9 +79,12 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
       Alert.alert('Too much', `Pending due is only ${rs(due)}.`);
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
-      const res = await settleCustomerDueApi({ phone: phone || customer.name, amount, paymentMethod: payMethod });
+      // Match by mobile only when it is a full number, else by the exact name
+      const who = hasPhone ? { phone } : { name: String(customer.name || '') };
+      const res = await settleCustomerDueApi({ ...who, amount, paymentMethod: payMethod });
       setPayAmount('');
       Alert.alert('Payment saved', `${rs(res.settledAmount)} received. Remaining due: ${rs(res.remainingDue)}.`);
       await load();
@@ -86,6 +92,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
     } catch (err) {
       Alert.alert('Could not save', friendlyError(err, 'Payment was not saved. Try again.'));
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

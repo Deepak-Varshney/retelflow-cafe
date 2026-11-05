@@ -2,6 +2,8 @@ import { PrinterDevice } from '../../modules/thermal-printer';
 
 export interface PrinterSetupRequest {
   onConnected?: (printer: PrinterDevice) => void;
+  /** Picker closed without connecting. */
+  onCancel?: () => void;
   title?: string;
   reason?: string;
 }

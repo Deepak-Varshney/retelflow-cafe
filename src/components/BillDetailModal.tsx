@@ -30,7 +30,9 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
   const [printing, setPrinting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [printerModalVisible, setPrinterModalVisible] = useState(false);
-  const [onConnectedCallback, setOnConnectedCallback] = useState<(() => void) | null>(null);
+  // Pending print waiting on the printer picker (a ref, so connect/close
+  // always see the latest one without waiting for a re-render)
+  const printerSetupRef = useRef<{ resume: () => void; cancel: () => void } | null>(null);
 
   const receipt = useMemo(() => (invoice ? toReceiptData(invoice) : null), [invoice]);
 
@@ -40,8 +42,8 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
     setPrinting(true);
     try {
       await printBill(receipt, storeInfo, printSettings, {
-        onRequirePrinterSetup: (resume) => {
-          setOnConnectedCallback(() => resume);
+        onRequirePrinterSetup: (resume, cancel) => {
+          printerSetupRef.current = { resume, cancel };
           setPrinterModalVisible(true);
         },
       });
@@ -151,13 +153,15 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
         visible={printerModalVisible}
         onClose={() => {
           setPrinterModalVisible(false);
-          setOnConnectedCallback(null);
+          const pending = printerSetupRef.current;
+          printerSetupRef.current = null;
+          pending?.cancel();
         }}
         onConnected={() => {
           setPrinterModalVisible(false);
-          const cb = onConnectedCallback;
-          setOnConnectedCallback(null);
-          cb?.();
+          const pending = printerSetupRef.current;
+          printerSetupRef.current = null;
+          pending?.resume();
         }}
         reason="Connect your printer to reprint this receipt automatically."
       />

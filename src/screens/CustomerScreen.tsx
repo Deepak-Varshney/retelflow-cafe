@@ -14,9 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { CustomerInfo, CartItem } from '../types';
 import { searchCustomerApi } from '../api/cafeApi';
-import { useVoiceRecognition } from '../services/useVoiceRecognition';
+import { registerVoiceTarget } from '../services/voiceTargets';
 import { parseCustomerVoice, transliterateDevanagariToLatin } from '../services/customerVoiceParser';
-import { PulseMicButton } from '../components/PulseMicButton';
 import { CartReviewModal } from '../components/CartReviewModal';
 import { getCachedMenu } from '../services/cacheService';
 import { DEFAULT_MENU_ITEMS } from '../data/defaultCatalog';
@@ -55,41 +54,46 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
   const [searching, setSearching] = useState(false);
   const [isExistingCustomer, setIsExistingCustomer] = useState(false);
   const [error, setError] = useState('');
-  const [isHolding, setIsHolding] = useState(false);
-  const pressStartRef = useRef(0);
-  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
+  // Name we filled in from a phone lookup (cleared if the phone is corrected)
+  const autoFilledNameRef = useRef('');
 
   const totalAmount = cart.reduce((sum, it) => sum + it.qty * it.price, 0);
   const totalQty = cart.reduce((sum, it) => sum + it.qty, 0);
 
-  // Voice fill for customer name and/or phone
-  const { isListening, transcript, startListening, stopListening } = useVoiceRecognition({
-    locale: 'en-IN',
-    onPhraseSpoken: (phrase) => {
-      const parsed = parseCustomerVoice(phrase);
-      let noticeParts = [];
-
-      if (parsed.phone) {
-        setPhone(parsed.phone);
-        noticeParts.push(`Phone: ${parsed.phone}`);
-      }
-      if (parsed.name) {
-        setName(parsed.name);
-        noticeParts.push(`Name: ${parsed.name}`);
-      }
-
-      setCustomer({
-        name: parsed.name || name,
-        phone: parsed.phone || phone,
-      });
-
-      if (noticeParts.length > 0) {
+  // Global mic on this screen fills customer name and/or phone
+  const nameRef = useRef(name);
+  nameRef.current = name;
+  const phoneRef = useRef(phone);
+  phoneRef.current = phone;
+  useEffect(() => {
+    const reg = registerVoiceTarget({
+      screen: 'customer_details',
+      locale: 'en-IN',
+      onTranscript: (text) => {
+        const parsed = parseCustomerVoice(text);
+        const parts: string[] = [];
+        if (parsed.phone) {
+          setPhone(parsed.phone);
+          parts.push(`Phone: ${parsed.phone}`);
+        }
+        if (parsed.name) {
+          setName(parsed.name);
+          autoFilledNameRef.current = '';
+          parts.push(`Name: ${parsed.name}`);
+        }
+        if (!parts.length) return 'Naam ya mobile number boliye.';
         setError('');
-        setVoiceNotice(`Detected: ${noticeParts.join(' • ')}`);
-        setTimeout(() => setVoiceNotice(null), 3500);
-      }
-    },
-  });
+        setCustomer({ name: parsed.name || nameRef.current, phone: parsed.phone || phoneRef.current });
+        return `Detected: ${parts.join(' • ')}`;
+      },
+    });
+    return () => reg.remove();
+  }, []);
+
+  const clearAutoFilledName = () => {
+    if (autoFilledNameRef.current && nameRef.current === autoFilledNameRef.current) setName('');
+    autoFilledNameRef.current = '';
+  };
 
   // Auto search mobile number when 10 digits are present
   useEffect(() => {
@@ -102,9 +106,11 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
           const res = await searchCustomerApi(cleanPhone);
           if (res.found && res.customer) {
             setName(res.customer.name);
+            autoFilledNameRef.current = res.customer.name;
             setIsExistingCustomer(true);
             setCustomer({ name: res.customer.name, phone: cleanPhone });
           } else {
+            clearAutoFilledName();
             setIsExistingCustomer(false);
           }
         } catch {
@@ -113,8 +119,14 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
           setSearching(false);
         }
       }, 300);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        setSearching(false);
+      };
     } else {
+      // Phone edited away from a looked-up customer: drop their name
+      clearAutoFilledName();
+      setSearching(false);
       setIsExistingCustomer(false);
     }
   }, [phone]);
@@ -164,107 +176,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             </View>
           </View>
 
-          {/* Voice Auto-Detect Mic (Hold-to-Speak) with Self-Contained Pulse */}
-          <View style={{ flexShrink: 0, paddingRight: 4 }}>
-            <PulseMicButton
-              isListening={isListening}
-              isHolding={isHolding}
-              onPressIn={() => {
-                pressStartRef.current = Date.now();
-                setIsHolding(true);
-                startListening();
-              }}
-              onPressOut={() => {
-                const holdDuration = Date.now() - pressStartRef.current;
-                setIsHolding(false);
-                if (holdDuration < 250) {
-                  stopListening({ abort: true });
-                } else {
-                  stopListening({ abort: false });
-                }
-              }}
-              idleText="Hold & Speak"
-              listeningText="Listening..."
-            />
-          </View>
         </View>
-
-        {/* Floating HUD Chip for Speech Preview / Feedback (Zero layout shift) */}
-        {Boolean((isHolding || isListening) && transcript) && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 60,
-              left: 16,
-              right: 16,
-              zIndex: 999,
-              backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-              borderColor: colors.primary,
-              borderWidth: 1,
-              borderRadius: 16,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              shadowColor: colors.primary,
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              elevation: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-          >
-            <Ionicons name="mic" size={14} color={colors.primary} style={{ marginRight: 8 }} />
-            <Text
-              numberOfLines={1}
-              style={{
-                flex: 1,
-                color: colors.text,
-                fontSize: 12,
-                fontWeight: '700',
-              }}
-            >
-              "{transliterateDevanagariToLatin(transcript)}"
-            </Text>
-          </View>
-        )}
-
-        {Boolean(!isListening && voiceNotice) && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: 60,
-              left: 16,
-              right: 16,
-              zIndex: 999,
-              backgroundColor: isDark ? 'rgba(5, 14, 30, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-              borderColor: '#10b981',
-              borderWidth: 1,
-              borderRadius: 16,
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              shadowColor: '#10b981',
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              elevation: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}
-          >
-            <Ionicons name="checkmark-circle" size={14} color="#10b981" style={{ marginRight: 8 }} />
-            <Text
-              numberOfLines={1}
-              style={{
-                flex: 1,
-                color: '#10b981',
-                fontSize: 12,
-                fontWeight: '700',
-              }}
-            >
-              {voiceNotice}
-            </Text>
-          </View>
-        )}
 
         <ScrollView
           contentContainerStyle={{ padding: 18 }}

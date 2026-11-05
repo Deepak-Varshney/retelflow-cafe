@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../services/ThemeContext';
 import { getCustomersWithDueApi } from '../api/cafeApi';
 import { getCachedCustomers, setCachedCustomers } from '../services/cacheService';
+import { onVoiceDataChanged } from '../services/voiceTargets';
 import { CustomerDetailModal } from '../components/CustomerDetailModal';
 import { ShopFeatures } from '../types';
 
@@ -42,6 +43,9 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
       setLoading(false);
     }
   };
+
+  // Dues settled by voice from anywhere: refresh the list
+  useEffect(() => onVoiceDataChanged((kind) => kind === 'customers' && loadKhata()), []);
 
   useEffect(() => {
     loadKhata();

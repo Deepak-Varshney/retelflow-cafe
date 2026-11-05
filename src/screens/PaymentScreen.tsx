@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -61,8 +61,21 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
 
-  const receivedAmount = Math.max(0, Number(receivedInput) || 0);
+  // Blank / garbled input must not silently turn into full credit
+  const receivedText = receivedInput.trim();
+  const isReceivedValid = /^\d+(\.\d+)?$/.test(receivedText);
+  const receivedAmount = Math.max(0, Number(receivedText) || 0);
   const dueAmount = Math.max(0, finalTotal - receivedAmount);
+  // Extra cash is change returned, not money paid against the bill
+  const billReceivedAmount = Math.min(receivedAmount, finalTotal);
+
+  // Synchronous guard: a second tap before `loading` re-renders must not save again
+  const inFlightRef = useRef(false);
+  // One key per order: a retried save returns the invoice the server already has
+  const clientRefRef = useRef('');
+  if (!clientRefRef.current) {
+    clientRefRef.current = `cafe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
 
   // Toggle between % and ₹ discount mode
   const handleToggleDiscountType = () => {
@@ -94,8 +107,27 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     setReceivedInput(String(amt));
   };
 
-  const handleProcessPayment = async (overridePhone?: string) => {
+  const handleProcessPayment = async (overridePhone?: string, dueConfirmed = false) => {
+    if (inFlightRef.current) return;
     const activePhone = overridePhone || customer.phone || '';
+
+    if (!isReceivedValid) {
+      Alert.alert('Amount received?', 'Enter the amount received from the customer (0 for full credit / udhar).');
+      return;
+    }
+
+    // A due goes to the customer's khata: confirm unless ₹0 (full credit) was entered on purpose
+    if (dueAmount > 0 && !dueConfirmed && receivedAmount > 0) {
+      Alert.alert(
+        'Add due to Khata?',
+        `Received ₹${receivedAmount.toLocaleString()} of ₹${finalTotal.toLocaleString()}. ₹${dueAmount.toLocaleString()} will be added to ${customer.name || 'this customer'}'s Credit/Khata.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Add to Khata', onPress: () => handleProcessPayment(overridePhone, true) },
+        ]
+      );
+      return;
+    }
 
     // STRICT CREDIT VALIDATION: If credit / due exists and phone is missing, open modal!
     if (dueAmount > 0 && (!activePhone || activePhone.length !== 10)) {
@@ -103,6 +135,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
       return;
     }
 
+    inFlightRef.current = true;
+    let saved = false;
     try {
       setLoading(true);
 
@@ -117,20 +151,23 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
       const res = await createOrderInvoiceApi({
         items: cart,
         customer: {
-          name: customer.name || 'Walk-in Guest',
+          name: (customer.name || '').trim(),
           phone: activePhone,
         },
         paymentMethod: effectivePaymentMethod,
-        receivedAmount,
+        receivedAmount: billReceivedAmount,
         dueAmount,
         total: finalTotal,
         subtotal,
         discount: discountAmount,
         notes: notes.trim(),
+        clientRef: clientRefRef.current,
       });
 
       const savedInvoice = res?.invoice || res;
       if (savedInvoice) {
+        // Stay locked: this screen is done once the order is saved
+        saved = true;
         onOrderCompleted(savedInvoice);
       } else {
         Alert.alert('Error', 'Failed to save order invoice');
@@ -147,7 +184,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         subtotal,
         discount: discountAmount,
         total: finalTotal,
-        receivedAmount,
+        receivedAmount: billReceivedAmount,
         dueAmount,
         paymentMethod: dueAmount > 0 ? (receivedAmount > 0 ? 'split' : 'credit') : paymentMethod,
         notes: notes.trim(),
@@ -161,11 +198,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         'Order not saved',
         `${friendlyError(err, 'Could not reach the server.')}\n\nThis bill will not appear in Orders or Khata if you continue without saving.`,
         [
-          { text: 'Retry', onPress: () => handleProcessPayment(activePhone) },
+          { text: 'Retry', onPress: () => handleProcessPayment(activePhone, true) },
           { text: 'Continue without saving', style: 'destructive', onPress: () => onOrderCompleted(localInvoice) },
         ]
       );
     } finally {
+      if (!saved) inFlightRef.current = false;
       setLoading(false);
     }
   };
@@ -483,7 +521,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         onSaveMobile={(phone) => {
           setCustomer({ ...customer, phone });
           setShowCreditModal(false);
-          handleProcessPayment(phone);
+          // Due was already confirmed (or ₹0 credit chosen) before the mobile prompt
+          handleProcessPayment(phone, true);
         }}
         onCancel={() => setShowCreditModal(false)}
       />

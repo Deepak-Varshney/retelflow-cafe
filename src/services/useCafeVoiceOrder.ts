@@ -164,30 +164,36 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
   );
 
   // ── size picker ──
+  // The picker answers for one specific item (its ref). A double tap must not
+  // resolve / skip the next queued item, so the pending placement (updated
+  // synchronously) is the guard, and the cart change happens outside the updater.
+  const queueRef = useRef(selectionQueue);
+  queueRef.current = selectionQueue;
+
   const resolveSelection = useCallback(
-    (variantName: string, price: number, unit?: string) => {
-      setSelectionQueue((prev) => {
-        const [first, ...rest] = prev;
-        if (!first) return prev;
-        const cartId = changeLine(
-          { itemName: first.itemName, qty: first.qty || 1, price, unit: unit || 'pcs', needsSelection: false },
-          variantName,
-          price,
-          unit,
-          first.qty || 1
-        );
-        placements.current.set(first.ref, { qty: first.qty || 1, cartId });
-        return rest;
-      });
+    (variantName: string, price: number, unit?: string, ref?: string) => {
+      const target = ref ?? queueRef.current[0]?.ref;
+      const item = queueRef.current.find((q) => q.ref === target);
+      if (!target || !item || !placements.current.get(target)?.pending) return;
+      const qty = item.qty || 1;
+      const cartId = changeLine(
+        { itemName: item.itemName, qty, price, unit: unit || 'pcs', needsSelection: false },
+        variantName,
+        price,
+        unit,
+        qty
+      );
+      placements.current.set(target, { qty, cartId });
+      setSelectionQueue((prev) => prev.filter((q) => q.ref !== target));
     },
     [changeLine]
   );
 
-  const skipSelection = useCallback(() => {
-    setSelectionQueue((prev) => {
-      if (prev[0]) placements.current.delete(prev[0].ref);
-      return prev.slice(1);
-    });
+  const skipSelection = useCallback((ref?: string) => {
+    const target = ref ?? queueRef.current[0]?.ref;
+    if (!target || !placements.current.get(target)?.pending) return;
+    placements.current.delete(target);
+    setSelectionQueue((prev) => prev.filter((q) => q.ref !== target));
   }, []);
 
   // ── session: warm the menu cache as soon as the order screen opens ──
@@ -359,11 +365,13 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
   const startListening = useCallback(() => {
     if (effectiveMode === "live") {
       startLive();
+    } else if (effectiveMode === "audio") {
+      startAudio();
     } else {
       setHeard("");
       speech.startListening();
     }
-  }, [effectiveMode, speech, startLive]);
+  }, [effectiveMode, speech, startAudio, startLive]);
 
   const stopListening = useCallback((opts?: { abort?: boolean }) => {
     if (effectiveMode === 'live') {
