@@ -272,7 +272,8 @@ function AppContent() {
   }
 
   if (authLoading) {
-    return <CafeSplashScreen />;
+    // Our own launch screen takes over from the native splash on its first frame
+    return <CafeSplashScreen onReady={hideNativeSplash} />;
   }
 
   if (!user) {

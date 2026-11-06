@@ -77,12 +77,48 @@ export function localFormCommand(text: string, form: VoiceForm): { form: VoiceFo
     return { form: { ...form, description: /[.!?]$/.test(sentence) ? sentence : `${sentence}.` }, notice: 'Description likh di' };
   }
 
+  // "regular salted ki jagah likh do regular double salted" / "medium ko half kar do"
+  const swapText =
+    raw.match(/^(.+?)\s+(?:ki|ke)\s+(?:jagah|jgh|jagha|jaga|badle|bajaye)\s+(?:pe\s+|par\s+|me\s+)?(?:likh\s*do|likho|kar\s*do|kardo|karo|daal\s*do|rakh\s*do|kr\s*do)?\s*(.+?)\s*(?:likh\s*do|likho|kar\s*do|kardo|karo|kr\s*do)?$/i) ||
+    (!/\d/.test(raw) ? raw.match(/^(.+?)\s+ko\s+(.+?)\s+(?:kar\s*do|kardo|karo|kr\s*do|likh\s*do|likho)$/i) : null);
+  if (swapText) {
+    const from = swapText[1].trim();
+    const to = swapText[2].trim();
+    const swapped = replaceInForm(form, from, to);
+    if (swapped) return { form: swapped, notice: `"${from}" → "${to}"` };
+  }
+
   // "variants band kardo" / "sizes hata do"
   if (/\b(variants?|sizes?)\b.*\b(band|off|hata|hatao|nikal)/.test(t)) {
     const price = form.price || form.variants[0]?.price || 0;
     return { form: { ...form, variants: [], price }, notice: 'Sizes band kar diye' };
   }
   return null;
+}
+
+const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+/** Replace spoken text `from` with `to` in the dish name, sizes, category or description. */
+function replaceInForm(form: VoiceForm, from: string, to: string): VoiceForm | null {
+  const want = normText(from);
+  if (!want || !normText(to)) return null;
+  // Same words, any case / extra spaces
+  const pattern = new RegExp(want.split(' ').map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+'), 'i');
+  let changed = false;
+  const swap = (value: string, isTitle: boolean) => {
+    if (!value || !pattern.test(value)) return value;
+    changed = true;
+    return value.replace(pattern, isTitle ? titleCase(to) : to);
+  };
+  const variants = form.variants.map((v) => ({ ...v, name: swap(v.name, true) }));
+  const next = {
+    ...form,
+    name: swap(form.name, true),
+    category: swap(form.category, true),
+    variants,
+    description: swap(form.description, false),
+  };
+  return changed ? next : null;
 }
 
 export type LocalMenuCommand =

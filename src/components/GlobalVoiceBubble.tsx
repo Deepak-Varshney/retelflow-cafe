@@ -86,7 +86,14 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
   const interimRef = useRef('');
   const pendingProcessRef = useRef(false);
   const processTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const processRef = useRef<(text: string, screen?: string) => void>(() => {});
+  const processRef = useRef<(text: string, screen?: string, quiet?: boolean) => Promise<boolean>>(async () => false);
+  // Sentences are handled while the mic is still on: how much of the buffer
+  // was already sent, words carried over from a fragment that did nothing,
+  // and the in-flight early run
+  const sentLenRef = useRef(0);
+  const carryRef = useRef('');
+  const earlyRef = useRef<Promise<boolean> | null>(null);
+  const speechRef = useRef<{ startListening: () => void } | null>(null);
   // App-side timings for the server log
   const timesRef = useRef({ start: 0, release: 0 });
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -108,7 +115,29 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
       setOwnStatus((s) => ({ ...s, heard: bufferRef.current.slice(-80) }));
       getActiveVoiceTarget()?.onInterim?.(bufferRef.current);
       // Final words after release: send right after they land
-      if (pendingProcessRef.current) scheduleProcess(150);
+      if (pendingProcessRef.current) {
+        scheduleProcess(150);
+        return;
+      }
+      // Still talking: the phone heard a full sentence (short pause), act on
+      // it now instead of waiting for the mic to be released
+      if (talkingRef.current && !holdTargetRef.current?.hold) {
+        const fresh = bufferRef.current.slice(sentLenRef.current).trim();
+        sentLenRef.current = bufferRef.current.length;
+        const text = `${carryRef.current} ${fresh}`.trim();
+        carryRef.current = '';
+        if (text) {
+          earlyRef.current = processRef.current(text, undefined, true).then((ok) => {
+            // Half a sentence: keep it and join it with what comes next
+            if (!ok) carryRef.current = `${text} ${carryRef.current}`.trim();
+            return ok;
+          });
+        }
+        // The recognizer stops after a sentence: keep listening for the next one
+        setTimeout(() => {
+          if (talkingRef.current) speechRef.current?.startListening();
+        }, 300);
+      }
     },
     onInterimResult: (interim) => {
       interimRef.current = interim;
@@ -117,17 +146,37 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
     },
   });
 
-  // Send what was heard once the recognizer's final result arrives (or after
-  // a short wait, falling back to the last partial words)
+  speechRef.current = speech;
+
+  // After release: send whatever wasn't handled yet, once the recognizer's
+  // final result arrives (or after a short wait, using the last partial words)
   function scheduleProcess(ms: number) {
     if (processTimer.current) clearTimeout(processTimer.current);
     processTimer.current = setTimeout(() => {
       if (!pendingProcessRef.current) return;
       pendingProcessRef.current = false;
-      const text = `${bufferRef.current} ${bufferRef.current ? '' : interimRef.current}`.trim();
+      const unsent = bufferRef.current.slice(sentLenRef.current).trim();
+      const rest = unsent || interimRef.current.trim();
+      const text = `${carryRef.current} ${rest}`.trim();
+      const early = earlyRef.current;
       bufferRef.current = '';
       interimRef.current = '';
-      processRef.current(text);
+      carryRef.current = '';
+      sentLenRef.current = 0;
+      earlyRef.current = null;
+      if (text) {
+        processRef.current(text);
+      } else if (early) {
+        // Everything was already sent while talking; only report a miss
+        early.then((ok) => {
+          if (ok) return;
+          const missed = carryRef.current;
+          carryRef.current = '';
+          if (missed) processRef.current(missed);
+        });
+      } else {
+        processRef.current('');
+      }
     }, ms);
   }
 
@@ -207,11 +256,11 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
   );
 
   const processTranscript = useCallback(
-    async (text: string, screenOverride?: string) => {
+    async (text: string, screenOverride?: string, quiet = false): Promise<boolean> => {
       const t = getActiveVoiceTarget();
       if (!text.trim()) {
-        flash('Kuch suna nahi, phir se boliye.');
-        return;
+        if (!quiet) flash('Kuch suna nahi, phir se boliye.');
+        return false;
       }
       const ready = Date.now();
       const { start, release } = timesRef.current;
@@ -220,14 +269,14 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
         if (t?.onTranscript && !screenOverride) {
           const notice = await t.onTranscript(text);
           if (notice) flash(notice);
-          return;
+          return true;
         }
         // Layer 1: common commands handled on the phone, no network
         if (t?.tryLocal && !screenOverride) {
           const local = await t.tryLocal(text);
           if (local) {
             flash(local);
-            return;
+            return true;
           }
         }
         // Layer 2: screen-scoped assistant, actions streamed back one by one
@@ -249,11 +298,17 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
             runAction(a, t);
           }
         );
+        // A fragment said while still talking that did nothing: stay quiet,
+        // it gets joined with the next words
+        if (quiet && !actionCount) return false;
         if (!showedAnswer && reply) flash(reply);
         if (!actionCount) say(reply || 'Samajh nahi aaya, phir se boliye.');
+        return actionCount > 0;
       } catch (e: any) {
+        if (quiet) return false;
         const msg = friendlyError(e?.response?.data?.message || e?.message, 'Voice assistant abhi available nahi.');
         flash(msg, 4500);
+        return false;
       } finally {
         setOwnStatus((s) => ({ ...s, busy: false, heard: '' }));
       }
@@ -266,7 +321,9 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
   // Other screens can hand a sentence to the assistant (New Order questions)
   useEffect(() => {
     if (inModal) return;
-    setAssistantRunner((text, screen) => processRef.current(text, screen));
+    setAssistantRunner((text, screen) => {
+      processRef.current(text, screen);
+    });
     return () => setAssistantRunner(null);
   }, [inModal]);
 
@@ -288,6 +345,9 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
     }
     bufferRef.current = '';
     interimRef.current = '';
+    sentLenRef.current = 0;
+    carryRef.current = '';
+    earlyRef.current = null;
     pendingProcessRef.current = false;
     setOwnStatus({ listening: true, heard: '', busy: false, notice: '' });
     speech.startListening();
@@ -308,6 +368,8 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
       setOwnStatus((s) => ({ ...s, listening: false }));
       if (abort) {
         bufferRef.current = '';
+        carryRef.current = '';
+        sentLenRef.current = 0;
         speech.stopListening({ abort: true });
         return;
       }

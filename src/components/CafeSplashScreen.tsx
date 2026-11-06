@@ -1,117 +1,103 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, Animated, StatusBar } from 'react-native';
+import { View, Text, Image, Animated, Easing, StatusBar } from 'react-native';
+import Constants from 'expo-constants';
 import { getCachedConfig } from '../services/cacheService';
 
-export const CafeSplashScreen: React.FC = () => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.92)).current;
+// Same navy as the native splash + launcher icon (app.json), so the hand-off
+// from the native splash to this screen is invisible
+const NAVY = '#0f172a';
+const BRAND_GREEN = '#14f5a0';
+
+/**
+ * Launch screen while the app checks the session. Branding matches the main
+ * RetelFlow app: navy background, green voice-bubble mark + white wordmark.
+ */
+export const CafeSplashScreen: React.FC<{ onReady?: () => void }> = ({ onReady }) => {
+  const rise = useRef(new Animated.Value(0)).current;
+  const dots = [useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current, useRef(new Animated.Value(0.3)).current];
 
   const config = getCachedConfig();
-  const customSplashUrl = config?.splashUrl;
-  const customLogoUrl = config?.logoUrl;
+  const customLogoUrl = config?.splashUrl || config?.logoUrl;
+  const version = Constants.expoConfig?.version || '1.0.0';
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 6,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.timing(rise, {
+      toValue: 1,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+
+    const loops = dots.map((d, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 160),
+          Animated.timing(d, { toValue: 1, duration: 360, useNativeDriver: true }),
+          Animated.timing(d, { toValue: 0.3, duration: 360, useNativeDriver: true }),
+          Animated.delay((2 - i) * 160),
+        ])
+      )
+    );
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
   }, []);
 
   return (
-    <View className="flex-1 items-center justify-between py-12 px-6" style={{ backgroundColor: '#f8fafc' }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+    <View
+      style={{ flex: 1, backgroundColor: NAVY, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 56 }}
+      // First frame on screen: the native splash can go now
+      onLayout={onReady}
+    >
+      <StatusBar barStyle="light-content" backgroundColor={NAVY} />
+      <View />
 
-      {/* Top spacer */}
-      <View className="w-full items-center pt-8">
-        <View className="px-3.5 py-1 rounded-full border border-sky-500/20 bg-sky-50 shadow-sm">
-          <Text className="text-[10px] font-black uppercase tracking-widest text-sky-600">
-            Smart Counter Billing
-          </Text>
-        </View>
-      </View>
-
-      {/* Center Branding Hero */}
       <Animated.View
         style={{
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
           alignItems: 'center',
+          // Content eases in, the background never flashes
+          opacity: rise.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
+          transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
         }}
       >
-        {customSplashUrl ? (
-          <Image
-            source={{ uri: customSplashUrl }}
-            style={{ width: 140, height: 140, borderRadius: 28 }}
-            resizeMode="contain"
-          />
-        ) : customLogoUrl ? (
-          <Image
-            source={{ uri: customLogoUrl }}
-            style={{ width: 110, height: 110, borderRadius: 24 }}
-            resizeMode="contain"
-          />
+        {customLogoUrl ? (
+          <Image source={{ uri: customLogoUrl }} style={{ width: 120, height: 120, borderRadius: 28 }} resizeMode="contain" />
         ) : (
-          <View
-            className="w-24 h-24 rounded-3xl items-center justify-center border shadow-lg bg-white"
-            style={{
-              borderColor: 'rgba(2, 132, 199, 0.25)',
-              shadowColor: '#0284c7',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.15,
-              shadowRadius: 16,
-              elevation: 4,
-            }}
-          >
-            <Image
-              source={require('../../assets/app-icon/icon.png')}
-              style={{ width: 76, height: 76, borderRadius: 20 }}
-              resizeMode="contain"
-            />
-          </View>
+          <Image
+            source={require('../../assets/logo.png')}
+            style={{ width: 230, height: 230 * (388 / 1381) }}
+            resizeMode="contain"
+          />
         )}
 
-        <View className="flex-row items-center mt-5">
-          <Text className="text-2xl font-black text-slate-900 tracking-wider">
-            RETEL<Text className="text-sky-600">FLOW</Text>
-          </Text>
-          <View className="ml-2 px-2 py-0.5 rounded-full bg-sky-100 border border-sky-300">
-            <Text className="text-[11px] font-black text-sky-700 uppercase tracking-wider">
-              CAFE
-            </Text>
-          </View>
+        <View
+          style={{
+            marginTop: 18,
+            paddingHorizontal: 14,
+            paddingVertical: 5,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: 'rgba(20, 245, 160, 0.45)',
+            backgroundColor: 'rgba(20, 245, 160, 0.10)',
+          }}
+        >
+          <Text style={{ color: BRAND_GREEN, fontSize: 12, fontWeight: '900', letterSpacing: 4 }}>CAFE</Text>
         </View>
 
-        <Text className="text-xs font-semibold text-slate-500 mt-1 tracking-wide">
-          Restaurants, Cafes & Sweets POS
+        <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '600', marginTop: 14 }}>
+          Voice billing for cafes & restaurants
         </Text>
 
-        {/* Pulse loading pill */}
-        <View className="flex-row items-center gap-2 mt-6 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm">
-          <View className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
-          <Text className="text-[11px] font-bold text-slate-700">
-            Starting counter terminal...
-          </Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 28 }}>
+          {dots.map((d, i) => (
+            <Animated.View
+              key={i}
+              style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: BRAND_GREEN, opacity: d }}
+            />
+          ))}
         </View>
       </Animated.View>
 
-      {/* Bottom Footer */}
-      <View className="items-center">
-        <Text className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          Powered by Gemini AI Voice
-        </Text>
-        <Text className="text-[9px] text-slate-500 mt-0.5">
-          Version 1.0.0 • RetelFlow Cloud
-        </Text>
-      </View>
+      <Text style={{ color: '#475569', fontSize: 11, fontWeight: '600' }}>v{version} · RetelFlow</Text>
     </View>
   );
 };

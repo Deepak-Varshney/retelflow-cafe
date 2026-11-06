@@ -98,7 +98,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
       // Partial words: "98765…" / "Deepak Var…" appear as they are spoken
       onInterim: (text) => {
         const parsed = parseCustomerVoice(text);
-        const digits = parsed.phone || (text.match(/\d/g) || []).join('').slice(0, 10);
+        const digits = parsed.phone || parsed.phonePartial;
         if (digits) typeInto('phone', digits);
         if (parsed.name) typeInto('name', parsed.name);
       },
