@@ -19,6 +19,7 @@ import { isPcmRecorderAvailable, startPcmStream } from '../../modules/pcm-record
 import { parseCafeVoiceOrderApi, parseCafeVoiceOrderAudioApi } from '../api/cafeApi';
 import { startAudioRecording, stopAudioRecording } from './audioRecorderService';
 import { friendlyError } from '../utils/errorMessage';
+import { findSpokenDishes, isQuestion, spokenVariant } from './voiceLocalRules';
 
 const norm = (s?: string) => (s || '').trim().toLowerCase();
 const cartIdFor = (name: string, variant?: string) => `${name}-${variant || 'default'}`;
@@ -31,13 +32,18 @@ export interface SelectionRequest extends DisambiguationItem {
   ref: string;
 }
 
-/** What one voice item turned into on our side: a cart line, or a size question */
-type Placement = { qty: number; cartId?: string; pending?: boolean };
+/**
+ * What one voice item turned into on our side: a cart line, or a size question.
+ * queueRef: the size question opened on the phone before the server answered.
+ */
+type Placement = { qty: number; cartId?: string; pending?: boolean; queueRef?: string };
 
 interface Options {
   mode: CafeVoiceMode;
   menuItems: MenuItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  /** A question instead of an order ("aaj kitni sale hui"): hand it on. */
+  onQuestion?: (text: string) => void;
 }
 
 /**
@@ -47,7 +53,7 @@ interface Options {
  * The server announces each item once per utterance (add / update / retract /
  * remove); this hook applies those to the cart and the size-picker queue.
  */
-export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
+export function useCafeVoiceOrder({ mode, menuItems, setCart, onQuestion }: Options) {
   const [selectionQueue, setSelectionQueue] = useState<SelectionRequest[]>([]);
   const [busy, setBusy] = useState(false);
   const [heard, setHeard] = useState('');
@@ -58,6 +64,12 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
   const menuRef = useRef(menuItems);
   menuRef.current = menuItems;
   const placements = useRef(new Map<string, Placement>());
+  // Size questions opened on the phone, per utterance + dish
+  const localPicks = useRef(new Map<string, Placement>());
+  // Utterances that turned out to be questions: ignore their late item events
+  const ignoredUtterances = useRef(new Set<string>());
+  const onQuestionRef = useRef(onQuestion);
+  onQuestionRef.current = onQuestion;
   const utterance = useRef(1);
   const lastInterimSent = useRef(0);
   const lastFinal = useRef({ text: '', at: 0 });
@@ -111,9 +123,34 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
 
   const applyEvent = useCallback(
     (e: CafeItemEvent) => {
+      if (ignoredUtterances.current.has(String(e.utteranceId))) return;
       const ref = `${e.utteranceId}|${e.key}`;
       const it = e.item;
-      const placed = placements.current.get(ref);
+      let placed = placements.current.get(ref);
+
+      // The phone already opened a size popup for this dish in this utterance
+      const localKey = `${e.utteranceId}|${norm(it.itemName)}`;
+      const local = localPicks.current.get(localKey);
+      if (e.action === 'add' && !placed && local) {
+        if (local.pending && !it.needsSelection) {
+          // Size was said after all: close our popup, add what the server heard
+          setSelectionQueue((prev) => prev.filter((q) => q.ref !== local.queueRef));
+          if (local.queueRef) placements.current.delete(local.queueRef);
+          localPicks.current.delete(localKey);
+        } else {
+          // Same dish: keep the popup / the size the cashier picked, take the qty
+          if (local.pending) {
+            setSelectionQueue((prev) => prev.map((q) => (q.ref === local.queueRef ? { ...q, qty: it.qty } : q)));
+          } else if (local.cartId && it.qty !== local.qty) {
+            const variant = local.cartId.slice(it.itemName.length + 1);
+            changeLine(it, variant === 'default' ? undefined : variant, it.price, it.unit, it.qty - local.qty);
+          }
+          local.qty = it.qty;
+          placements.current.set(ref, local);
+          return;
+        }
+      }
+      placed = placements.current.get(ref);
 
       if (e.action === 'remove') {
         setCart((prev) => prev.filter((l) => norm(l.name) !== norm(it.itemName)));
@@ -140,7 +177,8 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
 
       if (e.action === 'update') {
         if (placed.pending) {
-          setSelectionQueue((prev) => prev.map((q) => (q.ref === ref ? { ...q, qty: it.qty } : q)));
+          const qRef = placed.queueRef || ref;
+          setSelectionQueue((prev) => prev.map((q) => (q.ref === qRef ? { ...q, qty: it.qty } : q)));
         } else if (placed.cartId) {
           const line = { ...it, itemName: it.itemName };
           const variant = placed.cartId.slice(it.itemName.length + 1);
@@ -149,7 +187,8 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
         placed.qty = it.qty;
       } else if (e.action === 'retract') {
         if (placed.pending) {
-          setSelectionQueue((prev) => prev.filter((q) => q.ref !== ref));
+          const qRef = placed.queueRef || ref;
+          setSelectionQueue((prev) => prev.filter((q) => q.ref !== qRef));
         } else if (placed.cartId) {
           setCart((prev) =>
             prev
@@ -183,7 +222,11 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
         unit,
         qty
       );
-      placements.current.set(target, { qty, cartId });
+      // Same object the server's events point at (phone-side popups)
+      const placement = placements.current.get(target)!;
+      placement.qty = qty;
+      placement.cartId = cartId;
+      placement.pending = false;
       setSelectionQueue((prev) => prev.filter((q) => q.ref !== target));
     },
     [changeLine]
@@ -260,17 +303,66 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart }: Options) {
     [applyEvent, flash]
   );
 
+  // Dish name heard (still speaking): open its size popup right away, on the
+  // phone. The server's answer for the same dish then only sets the quantity.
+  const openLocalPopups = useCallback((text: string) => {
+    if (isQuestion(text)) return;
+    const utt = String(utterance.current);
+    for (const item of findSpokenDishes(text, menuRef.current)) {
+      if ((item.variants || []).length < 2 || spokenVariant(text, item)) continue;
+      const key = `${utt}|${norm(item.name)}`;
+      if (localPicks.current.has(key)) continue;
+      const queueRef = `local|${key}`;
+      const placement: Placement = { qty: 1, pending: true, queueRef };
+      localPicks.current.set(key, placement);
+      placements.current.set(queueRef, placement);
+      setSelectionQueue((prev) => [
+        ...prev,
+        { ref: queueRef, itemName: item.name, qty: 1, availableVariants: item.variants || [] },
+      ]);
+    }
+  }, []);
+
+  // A question after all: undo anything this utterance put in the cart / queue
+  const dropUtterance = useCallback(
+    (id: string) => {
+      ignoredUtterances.current.add(id);
+      const prefixes = [`${id}|`, `local|${id}|`];
+      for (const [ref, p] of placements.current) {
+        if (!prefixes.some((x) => ref.startsWith(x))) continue;
+        if (p.pending) setSelectionQueue((prev) => prev.filter((q) => q.ref !== (p.queueRef || ref)));
+        else if (p.cartId) {
+          setCart((prev) =>
+            prev.map((l) => (l.id === p.cartId ? { ...l, qty: l.qty - p.qty } : l)).filter((l) => l.qty > 0)
+          );
+          p.qty = 0;
+        }
+        placements.current.delete(ref);
+      }
+    },
+    [setCart]
+  );
+
   const speech = useVoiceRecognition({
     locale: 'en-IN',
     onInterimResult: (text) => {
       setHeard(text);
+      openLocalPopups(text);
       const now = Date.now();
       if (now - lastInterimSent.current < INTERIM_SEND_MS) return;
       lastInterimSent.current = now;
       if (getVoiceSocket().connected) sendTranscript(String(utterance.current), text, false);
     },
     onPhraseSpoken: (text) => {
-      if (text.trim()) sendFinal(text.trim());
+      const clean = text.trim();
+      if (!clean) return;
+      if (onQuestionRef.current && isQuestion(clean)) {
+        dropUtterance(String(utterance.current++));
+        onQuestionRef.current(clean);
+        return;
+      }
+      openLocalPopups(clean);
+      sendFinal(clean);
     },
   });
 

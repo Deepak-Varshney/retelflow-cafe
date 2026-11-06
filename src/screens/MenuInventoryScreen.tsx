@@ -23,10 +23,10 @@ import {
   deleteMenuItemApi,
 } from '../api/cafeApi';
 import { getCachedMenu, setCachedMenu, subscribeMenu, syncMenu } from '../services/cacheService';
-import { VoiceAddItemsModal } from '../components/VoiceAddItemsModal';
 import { GlobalVoiceBubble } from '../components/GlobalVoiceBubble';
 import { DishSizeSales, InsightsStrip } from '../components/InsightsStrip';
 import { VoiceForm, registerVoiceTarget } from '../services/voiceTargets';
+import { localFormCommand, localMenuCommand } from '../services/voiceLocalRules';
 import { getFoodImageUrl } from '../utils/imageHelper';
 
 const PRESET_CATEGORIES = [
@@ -54,7 +54,6 @@ export const MenuInventoryScreen: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Modals state
-  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
@@ -330,12 +329,113 @@ export const MenuInventoryScreen: React.FC = () => {
         }
       : null;
 
+  // ── voice on the Menu screen ──
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const [undo, setUndo] = useState<{ label: string; restore: () => Promise<void> } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const offerUndo = (label: string, restore: () => Promise<void>) => {
+    setUndo({ label, restore });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndo(null), 8000);
+  };
+
+  // Change a dish straight from the list (no form), with Undo
+  const applyDishEdit = async (id: string, form: VoiceForm) => {
+    const before = itemsRef.current.find((i) => i.id === id);
+    if (!before) return 'Dish nahi mili.';
+    const fields = {
+      name: form.name || before.name,
+      category: form.category || before.category,
+      price: form.price,
+      unit: form.unit || before.unit,
+      description: form.description,
+      isVeg: form.isVeg,
+      variants: form.variants,
+    };
+    const updated = await updateMenuItemApi(id, fields);
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...updated, ...fields } : i)));
+    const previous = {
+      name: before.name,
+      category: before.category,
+      price: before.price,
+      unit: before.unit,
+      description: before.description || '',
+      isVeg: before.isVeg !== false,
+      variants: before.variants || [],
+    };
+    offerUndo(`${fields.name} updated`, async () => {
+      await updateMenuItemApi(id, previous);
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...previous } : i)));
+    });
+    return `${fields.name}: ₹${fields.price}${fields.variants.length ? ` · ${fields.variants.map((v) => `${v.name} ₹${v.price}`).join(', ')}` : ''}`;
+  };
+
+  // Deleting is permanent: always confirm, even by voice
+  const confirmDeleteDishes = (dishes: { id: string; name: string }[]) =>
+    new Promise<string>((resolve) => {
+      Alert.alert('Delete dishes?', dishes.map((d) => `• ${d.name}`).join('\n'), [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve('Delete cancel kiya') },
+        {
+          text: `Delete ${dishes.length}`,
+          style: 'destructive',
+          onPress: async () => {
+            const gone: string[] = [];
+            for (const d of dishes) {
+              try {
+                await deleteMenuItemApi(d.id);
+                gone.push(d.id);
+              } catch {}
+            }
+            setItems((prev) => prev.filter((i) => !gone.includes(String(i.id))));
+            resolve(gone.length === dishes.length ? `${gone.length} dish delete ho gayi` : `${gone.length}/${dishes.length} delete hui`);
+          },
+        },
+      ]);
+    });
+
   useEffect(() => {
     const formOpen = addModalVisible || editModalVisible;
     const reg = registerVoiceTarget({
       screen: editModalVisible ? 'edit_dish' : addModalVisible ? 'add_dish' : 'menu',
       getForm: formOpen ? () => voiceFormRef.current!.get() : undefined,
       applyForm: formOpen ? (f) => voiceFormRef.current?.set(f) : undefined,
+      // Layer 1: instant, on the phone
+      tryLocal: async (text) => {
+        if (formOpen) {
+          const hit = voiceFormRef.current && localFormCommand(text, voiceFormRef.current.get());
+          if (!hit) return null;
+          voiceFormRef.current!.set(hit.form);
+          return hit.notice;
+        }
+        const cmd = localMenuCommand(text, itemsRef.current);
+        if (!cmd) return null;
+        if (cmd.kind === 'delete') return confirmDeleteDishes([{ id: String(cmd.item.id), name: cmd.item.name }]);
+        const variants = (cmd.item.variants || []).map((v) => ({
+          ...v,
+          price: v.name === cmd.variantName ? cmd.price : v.price,
+        }));
+        return applyDishEdit(String(cmd.item.id), {
+          name: cmd.item.name,
+          category: cmd.item.category,
+          price: cmd.variantName ? variants[0]?.price ?? cmd.price : cmd.price,
+          unit: cmd.item.unit,
+          description: cmd.item.description || '',
+          isVeg: cmd.item.isVeg !== false,
+          variants,
+        });
+      },
+      // Layer 2 results that only this screen can carry out
+      handleAction: async (a) => {
+        if (a.type === 'add_dishes') {
+          if (formOpen) return 'Pehle ye form save ya band kijiye.';
+          handleVoiceDraftsRef.current(a.dishes.map((d) => ({ ...d, id: undefined })) as MenuItem[]);
+          return `${a.dishes.length} dish draft ready — check karke Save dabaiye`;
+        }
+        if (a.type === 'delete_dishes') return confirmDeleteDishes(a.dishes);
+        if (a.type === 'edit_dish') return applyDishEdit(a.id, a.form);
+        return false;
+      },
     });
     return () => reg.remove();
   }, [addModalVisible, editModalVisible]);
@@ -369,13 +469,13 @@ export const MenuInventoryScreen: React.FC = () => {
   };
 
   const handleVoiceDraftsReady = (drafts: MenuItem[]) => {
-    setVoiceModalVisible(false);
     setVoiceDrafts(drafts);
     setVoiceDraftTotal(drafts.length);
     fillAddForm(drafts[0]);
-    // Let the voice sheet finish closing before the form slides in
-    setTimeout(() => setAddModalVisible(true), 350);
+    setAddModalVisible(true);
   };
+  const handleVoiceDraftsRef = useRef(handleVoiceDraftsReady);
+  handleVoiceDraftsRef.current = handleVoiceDraftsReady;
 
   /** Next voice draft (after save or skip), or close the form when done. */
   const advanceVoiceDraft = () => {
@@ -530,16 +630,6 @@ export const MenuInventoryScreen: React.FC = () => {
         </View>
 
         <View className="flex-row items-center gap-2">
-          {/* Voice Add Items Button */}
-          <TouchableOpacity
-            onPress={() => setVoiceModalVisible(true)}
-            className="flex-row items-center px-3 py-2 rounded-2xl border active:scale-95"
-            style={{ backgroundColor: colors.badgeBg, borderColor: colors.primary }}
-          >
-            <Ionicons name="mic" size={16} color={colors.primary} />
-            <Text className="text-xs font-bold ml-1" style={{ color: colors.primary }}>Voice Add</Text>
-          </TouchableOpacity>
-
           {/* Manual Add Button */}
           <TouchableOpacity
             onPress={openManualAdd}
@@ -575,6 +665,31 @@ export const MenuInventoryScreen: React.FC = () => {
       </View>
 
       <InsightsStrip variant="menu" />
+
+      {undo ? (
+        <View
+          className="mx-4 mb-2 px-3 py-2 rounded-2xl flex-row items-center justify-between"
+          style={{ backgroundColor: colors.text }}
+        >
+          <Text className="text-xs font-bold flex-1" style={{ color: colors.background }} numberOfLines={1}>
+            {undo.label}
+          </Text>
+          <TouchableOpacity
+            onPress={async () => {
+              const u = undo;
+              setUndo(null);
+              try {
+                await u.restore();
+              } catch (e: any) {
+                Alert.alert('Undo failed', e?.message || 'Please edit it manually.');
+              }
+            }}
+            hitSlop={8}
+          >
+            <Text className="text-xs font-black" style={{ color: colors.primary }}>UNDO</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* 3. Menu Items List */}
       {loading ? (
@@ -675,13 +790,6 @@ export const MenuInventoryScreen: React.FC = () => {
           }
         />
       )}
-
-      {/* 4. Voice Add Items Modal */}
-      <VoiceAddItemsModal
-        visible={voiceModalVisible}
-        onClose={() => setVoiceModalVisible(false)}
-        onDraftsReady={handleVoiceDraftsReady}
-      />
 
       {/* 5. ADD NEW DISH MODAL (Full Height + KeyboardAwareScrollView) */}
       <Modal

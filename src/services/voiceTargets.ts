@@ -1,3 +1,5 @@
+import type { AssistantAction } from '../api/assistantApi';
+
 /**
  * Global voice assistant wiring.
  *
@@ -30,6 +32,15 @@ export interface VoiceTarget {
   onTranscript?: (text: string) => string | void | Promise<string | void>;
   getForm?: () => VoiceForm;
   applyForm?: (form: VoiceForm) => void;
+  /**
+   * Screen-specific assistant actions (add/delete/edit dishes, open bills…).
+   * Return a notice to show, or false when this screen can't do it.
+   */
+  handleAction?: (a: AssistantAction) => string | void | false | Promise<string | void | false>;
+  /** Instant on-phone handling of common commands; return a notice when handled. */
+  tryLocal?: (text: string) => string | null | Promise<string | null>;
+  /** Live partial words while the cashier is still speaking. */
+  onInterim?: (text: string) => void;
   locale?: string;
 }
 
@@ -153,4 +164,15 @@ export function addModalMicHost() {
 
 export function hasModalMicHost() {
   return modalHosts > 0;
+}
+
+// ── run the assistant from code (e.g. a question asked on the New Order screen) ──
+let assistantRunner: ((text: string, screen?: string) => void) | null = null;
+
+export function setAssistantRunner(fn: ((text: string, screen?: string) => void) | null) {
+  assistantRunner = fn;
+}
+
+export function runAssistant(text: string, screen?: string) {
+  assistantRunner?.(text, screen);
 }

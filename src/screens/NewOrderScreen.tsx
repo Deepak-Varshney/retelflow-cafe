@@ -23,7 +23,7 @@ import { FoodItemDetailModal } from '../components/FoodItemDetailModal';
 import { CartReviewModal } from '../components/CartReviewModal';
 import { useCafeVoiceOrder } from '../services/useCafeVoiceOrder';
 import { CafeVoiceMode } from '../services/voiceSocketService';
-import { registerVoiceTarget, setExternalVoiceStatus } from '../services/voiceTargets';
+import { registerVoiceTarget, runAssistant, setExternalVoiceStatus } from '../services/voiceTargets';
 import { InsightsStrip } from '../components/InsightsStrip';
 
 interface NewOrderScreenProps {
@@ -79,7 +79,12 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
 
   // Real-time voice ordering: menu context is warmed on the server as soon as
   // this screen opens; items and size questions arrive while the cashier speaks
-  const voice = useCafeVoiceOrder({ mode: voiceMode, menuItems, setCart });
+  const voice = useCafeVoiceOrder({
+    mode: voiceMode,
+    menuItems,
+    setCart,
+    onQuestion: (text) => runAssistant(text, 'order_question'),
+  });
   const { isListening, selectionQueue } = voice;
   const disambiguationData = selectionQueue[0] || null;
 

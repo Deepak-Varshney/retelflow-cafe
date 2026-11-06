@@ -22,11 +22,13 @@ import {
   hasModalMicHost,
   micPosition,
   voiceNavigate,
+  setAssistantRunner,
   getActiveVoiceTarget,
   getExternalVoiceStatus,
   subscribeVoiceTargets,
 } from '../services/voiceTargets';
-import { AssistantRow, SettleCandidate, askAssistantApi } from '../api/assistantApi';
+import { AssistantAction, AssistantRow, SettleCandidate, askAssistantStream } from '../api/assistantApi';
+import { speak, stopSpeaking } from '../services/tts';
 import { api } from '../api/api';
 import { friendlyError } from '../utils/errorMessage';
 
@@ -44,6 +46,8 @@ interface SettlePrompt {
   candidates: SettleCandidate[];
   picked: SettleCandidate | null;
 }
+
+const say = (text: string) => speak(text);
 
 const money = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
@@ -82,7 +86,9 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
   const interimRef = useRef('');
   const pendingProcessRef = useRef(false);
   const processTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const processRef = useRef<(text: string) => void>(() => {});
+  const processRef = useRef<(text: string, screen?: string) => void>(() => {});
+  // App-side timings for the server log
+  const timesRef = useRef({ start: 0, release: 0 });
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => subscribeVoiceTargets(() => forceRender((n) => n + 1)), []);
@@ -100,11 +106,13 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
       bufferRef.current = `${bufferRef.current} ${phrase}`.trim();
       interimRef.current = '';
       setOwnStatus((s) => ({ ...s, heard: bufferRef.current.slice(-80) }));
+      getActiveVoiceTarget()?.onInterim?.(bufferRef.current);
       // Final words after release: send right after they land
       if (pendingProcessRef.current) scheduleProcess(150);
     },
     onInterimResult: (interim) => {
       interimRef.current = interim;
+      getActiveVoiceTarget()?.onInterim?.(`${bufferRef.current} ${interim}`.trim());
       setOwnStatus((s) => ({ ...s, heard: `${bufferRef.current} ${interim}`.trim().slice(-80) }));
     },
   });
@@ -137,7 +145,9 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
           notes: 'Voice',
         });
         const left = Number(res.data?.remainingDue) || 0;
-        flash(`${c.name}: ${money(res.data?.settledAmount || pay)} settled · baaki ${money(left)}`, 5000);
+        const done = `${c.name}: ${money(res.data?.settledAmount || pay)} settled · baaki ${money(left)}`;
+        flash(done, 5000);
+        say(done);
         emitVoiceDataChanged('customers');
       } catch (e: any) {
         flash(friendlyError(e?.response?.data?.message || e?.message, 'Settle nahi hua, phir try karo.'), 5000);
@@ -149,58 +159,116 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
     [flash]
   );
 
-  const processTranscript = useCallback(
-    async (text: string) => {
-      const t = getActiveVoiceTarget();
-      if (!text.trim()) {
-        flash('Kuch suna nahi, phir se boliye.');
-        return;
-      }
-      setOwnStatus((s) => ({ ...s, busy: true }));
-      try {
-        if (t?.onTranscript) {
-          const notice = await t.onTranscript(text);
-          if (notice) flash(notice);
+  // One assistant action, applied the moment it arrives
+  const runAction = useCallback(
+    async (a: AssistantAction, t: ReturnType<typeof getActiveVoiceTarget>) => {
+      switch (a.type) {
+        case 'set_form':
+          if (t?.applyForm) t.applyForm(a.form);
           return;
-        }
-        const res = await askAssistantApi({ transcript: text, screen: t?.screen || 'unknown', form: t?.getForm?.() || null });
-
-        if (res.intent === 'edit_form' && res.form && t?.applyForm) {
-          t.applyForm(res.form);
-          flash(res.reply || 'Form update ho gaya.');
-        } else if (res.intent === 'settle_due' && res.settle) {
-          const { candidates, amount, paymentMethod, customerName } = res.settle;
-          if (!candidates.length) flash(res.reply || 'Koi due nahi mila.');
+        case 'answer':
+          setAnswer({ title: a.reply, rows: a.data?.rows || [] });
+          say(a.reply);
+          return;
+        case 'notice':
+          flash(a.text, 4000);
+          if (a.speak) say(a.text);
+          return;
+        case 'navigate':
+          voiceNavigate(a.tab);
+          return;
+        case 'settle': {
+          const { candidates, amount, paymentMethod, customerName } = a;
           // "Deepak se 300 mile" + exactly one clear match: settle right away
-          else if (candidates.length === 1 && candidates[0].strong && amount > 0) {
+          if (candidates.length === 1 && candidates[0].strong && amount > 0) {
             settleNow(candidates[0], amount, paymentMethod);
           } else {
-            setSettle({
-              customerName,
-              amount,
-              paymentMethod,
-              candidates,
-              picked: candidates.length === 1 ? candidates[0] : null,
-            });
+            setSettle({ customerName, amount, paymentMethod, candidates, picked: candidates.length === 1 ? candidates[0] : null });
           }
-        } else if (res.intent === 'query') {
-          setAnswer({ title: res.reply, rows: res.data?.rows || [] });
-        } else if (res.intent === 'navigate' && res.navigate) {
-          voiceNavigate(res.navigate.tab);
-          flash(res.reply || 'Khol diya.');
-        } else {
-          flash(res.reply || 'Samajh nahi aaya, phir se boliye.');
+          return;
         }
-      } catch (e: any) {
-        flash(friendlyError(e?.response?.data?.message || e?.message, 'Voice assistant abhi available nahi.'), 4500);
-      } finally {
-        setOwnStatus((s) => ({ ...s, busy: false, heard: '' }));
+        default: {
+          const handled = t?.handleAction ? await t.handleAction(a) : false;
+          if (typeof handled === 'string') flash(handled, 4000);
+          else if (handled === false) {
+            // This screen can't do it: open the screen that can
+            if (a.type === 'add_dishes' || a.type === 'delete_dishes' || a.type === 'edit_dish') {
+              voiceNavigate('menu');
+              flash('Menu khol diya, ab phir se boliye.');
+            } else if (a.type === 'open_bill' || a.type === 'filter_bills') {
+              voiceNavigate('history');
+              flash('Orders khol diye, ab phir se boliye.');
+            }
+          }
+        }
       }
     },
     [flash, settleNow]
   );
 
+  const processTranscript = useCallback(
+    async (text: string, screenOverride?: string) => {
+      const t = getActiveVoiceTarget();
+      if (!text.trim()) {
+        flash('Kuch suna nahi, phir se boliye.');
+        return;
+      }
+      const ready = Date.now();
+      const { start, release } = timesRef.current;
+      setOwnStatus((s) => ({ ...s, busy: true }));
+      try {
+        if (t?.onTranscript && !screenOverride) {
+          const notice = await t.onTranscript(text);
+          if (notice) flash(notice);
+          return;
+        }
+        // Layer 1: common commands handled on the phone, no network
+        if (t?.tryLocal && !screenOverride) {
+          const local = await t.tryLocal(text);
+          if (local) {
+            flash(local);
+            return;
+          }
+        }
+        // Layer 2: screen-scoped assistant, actions streamed back one by one
+        let actionCount = 0;
+        let showedAnswer = false;
+        const { reply } = await askAssistantStream(
+          {
+            transcript: text,
+            screen: screenOverride || t?.screen || 'unknown',
+            form: screenOverride ? null : t?.getForm?.() || null,
+            timing: {
+              hold: release && start ? release - start : 0,
+              stt_wait: release ? ready - release : 0,
+            },
+          },
+          (a) => {
+            actionCount += 1;
+            if (a.type === 'answer' || a.type === 'notice') showedAnswer = true;
+            runAction(a, t);
+          }
+        );
+        if (!showedAnswer && reply) flash(reply);
+        if (!actionCount) say(reply || 'Samajh nahi aaya, phir se boliye.');
+      } catch (e: any) {
+        const msg = friendlyError(e?.response?.data?.message || e?.message, 'Voice assistant abhi available nahi.');
+        flash(msg, 4500);
+      } finally {
+        setOwnStatus((s) => ({ ...s, busy: false, heard: '' }));
+      }
+    },
+    [flash, runAction]
+  );
+
   processRef.current = processTranscript;
+
+  // Other screens can hand a sentence to the assistant (New Order questions)
+  useEffect(() => {
+    if (inModal) return;
+    setAssistantRunner((text, screen) => processRef.current(text, screen));
+    return () => setAssistantRunner(null);
+  }, [inModal]);
 
   useEffect(() => {
     if (speech.error) flash(speech.error, 4000);
@@ -209,7 +277,9 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
   const startTalk = useCallback(() => {
     if (talkingRef.current) return;
     talkingRef.current = true;
+    timesRef.current = { start: Date.now(), release: 0 };
     setAnswer(null);
+    stopSpeaking();
     const t = getActiveVoiceTarget();
     holdTargetRef.current = t;
     if (t?.hold) {
@@ -228,6 +298,7 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
       if (!talkingRef.current) return;
       talkingRef.current = false;
       handsFreeRef.current = false;
+      timesRef.current.release = Date.now();
       const t = holdTargetRef.current;
       holdTargetRef.current = null;
       if (t?.hold) {

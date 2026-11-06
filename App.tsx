@@ -32,6 +32,7 @@ import { ForceUpdateModal } from './src/components/ForceUpdateModal';
 import { GlobalVoiceBubble } from './src/components/GlobalVoiceBubble';
 import { setAnalyticsDisplay, setBaseVoiceScreen, setVoiceNavigator } from './src/services/voiceTargets';
 import { isVersionOlder } from './src/utils/versionCheck';
+import { setTtsEngine } from './src/services/tts';
 
 // Keep the native splash up until the first real screen can render. Without
 // this it hides on the first JS frame and an empty white root view flashes
@@ -132,6 +133,10 @@ function AppContent() {
   useEffect(() => {
     setAnalyticsDisplay(user?.cafe?.analyticsDisplay);
   }, [user?.cafe?.analyticsDisplay]);
+
+  useEffect(() => {
+    setTtsEngine(user?.cafe?.ttsEngine);
+  }, [user?.cafe?.ttsEngine]);
 
   useEffect(() => {
     setVoiceNavigator((tab) => {
@@ -312,7 +317,6 @@ function AppContent() {
             }}
             onBack={() => setOrderStep('customer')}
           />
-          <GlobalVoiceBubble />
         </LiquidGlassBackground>
       );
     }
@@ -327,7 +331,6 @@ function AppContent() {
             storeInfo={getStoreInfo(user)}
             printSettings={getPrintSettings(user)}
           />
-          <GlobalVoiceBubble />
         </LiquidGlassBackground>
       );
     }

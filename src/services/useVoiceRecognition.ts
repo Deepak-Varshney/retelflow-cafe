@@ -37,6 +37,13 @@ const nativeStartOptions = (lang: string, persistAudio = true) => ({
   ...(persistAudio && CAN_PERSIST_AUDIO ? { recordingOptions: { persist: true } } : {}),
 });
 
+// The phone has ONE speech engine but several screens/components use this hook
+// at once (global mic, order screen, voice-add). Native events reach every
+// instance, so only the instance that started the session may react to them;
+// otherwise the others see a "start" they didn't ask for and abort it.
+let nextInstanceId = 1;
+let activeOwner = 0;
+
 export interface UseVoiceRecognitionOptions {
   locale?: string;
   onFinalResult?: (transcript: string) => void;
@@ -56,6 +63,9 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
 
   const isListeningRef = useRef(false);
   const isPressingRef = useRef(false);
+  const instanceIdRef = useRef(0);
+  if (!instanceIdRef.current) instanceIdRef.current = nextInstanceId++;
+  const isOwner = () => activeOwner === instanceIdRef.current;
   const webRecognitionRef = useRef<any>(null);
   const nativeModuleRef = useRef<any>(null);
   const subscriptionsRef = useRef<any[]>([]);
@@ -99,6 +109,7 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
           nativeModuleRef.current = mod;
 
           const subStart = mod.addListener('start', () => {
+            if (!isOwner()) return;
             if (!isPressingRef.current) {
               // User already released finger before start event arrived! Kill it immediately.
               try {
@@ -115,6 +126,7 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
           });
 
           const subResult = mod.addListener('result', (event: any) => {
+            if (!isOwner()) return;
             if (!isPressingRef.current && !isListeningRef.current) return;
             if (event.results && event.results.length > 0) {
               const best = event.results[0]?.transcript || '';
@@ -143,12 +155,14 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
           });
 
           const subEnd = () => {
+            if (!isOwner()) return;
             setIsListening(false);
             isListeningRef.current = false;
           };
           const endSub = mod.addListener('end', subEnd);
 
           const subError = mod.addListener('error', (event: any) => {
+            if (!isOwner()) return;
             if (event.error !== 'aborted') {
               if (isPressingRef.current) {
                 setError(voiceErrorText(event.error, event.message));
@@ -161,10 +175,11 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
 
           // Audio file recording callbacks (for R2 upload)
           const subAudioStart = mod.addListener('audiostart', (event: any) => {
+            if (!isOwner()) return;
             if (event?.uri) segmentStartRef.current = event?.timestamp || Date.now();
           });
           const subAudioEnd = mod.addListener('audioend', (event: any) => {
-            if (!event?.uri) return;
+            if (!isOwner() || !event?.uri) return;
             const text = segmentTextRef.current;
             const started = segmentStartRef.current;
             segmentTextRef.current = '';
@@ -187,6 +202,7 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   }, []);
 
   const startListening = useCallback(async () => {
+    activeOwner = instanceIdRef.current;
     isPressingRef.current = true;
     setIsListening(true);
     isListeningRef.current = true;
@@ -309,6 +325,13 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   }, [currentLocale, recordAudio]);
 
   const stopListening = useCallback((opts?: { abort?: boolean }) => {
+    // Another instance owns the engine now: don't stop its session
+    if (!isOwner()) {
+      isPressingRef.current = false;
+      isListeningRef.current = false;
+      setIsListening(false);
+      return;
+    }
     isPressingRef.current = false;
     isListeningRef.current = false;
     setIsListening(false);

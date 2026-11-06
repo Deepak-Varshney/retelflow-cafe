@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, Share, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
@@ -15,6 +15,8 @@ interface BillDetailModalProps {
   printSettings: PrintSettings;
   features: ShopFeatures;
   onClose: () => void;
+  /** Voice: "bill 123 reprint karo" / "Rahul ka bill WhatsApp karo" */
+  autoAction?: 'print' | 'whatsapp' | null;
 }
 
 /** Full view of an old bill. Print / resend only when the shop has reprint enabled. */
@@ -24,6 +26,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
   printSettings,
   features,
   onClose,
+  autoAction = null,
 }) => {
   const { colors } = useTheme();
   const receiptRef = useRef<View>(null);
@@ -35,6 +38,16 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
   const printerSetupRef = useRef<{ resume: () => void; cancel: () => void } | null>(null);
 
   const receipt = useMemo(() => (invoice ? toReceiptData(invoice) : null), [invoice]);
+
+  // Run the spoken action once the bill is on screen (WhatsApp needs the
+  // rendered receipt for its image)
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (!autoAction || autoRan.current || !receipt || !features.reprintBills) return;
+    autoRan.current = true;
+    const t = setTimeout(() => (autoAction === 'print' ? handlePrint() : handleWhatsApp()), 450);
+    return () => clearTimeout(t);
+  });
 
   if (!receipt) return null;
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,33 @@ import { getInvoicesApi } from '../api/cafeApi';
 import { getCachedOrders, setCachedOrders } from '../services/cacheService';
 import { BillDetailModal } from '../components/BillDetailModal';
 import { PrintSettings, ShopFeatures, StoreInfo } from '../types';
+import { registerVoiceTarget } from '../services/voiceTargets';
+import { BillFilter, BillSpec } from '../api/assistantApi';
+import { normText } from '../services/voiceLocalRules';
+
+const billName = (o: any) => String(o.customer?.name || o.customerName || '');
+const billDate = (o: any) => new Date(o.createdAt || o.date || 0);
+const billNo = (o: any) => String(o.invoiceNumber || o.invoiceId || o.orderNumber || '');
+const isCredit = (o: any) => o.paymentMethod === 'credit' || Number(o.balanceAmount ?? o.dueAmount ?? 0) > 0;
+const nameHit = (spoken: string, name: string) => {
+  const want = normText(spoken).split(' ').filter(Boolean);
+  const have = normText(name).split(' ');
+  return want.length > 0 && want.every((w) => have.some((h) => h.startsWith(w)));
+};
+
+const PERIOD_LABEL: Record<string, string> = { today: 'Aaj', yesterday: 'Kal', week: 'Is hafte', month: 'Is mahine', all: 'Sab' };
+
+function inPeriod(o: any, period?: string) {
+  if (!period || period === 'all') return true;
+  const d = billDate(o);
+  const now = new Date();
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (period === 'today') return d >= dayStart;
+  if (period === 'yesterday') return d >= new Date(dayStart.getTime() - 86400000) && d < dayStart;
+  if (period === 'week') return d >= new Date(dayStart.getTime() - 6 * 86400000);
+  if (period === 'month') return d >= new Date(now.getFullYear(), now.getMonth(), 1);
+  return true;
+}
 
 interface OrdersHistoryScreenProps {
   storeInfo: StoreInfo;
@@ -21,6 +48,9 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
 }) => {
   const { colors } = useTheme();
   const [openBill, setOpenBill] = useState<any | null>(null);
+  const [billAction, setBillAction] = useState<'print' | 'whatsapp' | null>(null);
+  // Set by voice: "aaj ke udhaar wale bills"
+  const [voiceFilter, setVoiceFilter] = useState<BillFilter | null>(null);
   const [search, setSearch] = useState('');
   const [orders, setOrders] = useState<any[]>(() => getCachedOrders());
   const [loading, setLoading] = useState(() => getCachedOrders().length === 0);
@@ -52,12 +82,64 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
 
   const visibleOrders = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return orders;
-    return orders.filter((o) =>
+    let list = orders;
+    if (voiceFilter) {
+      list = list.filter(
+        (o) =>
+          inPeriod(o, voiceFilter.period) &&
+          (!voiceFilter.paymentMethod ||
+            voiceFilter.paymentMethod === 'any' ||
+            (voiceFilter.paymentMethod === 'credit' ? isCredit(o) : o.paymentMethod === voiceFilter.paymentMethod)) &&
+          (!voiceFilter.customerName || nameHit(voiceFilter.customerName, billName(o)))
+      );
+    }
+    if (!q) return list;
+    return list.filter((o) =>
       [o.customer?.name, o.customerName, o.customer?.phone, o.customerPhone, o.invoiceNumber, String(o.orderNumber || '')]
         .some((v) => String(v || '').toLowerCase().includes(q))
     );
-  }, [orders, search]);
+  }, [orders, search, voiceFilter]);
+
+  // ── voice: open / reprint / WhatsApp a bill, filter the list ──
+  const ordersRef = useRef(orders);
+  ordersRef.current = orders;
+  useEffect(() => {
+    const findBill = (spec: BillSpec) => {
+      const newestFirst = [...ordersRef.current].sort((a, b) => billDate(b).getTime() - billDate(a).getTime());
+      let list = newestFirst;
+      if (spec.billNumber) {
+        const digits = String(spec.billNumber).replace(/\D/g, '');
+        list = list.filter((o) => billNo(o).replace(/\D/g, '').endsWith(digits));
+      }
+      if (spec.customerName) list = list.filter((o) => nameHit(spec.customerName!, billName(o)));
+      return spec.which === 'first' ? list[list.length - 1] : list[0];
+    };
+    const reg = registerVoiceTarget({
+      screen: 'orders_history',
+      handleAction: (a) => {
+        if (a.type === 'open_bill') {
+          const bill = findBill(a.bill);
+          if (!bill) return 'Aisa bill nahi mila.';
+          const then = a.bill.then === 'print' || a.bill.then === 'whatsapp' ? a.bill.then : null;
+          if (then && !features.reprintBills) {
+            setBillAction(null);
+            setOpenBill(bill);
+            return 'Reprint is shop ke liye on nahi hai — bill khol diya.';
+          }
+          setBillAction(then);
+          setOpenBill(bill);
+          return `Bill ${billNo(bill)}${billName(bill) ? ` · ${billName(bill)}` : ''}${then === 'print' ? ' · print ho raha hai' : then === 'whatsapp' ? ' · WhatsApp' : ''}`;
+        }
+        if (a.type === 'filter_bills') {
+          setSearch('');
+          setVoiceFilter(a.filter);
+          return 'Bills filter kar diye';
+        }
+        return false;
+      },
+    });
+    return () => reg.remove();
+  }, [features.reprintBills]);
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: 'transparent' }}>
@@ -127,6 +209,25 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
       </View>
 
       {/* Orders List */}
+      {voiceFilter ? (
+        <View className="mx-4 mt-2 px-3 py-2 rounded-2xl border flex-row items-center" style={{ borderColor: colors.primary }}>
+          <Ionicons name="mic" size={13} color={colors.primary} />
+          <Text className="text-xs font-bold ml-1.5 flex-1" style={{ color: colors.text }} numberOfLines={1}>
+            {[
+              PERIOD_LABEL[voiceFilter.period || 'all'],
+              voiceFilter.paymentMethod && voiceFilter.paymentMethod !== 'any' ? voiceFilter.paymentMethod : '',
+              voiceFilter.customerName || '',
+            ]
+              .filter(Boolean)
+              .join(' · ')}{' '}
+            · {visibleOrders.length} bills
+          </Text>
+          <TouchableOpacity onPress={() => setVoiceFilter(null)} hitSlop={10}>
+            <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.primary} />
@@ -226,7 +327,11 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
           storeInfo={storeInfo}
           printSettings={printSettings}
           features={features}
-          onClose={() => setOpenBill(null)}
+          autoAction={billAction}
+          onClose={() => {
+            setOpenBill(null);
+            setBillAction(null);
+          }}
         />
       ) : null}
     </SafeAreaView>

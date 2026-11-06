@@ -65,19 +65,52 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
   nameRef.current = name;
   const phoneRef = useRef(phone);
   phoneRef.current = phone;
+  // Fields fill while the cashier is still speaking, one letter at a time
+  const typingTimers = useRef<{ name?: ReturnType<typeof setInterval>; phone?: ReturnType<typeof setInterval> }>({});
+  const typeInto = (field: 'name' | 'phone', target: string) => {
+    const setter = field === 'name' ? setName : setPhone;
+    const ref = field === 'name' ? nameRef : phoneRef;
+    if (!target || ref.current === target) return;
+    clearInterval(typingTimers.current[field]);
+    typingTimers.current[field] = setInterval(() => {
+      const cur = ref.current;
+      let keep = 0;
+      while (keep < cur.length && cur[keep] === target[keep]) keep++;
+      // Words changed mid-sentence: back off to what still matches, then type on
+      const next = keep < cur.length ? target.slice(0, keep) : target.slice(0, cur.length + 1);
+      ref.current = next;
+      setter(next);
+      if (next === target) clearInterval(typingTimers.current[field]);
+    }, 28);
+  };
+  useEffect(
+    () => () => {
+      clearInterval(typingTimers.current.name);
+      clearInterval(typingTimers.current.phone);
+    },
+    []
+  );
+
   useEffect(() => {
     const reg = registerVoiceTarget({
       screen: 'customer_details',
       locale: 'en-IN',
+      // Partial words: "98765…" / "Deepak Var…" appear as they are spoken
+      onInterim: (text) => {
+        const parsed = parseCustomerVoice(text);
+        const digits = parsed.phone || (text.match(/\d/g) || []).join('').slice(0, 10);
+        if (digits) typeInto('phone', digits);
+        if (parsed.name) typeInto('name', parsed.name);
+      },
       onTranscript: (text) => {
         const parsed = parseCustomerVoice(text);
         const parts: string[] = [];
         if (parsed.phone) {
-          setPhone(parsed.phone);
+          typeInto('phone', parsed.phone);
           parts.push(`Phone: ${parsed.phone}`);
         }
         if (parsed.name) {
-          setName(parsed.name);
+          typeInto('name', parsed.name);
           autoFilledNameRef.current = '';
           parts.push(`Name: ${parsed.name}`);
         }
