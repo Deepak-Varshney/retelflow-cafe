@@ -49,11 +49,11 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         style={[
           styles.glassDock,
           {
-            backgroundColor: isDark ? 'rgba(7, 16, 38, 0.82)' : 'rgba(255, 255, 255, 0.88)',
-            borderColor: isDark ? 'rgba(0, 210, 255, 0.32)' : 'rgba(2, 132, 199, 0.22)',
-            borderTopColor: isDark ? 'rgba(255, 255, 255, 0.40)' : 'rgba(255, 255, 255, 0.95)',
-            shadowColor: isDark ? '#00d2ff' : '#0284c7',
-            shadowOpacity: isDark ? 0.35 : 0.16,
+            backgroundColor: colors.glassBg,
+            borderColor: colors.glassBorder,
+            borderTopColor: isDark ? colors.glassBorderActive : 'rgba(255, 255, 255, 0.95)',
+            shadowColor: colors.primary,
+            shadowOpacity: isDark ? 0.3 : 0.16,
           },
         ]}
       >
@@ -71,13 +71,9 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                 <View
                   className="items-center justify-center relative px-3 py-1 rounded-2xl"
                   style={{
-                    backgroundColor: isActive
-                      ? (isDark ? 'rgba(0, 210, 255, 0.22)' : 'rgba(2, 132, 199, 0.16)')
-                      : 'transparent',
+                    backgroundColor: isActive ? colors.badgeBg : 'transparent',
                     borderWidth: isActive ? 1 : 0,
-                    borderColor: isActive
-                      ? (isDark ? 'rgba(0, 210, 255, 0.40)' : 'rgba(2, 132, 199, 0.30)')
-                      : 'transparent',
+                    borderColor: isActive ? colors.glassBorderActive : 'transparent',
                   }}
                 >
                   <Ionicons
@@ -94,9 +90,9 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                   {tab.badge && tab.badge > 0 ? (
                     <View
                       className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full items-center justify-center shadow-sm"
-                      style={{ backgroundColor: '#f43f5e' }}
+                      style={{ backgroundColor: '#e11d48' }}
                     >
-                      <Text className="text-[9px] font-black text-white">
+                      <Text className="text-[9px] font-black" style={{ color: '#ffffff' }}>
                         {tab.badge > 99 ? '99+' : tab.badge}
                       </Text>
                     </View>

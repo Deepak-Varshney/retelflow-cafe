@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { api } from '../api/api';
 import { authStorage } from '../auth/authStorage';
 
@@ -63,4 +64,24 @@ export function uploadVoiceRecording(
   if (Platform.OS === 'web' || (!uri && !text)) return;
   queue.push({ uri: uri || null, transcript: text, durationSec: durationSec || 0, language });
   setTimeout(drain, 1200);
+}
+
+/**
+ * Shop setting "keep audio clips" (user.voiceSettings.recordAudio, off unless
+ * admin turned it on). Read once from the saved profile; pass it to
+ * useVoiceRecognition({ recordAudio }).
+ */
+export function useRecordAudioSetting() {
+  const [recordAudio, setRecordAudio] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    authStorage
+      .getUser()
+      .then((user: any) => alive && setRecordAudio(user?.voiceSettings?.recordAudio === true))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return recordAudio;
 }

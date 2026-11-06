@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Animated, Easing, StatusBar, StyleSheet } from 'react-native';
+import { useTheme } from '../services/ThemeContext';
 
 // Same background + logo as the phone's own splash (app.json), so the intro
-// starts on exactly the frame the phone was showing — like YouTube / Netflix
+// starts on exactly the frame the phone was showing — like YouTube / Netflix.
+// The phone splash is always light; the intro ends by fading into the theme's
+// background (dark mode / amber / emerald) so the app opens without a flash.
 const APP_BG = '#f1f5f9';
 const NAVY = '#0f172a';
 const BRAND_GREEN = '#10b981';
@@ -26,6 +29,7 @@ export const CafeSplashScreen: React.FC<{
   onReady?: () => void;
   onDone?: () => void;
 }> = ({ imageUrl, onReady, onDone }) => {
+  const { colors } = useTheme();
   const finished = useRef(false);
   const finish = () => {
     if (finished.current) return;
@@ -51,6 +55,7 @@ export const CafeSplashScreen: React.FC<{
   const pop = useRef(new Animated.Value(1)).current;
   const slide = useRef(new Animated.Value(0)).current; // 0 = centred like the phone splash
   const name = useRef(new Animated.Value(0)).current;
+  const toTheme = useRef(new Animated.Value(0)).current; // fade into the app's background
 
   useEffect(() => {
     if (imageUrl) return;
@@ -61,7 +66,8 @@ export const CafeSplashScreen: React.FC<{
         Animated.timing(slide, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         Animated.timing(name, { toValue: 1, duration: 360, delay: 80, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
-      Animated.delay(250),
+      Animated.delay(120),
+      Animated.timing(toTheme, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
     ]).start(() => finish());
   }, [imageUrl]);
 
@@ -110,6 +116,11 @@ export const CafeSplashScreen: React.FC<{
           </View>
         </Animated.View>
       </View>
+
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: toTheme }]}
+      />
 
       {imageUrl ? (
         <Image

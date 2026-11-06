@@ -25,7 +25,7 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
   onClose,
   onAddToCart,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [selectedVariant, setSelectedVariant] = useState<ItemVariant | undefined>(undefined);
 
@@ -51,15 +51,15 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 justify-center items-center bg-black/80 p-4">
+      <View className="flex-1 justify-center items-center p-4" style={{ backgroundColor: colors.overlay }}>
         <TouchableOpacity className="absolute inset-0" activeOpacity={1} onPress={onClose} />
 
         <View
           className="w-full max-w-sm rounded-3xl border overflow-hidden shadow-2xl"
-          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+          style={{ backgroundColor: colors.panel, borderColor: colors.border }}
         >
-          {/* Hero Image */}
-          <View className="relative w-full h-52 bg-slate-900">
+          {/* Hero Image (photo overlays stay dark in both modes) */}
+          <View className="relative w-full h-52" style={{ backgroundColor: colors.subtle }}>
             <Image
               source={{
                 uri: getFoodImageUrl(item.imageUrl, item.category),
@@ -103,7 +103,7 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
               <Text className="text-base font-black flex-1 mr-2" style={{ color: colors.text }}>
                 {item.name}
               </Text>
-              <Text className="text-xl font-black text-cyan-400 font-mono">
+              <Text className="text-xl font-black font-mono" style={{ color: colors.primaryText }}>
                 ₹{currentPrice}
               </Text>
             </View>
@@ -116,7 +116,7 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
             {/* Variants / Sizes Selection */}
             {hasVariants && (
               <View className="mb-3">
-                <Text className="text-xs font-black uppercase tracking-wider mb-2 text-slate-400">
+                <Text className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: colors.textMuted }}>
                   Select Size / Portion:
                 </Text>
 
@@ -130,23 +130,19 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
                         activeOpacity={0.8}
                         className="px-3.5 py-2 rounded-2xl border flex-row items-center gap-1.5"
                         style={{
-                          backgroundColor: isSelected
-                            ? colors.primary
-                            : isDark
-                            ? 'rgba(255, 255, 255, 0.05)'
-                            : '#f1f5f9',
+                          backgroundColor: isSelected ? colors.primary : colors.inputBg,
                           borderColor: isSelected ? colors.primary : colors.border,
                         }}
                       >
                         <Text
                           className="text-xs font-black"
-                          style={{ color: isSelected ? '#000000' : colors.text }}
+                          style={{ color: isSelected ? colors.onPrimary : colors.text }}
                         >
                           {v.name}
                         </Text>
                         <Text
                           className="text-xs font-bold font-mono ml-1"
-                          style={{ color: isSelected ? '#000000' : colors.primary }}
+                          style={{ color: isSelected ? colors.onPrimary : colors.primaryText }}
                         >
                           ₹{v.price}
                         </Text>
@@ -164,10 +160,10 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
             style={{ backgroundColor: colors.surface, borderColor: colors.border }}
           >
             <View>
-              <Text className="text-[10px] text-slate-400 font-bold uppercase">
+              <Text className="text-[10px] font-bold uppercase" style={{ color: colors.textMuted }}>
                 Item Total
               </Text>
-              <Text className="text-lg font-black text-cyan-400 font-mono">
+              <Text className="text-lg font-black font-mono" style={{ color: colors.primaryText }}>
                 ₹{currentPrice}
               </Text>
             </View>
@@ -175,10 +171,11 @@ export const FoodItemDetailModal: React.FC<FoodItemDetailModalProps> = ({
             <TouchableOpacity
               onPress={handleAdd}
               activeOpacity={0.8}
-              className="px-6 py-3 rounded-2xl flex-row items-center gap-2 bg-cyan-500 shadow-lg active:scale-95"
+              className="px-6 py-3 rounded-2xl flex-row items-center gap-2 shadow-lg active:scale-95"
+              style={{ backgroundColor: colors.primary }}
             >
-              <Ionicons name="cart" size={16} color="#000" />
-              <Text className="text-xs font-black text-black uppercase tracking-wider">
+              <Ionicons name="cart" size={16} color={colors.onPrimary} />
+              <Text className="text-xs font-black uppercase tracking-wider" style={{ color: colors.onPrimary }}>
                 Add to Order
               </Text>
             </TouchableOpacity>

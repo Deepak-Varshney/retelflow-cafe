@@ -265,7 +265,7 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Background Liquid Light Orbs Container */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {/* Orb 1: Luminous Electric Cyan (Top-Right) */}
+        {/* Orb 1: theme tint (Top-Right); colours come from the active theme */}
         <Animated.View
           style={[
             styles.orb,
@@ -274,7 +274,7 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
               height: SCREEN_WIDTH * 0.85,
               top: -SCREEN_WIDTH * 0.2,
               right: -SCREEN_WIDTH * 0.2,
-              opacity: isDark ? 0.35 : 0.25,
+              opacity: isDark ? 0.22 : 0.25,
               transform: [
                 { translateX: orb1X },
                 { translateY: orb1Y },
@@ -286,16 +286,16 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
             <Defs>
               <RadialGradient id="cyanOrb" cx="50%" cy="50%" rx="50%" ry="50%" fx="40%" fy="40%">
-                <Stop offset="0%" stopColor="#00d2ff" stopOpacity={isDark ? "0.75" : "0.55"} />
-                <Stop offset="55%" stopColor="#0284c7" stopOpacity={isDark ? "0.28" : "0.20"} />
-                <Stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
+                <Stop offset="0%" stopColor={colors.orbA} stopOpacity={isDark ? "0.75" : "0.55"} />
+                <Stop offset="55%" stopColor={colors.orbA} stopOpacity={isDark ? "0.28" : "0.20"} />
+                <Stop offset="100%" stopColor={colors.orbA} stopOpacity="0" />
               </RadialGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#cyanOrb)" rx={SCREEN_WIDTH} />
           </Svg>
         </Animated.View>
 
-        {/* Orb 2: Prismatic Electric Violet (Center-Left) */}
+        {/* Orb 2: secondary theme tint (Center-Left) */}
         <Animated.View
           style={[
             styles.orb,
@@ -304,7 +304,7 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
               height: SCREEN_WIDTH * 0.95,
               top: SCREEN_HEIGHT * 0.28,
               left: -SCREEN_WIDTH * 0.35,
-              opacity: isDark ? 0.28 : 0.20,
+              opacity: isDark ? 0.18 : 0.20,
               transform: [
                 { translateX: orb2X },
                 { translateY: orb2Y },
@@ -316,9 +316,9 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
             <Defs>
               <RadialGradient id="violetOrb" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
-                <Stop offset="0%" stopColor="#a855f7" stopOpacity={isDark ? "0.65" : "0.45"} />
-                <Stop offset="55%" stopColor="#6366f1" stopOpacity={isDark ? "0.25" : "0.18"} />
-                <Stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                <Stop offset="0%" stopColor={colors.orbB} stopOpacity={isDark ? "0.65" : "0.45"} />
+                <Stop offset="55%" stopColor={colors.orbB} stopOpacity={isDark ? "0.25" : "0.18"} />
+                <Stop offset="100%" stopColor={colors.orbB} stopOpacity="0" />
               </RadialGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#violetOrb)" rx={SCREEN_WIDTH} />
@@ -334,7 +334,7 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
               height: SCREEN_WIDTH * 0.9,
               bottom: -SCREEN_WIDTH * 0.25,
               right: -SCREEN_WIDTH * 0.2,
-              opacity: isDark ? 0.38 : 0.24,
+              opacity: isDark ? 0.22 : 0.24,
               transform: [
                 { translateX: orb3X },
                 { translateY: orb3Y },
@@ -346,9 +346,9 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
             <Defs>
               <RadialGradient id="sapphireOrb" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
-                <Stop offset="0%" stopColor="#38bdf8" stopOpacity={isDark ? "0.70" : "0.30"} />
-                <Stop offset="60%" stopColor="#0284c7" stopOpacity={isDark ? "0.32" : "0.10"} />
-                <Stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
+                <Stop offset="0%" stopColor={colors.primary} stopOpacity={isDark ? "0.45" : "0.30"} />
+                <Stop offset="60%" stopColor={colors.primary} stopOpacity={isDark ? "0.18" : "0.10"} />
+                <Stop offset="100%" stopColor={colors.primary} stopOpacity="0" />
               </RadialGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#sapphireOrb)" rx={SCREEN_WIDTH} />
@@ -367,8 +367,8 @@ export const LiquidGlassBackground: React.FC<{ children?: React.ReactNode }> = (
           <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
             <Defs>
               <LinearGradient id="topSheen" x1="0%" y1="0%" x2="0%" y2="100%">
-                <Stop offset="0%" stopColor={isDark ? "#00d2ff" : "#ffffff"} stopOpacity={isDark ? "0.22" : "0.85"} />
-                <Stop offset="100%" stopColor={isDark ? "#00d2ff" : "#ffffff"} stopOpacity="0" />
+                <Stop offset="0%" stopColor={isDark ? colors.primary : "#ffffff"} stopOpacity={isDark ? "0.12" : "0.85"} />
+                <Stop offset="100%" stopColor={isDark ? colors.primary : "#ffffff"} stopOpacity="0" />
               </LinearGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#topSheen)" />

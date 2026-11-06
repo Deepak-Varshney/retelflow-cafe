@@ -96,16 +96,47 @@ export function forgetPrinter(): void {
   Native?.forgetPrinter();
 }
 
-/** Connects to the saved printer if needed, then sends the job. */
+// A printer that is off, out of range or on a dead socket can leave the native
+// call waiting forever. These limits turn that into a clear error.
+const CONNECT_LIMIT_MS = 10_000;
+const PRINT_LIMIT_MS = 15_000;
+
+function withTimeout<T>(work: Promise<T>, ms: number, onTimeout: () => void): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      onTimeout();
+      const err = new Error('Printer is turned off or unreachable. Please turn it on and keep it close.');
+      (err as any).code = 'PRINTER_OFF_OR_UNREACHABLE';
+      reject(err);
+    }, ms);
+    work.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
+    );
+  });
+}
+
+/** Drop a stuck connection so the next attempt starts fresh. */
+const resetConnection = () => {
+  Native?.disconnect().catch(() => {});
+};
+
+/** Connects to the saved printer if needed, then sends the job. Always settles. */
 export async function printCommands(
   commands: PrintCommand[],
   options?: PrintOptions
 ): Promise<void> {
   const native = requireNative();
   if (!native.isConnected()) {
-    await connectPrinter();
+    await withTimeout(connectPrinter(), CONNECT_LIMIT_MS, resetConnection);
   }
-  await native.print(commands, options);
+  await withTimeout(native.print(commands, options), PRINT_LIMIT_MS, resetConnection);
 }
 
 export function addConnectionListener(

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CartItem, MenuItem } from '../types';
 import { DisambiguationItem } from '../components/DisambiguationModal';
 import { useVoiceRecognition } from './useVoiceRecognition';
+import { useRecordAudioSetting } from './voiceRecordingUpload';
 import {
   CafeItemEvent,
   CafeVoiceItem,
@@ -76,7 +77,9 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart, onQuestion }: Opti
   const stopPcm = useRef<null | (() => void)>(null);
   const noticeTimer = useRef<any>(null);
 
-  // Live needs the native mic module (new app build); otherwise stream
+  // The shop is always on 'stream' now. live / audio stay for later, but only
+  // on an exact match; anything else (old or unknown values) runs as stream.
+  // Live also needs the native mic module (new app build).
   const effectiveMode: CafeVoiceMode =
     mode === 'live' && isPcmRecorderAvailable ? 'live' : mode === 'audio' ? 'audio' : 'stream';
 
@@ -343,8 +346,10 @@ export function useCafeVoiceOrder({ mode, menuItems, setCart, onQuestion }: Opti
     [setCart]
   );
 
+  const recordAudio = useRecordAudioSetting();
   const speech = useVoiceRecognition({
     locale: 'en-IN',
+    recordAudio,
     onInterimResult: (text) => {
       setHeard(text);
       openLocalPopups(text);

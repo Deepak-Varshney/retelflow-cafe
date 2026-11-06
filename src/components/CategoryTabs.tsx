@@ -17,14 +17,14 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
 }) => {
   const { colors, isDark } = useTheme();
 
-  const activeBorderColor = colors.neonCyan || '#00d2ff';
+  const activeBorderColor = colors.primary;
 
   return (
     <View
       style={[
         styles.container,
         {
-          backgroundColor: isDark ? (colors.glassBg || 'rgba(7, 15, 36, 0.90)') : colors.surface,
+          backgroundColor: isDark ? colors.glassBg : colors.surface,
           borderBottomColor: colors.glassBorder || colors.border,
         },
       ]}
@@ -48,7 +48,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                 isSelected
                   ? {
                       // Active: Glowing electric cyan border, subtle glow shadow, bold text
-                      backgroundColor: isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(2, 132, 199, 0.10)',
+                      backgroundColor: colors.badgeBg,
                       borderColor: activeBorderColor,
                       shadowColor: activeBorderColor,
                       shadowOffset: { width: 0, height: 2 },
@@ -58,8 +58,8 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                     }
                   : {
                       // Inactive: Translucent liquid glass background, subtle 1px border
-                      backgroundColor: isDark ? 'rgba(0, 210, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
-                      borderColor: isDark ? (colors.glassBorder || 'rgba(0, 210, 255, 0.12)') : 'rgba(0, 0, 0, 0.06)',
+                      backgroundColor: colors.pillBg,
+                      borderColor: colors.bentoBorder,
                       elevation: 0,
                     },
               ]}
@@ -77,7 +77,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                   styles.tabText,
                   {
                     color: isSelected
-                      ? (isDark ? '#ffffff' : activeBorderColor)
+                      ? colors.primaryText
                       : colors.textSecondary,
                     fontWeight: isSelected ? '800' : '600',
                   },
@@ -92,12 +92,8 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                   style={[
                     styles.countPill,
                     {
-                      backgroundColor: isSelected
-                        ? (isDark ? 'rgba(0, 210, 255, 0.24)' : 'rgba(2, 132, 199, 0.18)')
-                        : (colors.pillBg || 'rgba(255, 255, 255, 0.05)'),
-                      borderColor: isSelected
-                        ? (isDark ? 'rgba(0, 210, 255, 0.45)' : 'rgba(2, 132, 199, 0.35)')
-                        : (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'),
+                      backgroundColor: isSelected ? colors.primarySoft : colors.subtle,
+                      borderColor: isSelected ? colors.primarySoftBorder : colors.bentoBorder,
                     },
                   ]}
                 >
@@ -105,7 +101,7 @@ export const CategoryTabs: React.FC<CategoryTabsProps> = ({
                     style={[
                       styles.countText,
                       {
-                        color: isSelected ? (isDark ? '#ffffff' : activeBorderColor) : colors.textMuted,
+                        color: isSelected ? colors.primaryText : colors.textSecondary,
                       },
                     ]}
                   >

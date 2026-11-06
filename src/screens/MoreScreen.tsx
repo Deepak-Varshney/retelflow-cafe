@@ -37,7 +37,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
   onLogout,
   onUserUpdated,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [currentUser, setCurrentUser] = useState<any>(user || {});
 
@@ -227,7 +227,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         style={{ backgroundColor: colors.surface, borderColor: colors.border }}
       >
         <View>
-          <Text className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
+          <Text className="text-[10px] font-black uppercase tracking-wider" style={{ color: colors.primaryText }}>
             Counter Management
           </Text>
           <Text className="text-xl font-black mt-0.5" style={{ color: colors.text }}>
@@ -238,7 +238,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         <View
           className="px-3 py-1.5 rounded-2xl border flex-row items-center gap-1.5"
           style={{
-            backgroundColor: isDark ? 'rgba(0, 210, 255, 0.14)' : 'rgba(2, 132, 199, 0.10)',
+            backgroundColor: colors.badgeBg,
             borderColor: colors.primary,
           }}
         >
@@ -259,11 +259,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             <View
               className="w-14 h-14 rounded-2xl items-center justify-center mr-3.5 border"
               style={{
-                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.15)' : '#e0f2fe',
+                backgroundColor: colors.primarySoft,
                 borderColor: colors.primary,
               }}
             >
-              <Text className="text-lg font-black text-cyan-400">
+              <Text className="text-lg font-black" style={{ color: colors.primaryText }}>
                 {getInitials(currentUser.shopName || currentUser.name)}
               </Text>
             </View>
@@ -276,11 +276,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <View
                   className="px-2 py-0.5 rounded-full border"
                   style={{
-                    backgroundColor: 'rgba(0, 210, 255, 0.15)',
+                    backgroundColor: colors.badgeBg,
                     borderColor: colors.primary,
                   }}
                 >
-                  <Text className="text-[9px] font-black text-cyan-400 uppercase">
+                  <Text className="text-[9px] font-black uppercase" style={{ color: colors.primaryText }}>
                     {currentUser.role || 'COUNTER'}
                   </Text>
                 </View>
@@ -291,7 +291,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               </Text>
               <View className="flex-row items-center gap-1 mt-0.5">
                 <Ionicons name="call" size={11} color={colors.primary} />
-                <Text className="text-xs font-bold text-cyan-400 font-mono">
+                <Text className="text-xs font-bold font-mono" style={{ color: colors.primaryText }}>
                   {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
                 </Text>
               </View>
@@ -304,7 +304,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             activeOpacity={0.8}
             className="w-full py-2.5 rounded-2xl border items-center justify-center flex-row gap-2 active:scale-98"
             style={{
-              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f8fafc',
+              backgroundColor: colors.inputBg,
               borderColor: colors.border,
             }}
           >
@@ -322,7 +322,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
             <Text className="text-[10px] font-black uppercase" style={{ color: colors.textSecondary }}>Today&apos;s Sales</Text>
-            <Text className="text-base font-black text-cyan-400 font-mono mt-0.5">
+            <Text className="text-base font-black font-mono mt-0.5" style={{ color: colors.primaryText }}>
               ₹{metrics.todaySales.toLocaleString()}
             </Text>
           </View>
@@ -332,7 +332,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
             <Text className="text-[10px] font-black uppercase" style={{ color: colors.textSecondary }}>Total Bills</Text>
-            <Text className="text-base font-black text-emerald-400 font-mono mt-0.5">
+            <Text className="text-base font-black font-mono mt-0.5" style={{ color: colors.success }}>
               {metrics.totalOrders}
             </Text>
           </View>
@@ -342,7 +342,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
             <Text className="text-[10px] font-black uppercase" style={{ color: colors.textSecondary }}>Total Khata Due</Text>
-            <Text className="text-base font-black font-mono mt-0.5" style={{ color: '#f43f5e' }}>
+            <Text className="text-base font-black font-mono mt-0.5" style={{ color: colors.danger }}>
               ₹{metrics.totalDue.toLocaleString()}
             </Text>
           </View>
@@ -361,7 +361,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           <View
             className="w-11 h-11 rounded-2xl items-center justify-center mr-3.5 border"
             style={{
-              backgroundColor: 'rgba(245, 158, 11, 0.15)',
+              backgroundColor: colors.badgeBg,
               borderColor: colors.primary,
             }}
           >
@@ -375,11 +375,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               </Text>
               <View
                 className="px-2 py-0.5 rounded-md"
-                style={{ backgroundColor: isTrial ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)' }}
+                style={{ backgroundColor: isTrial ? colors.warningSoft : colors.successSoft }}
               >
                 <Text
                   className="text-[9px] font-black uppercase"
-                  style={{ color: isTrial ? '#f59e0b' : '#10b981' }}
+                  style={{ color: isTrial ? colors.warning : colors.success }}
                 >
                   {isTrial ? 'Trial Active' : 'Active'}
                 </Text>
@@ -391,7 +391,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           </View>
 
           <View className="flex-row items-center gap-1">
-            <Text className="text-xs font-black text-cyan-400">Upgrade</Text>
+            <Text className="text-xs font-black" style={{ color: colors.primaryText }}>Upgrade</Text>
             <Ionicons name="chevron-forward" size={16} color={colors.primary} />
           </View>
         </TouchableOpacity>
@@ -426,7 +426,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               </View>
             </View>
             <View className="flex-row items-center gap-1">
-              <Text className="text-xs font-bold text-cyan-400 font-mono">
+              <Text className="text-xs font-bold font-mono" style={{ color: colors.primaryText }}>
                 {savedPrinter ? 'Change' : 'Setup'}
               </Text>
               <Ionicons name="chevron-forward" size={16} color={colors.primary} />
@@ -445,8 +445,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 </Text>
               </View>
             </View>
-            <View className="px-2 py-0.5 rounded-full bg-emerald-500/20">
-              <Text className="text-[10px] font-black text-emerald-400">Gemini 2.0</Text>
+            <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.successSoft }}>
+              <Text className="text-[10px] font-black" style={{ color: colors.success }}>Gemini 2.0</Text>
             </View>
           </View>
         </View>
@@ -465,13 +465,13 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             activeOpacity={0.8}
             className="flex-row items-center p-3 rounded-2xl border mb-1.5"
             style={{
-              backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#fef3c7',
+              backgroundColor: colors.primarySoft,
               borderColor: colors.primary,
             }}
           >
             <View
               className="w-10 h-10 rounded-xl items-center justify-center mr-3"
-              style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.25)' : '#fde68a' }}
+              style={{ backgroundColor: colors.primarySoftBorder }}
             >
               <Ionicons name="chatbubbles" size={20} color={colors.primary} />
             </View>
@@ -480,8 +480,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                 <Text className="text-xs font-black" style={{ color: colors.text }}>
                   Raise Support Ticket
                 </Text>
-                <View className="px-1.5 py-0.5 rounded-full bg-cyan-500">
-                  <Text className="text-[8px] font-black text-black uppercase">Direct</Text>
+                <View className="px-1.5 py-0.5 rounded-full" style={{ backgroundColor: colors.primary }}>
+                  <Text className="text-[8px] font-black uppercase" style={{ color: colors.onPrimary }}>Direct</Text>
                 </View>
               </View>
               <Text className="text-[10px]" style={{ color: colors.textSecondary }}>
@@ -495,10 +495,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           {whatsappPhone ? (
           <TouchableOpacity
             onPress={() => handleOpenWhatsApp()}
-            className="flex-row items-center p-3 rounded-2xl active:bg-emerald-500/10"
+            className="flex-row items-center p-3 rounded-2xl"
           >
-            <View className="w-10 h-10 rounded-xl bg-emerald-500/15 items-center justify-center mr-3">
-              <Ionicons name="logo-whatsapp" size={20} color="#10b981" />
+            <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: colors.successSoft }}>
+              <Ionicons name="logo-whatsapp" size={20} color={colors.success} />
             </View>
             <View className="flex-1">
               <Text className="text-xs font-bold" style={{ color: colors.text }}>
@@ -516,9 +516,9 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
           {supportPhone ? (
           <TouchableOpacity
             onPress={handleCallSupport}
-            className="flex-row items-center p-3 rounded-2xl active:bg-cyan-500/10"
+            className="flex-row items-center p-3 rounded-2xl"
           >
-            <View className="w-10 h-10 rounded-xl bg-cyan-500/15 items-center justify-center mr-3">
+            <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: colors.badgeBg }}>
               <Ionicons name="call-outline" size={20} color={colors.primary} />
             </View>
             <View className="flex-1">
@@ -543,8 +543,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             paddingVertical: 15,
             borderRadius: 22,
             borderWidth: 1.5,
-            borderColor: '#f43f5e',
-            backgroundColor: isDark ? 'rgba(244, 63, 94, 0.12)' : '#fff1f2',
+            borderColor: colors.danger,
+            backgroundColor: colors.dangerSoft,
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'row',
@@ -555,12 +555,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
             shadowOpacity: 0,
           }}
         >
-          <Ionicons name="log-out-outline" size={20} color="#e11d48" />
+          <Ionicons name="log-out-outline" size={20} color={colors.danger} />
           <Text
             style={{
               fontSize: 13,
               fontWeight: '900',
-              color: '#e11d48',
+              color: colors.danger,
               letterSpacing: 0.8,
               textTransform: 'uppercase',
             }}
@@ -570,25 +570,25 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
         </TouchableOpacity>
 
         {/* App Version Stamp */}
-        <Text className="text-[11px] text-center font-bold text-slate-500 mb-4">
+        <Text className="text-[11px] text-center font-bold mb-4" style={{ color: colors.textSecondary }}>
           RetelFlow Cafe & Sweets POS • Version 1.0.0
         </Text>
       </ScrollView>
 
       {/* EDIT STORE DETAILS MODAL (Mobile Number Locked & Read Only) */}
       <Modal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => setEditModalVisible(false)}>
-        <View className="flex-1 justify-end bg-black/75">
+        <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
           <TouchableOpacity className="flex-1" activeOpacity={1} onPress={() => setEditModalVisible(false)} />
           <View
             className="rounded-t-3xl border-t p-5 w-full self-center"
-            style={{ maxHeight: '85%', maxWidth: 640, backgroundColor: colors.card, borderColor: colors.border }}
+            style={{ maxHeight: '85%', maxWidth: 640, backgroundColor: colors.panel, borderColor: colors.border }}
           >
             <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
               <View>
                 <Text className="text-base font-black" style={{ color: colors.text }}>
                   Edit Store & Counter Profile
                 </Text>
-                <Text className="text-[10px] text-slate-400">
+                <Text className="text-[10px]" style={{ color: colors.textMuted }}>
                   Update cafe branding and tax info for invoices
                 </Text>
               </View>
@@ -635,8 +635,8 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                     Registered Mobile Number
                   </Text>
                   <View className="flex-row items-center gap-1">
-                    <Ionicons name="lock-closed" size={11} color="#f59e0b" />
-                    <Text className="text-[10px] text-cyan-400 font-bold">Locked / Read Only</Text>
+                    <Ionicons name="lock-closed" size={11} color={colors.warning} />
+                    <Text className="text-[10px] font-bold" style={{ color: colors.primaryText }}>Locked / Read Only</Text>
                   </View>
                 </View>
                 <TextInput
@@ -645,7 +645,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   className="px-3.5 py-2.5 rounded-xl border text-xs font-bold opacity-60 font-mono"
                   style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }}
                 />
-                <Text className="text-[10px] text-slate-400 mt-1">
+                <Text className="text-[10px] mt-1" style={{ color: colors.textMuted }}>
                   Primary mobile number is tied to your store account and cannot be modified from counter.
                 </Text>
               </View>
@@ -684,12 +684,13 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               <TouchableOpacity
                 onPress={handleSaveStoreDetails}
                 disabled={savingSettings}
-                className="py-3.5 rounded-2xl items-center justify-center bg-cyan-500 shadow-lg active:scale-98"
+                className="py-3.5 rounded-2xl items-center justify-center shadow-lg active:scale-98"
+                style={{ backgroundColor: colors.primary }}
               >
                 {savingSettings ? (
-                  <ActivityIndicator size="small" color="#000" />
+                  <ActivityIndicator size="small" color={colors.onPrimary} />
                 ) : (
-                  <Text className="text-xs font-black text-black uppercase tracking-wider">
+                  <Text className="text-xs font-black uppercase tracking-wider" style={{ color: colors.onPrimary }}>
                     Save Profile Changes
                   </Text>
                 )}
@@ -701,18 +702,18 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
 
       {/* PLANS & SUBSCRIPTION MODAL */}
       <Modal visible={plansModalVisible} transparent animationType="slide" onRequestClose={() => setPlansModalVisible(false)}>
-        <View className="flex-1 justify-end bg-black/80">
+        <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
           <TouchableOpacity className="flex-1" activeOpacity={1} onPress={() => setPlansModalVisible(false)} />
           <View
             className="rounded-t-3xl border-t p-5 w-full self-center"
-            style={{ maxHeight: '88%', maxWidth: 640, backgroundColor: colors.card, borderColor: colors.border }}
+            style={{ maxHeight: '88%', maxWidth: 640, backgroundColor: colors.panel, borderColor: colors.border }}
           >
             <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
               <View>
                 <Text className="text-base font-black" style={{ color: colors.text }}>
                   RetelFlow Cafe Plans
                 </Text>
-                <Text className="text-[11px] text-cyan-400 font-bold">
+                <Text className="text-[11px] font-bold" style={{ color: colors.primaryText }}>
                   All-in-One Restaurant, Cafe & Sweets POS
                 </Text>
               </View>
@@ -725,22 +726,22 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               {/* Monthly Plan */}
               <View
                 className="p-4 rounded-3xl border mb-3 relative overflow-hidden"
-                style={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc', borderColor: colors.border }}
+                style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
               >
                 <View className="flex-row items-center justify-between mb-1">
                   <Text className="text-sm font-black" style={{ color: colors.text }}>
                     Pro Monthly
                   </Text>
-                  <Text className="text-lg font-black text-cyan-400 font-mono">
-                    ₹299<Text className="text-xs text-slate-400 font-normal"> / month</Text>
+                  <Text className="text-lg font-black font-mono" style={{ color: colors.primaryText }}>
+                    ₹299<Text className="text-xs font-normal" style={{ color: colors.textMuted }}> / month</Text>
                   </Text>
                 </View>
-                <Text className="text-xs text-slate-400 mb-3">
+                <Text className="text-xs mb-3" style={{ color: colors.textMuted }}>
                   Full billing, KOT printer, inventory & khata management.
                 </Text>
                 {['Unlimited Gemini AI Voice Orders', 'KOT & Customer Bill Printing', '26+ Indian Cafe & Sweets Menu', 'Automatic Khata & Due Ledger'].map((feature, idx) => (
                   <View key={idx} className="flex-row items-center gap-2 mb-1.5">
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                    <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                     <Text className="text-xs font-semibold" style={{ color: colors.text }}>{feature}</Text>
                   </View>
                 ))}
@@ -750,12 +751,12 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               <View
                 className="p-4 rounded-3xl border mb-4 relative overflow-hidden"
                 style={{
-                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : '#fef3c7',
+                  backgroundColor: colors.primarySoft,
                   borderColor: colors.primary,
                 }}
               >
-                <View className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-cyan-500">
-                  <Text className="text-[9px] font-black text-black uppercase tracking-wider">
+                <View className="absolute top-2 right-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary }}>
+                  <Text className="text-[9px] font-black uppercase tracking-wider" style={{ color: colors.onPrimary }}>
                     Save ₹589
                   </Text>
                 </View>
@@ -764,16 +765,16 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
                   <Text className="text-sm font-black" style={{ color: colors.text }}>
                     Pro Annual (1 Year)
                   </Text>
-                  <Text className="text-lg font-black text-cyan-400 font-mono">
-                    ₹2,999<Text className="text-xs text-slate-400 font-normal"> / year</Text>
+                  <Text className="text-lg font-black font-mono" style={{ color: colors.primaryText }}>
+                    ₹2,999<Text className="text-xs font-normal" style={{ color: colors.textMuted }}> / year</Text>
                   </Text>
                 </View>
-                <Text className="text-xs text-slate-400 mb-3">
+                <Text className="text-xs mb-3" style={{ color: colors.textMuted }}>
                   Everything in Pro with 12 months uninterrupted access & VIP onboarding.
                 </Text>
                 {['All Pro Features Included', '2 Months Free Included', 'Priority 24/7 WhatsApp Support', 'Free Catalog Setup & Customization'].map((feature, idx) => (
                   <View key={idx} className="flex-row items-center gap-2 mb-1.5">
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                    <Ionicons name="checkmark-circle" size={16} color={colors.success} />
                     <Text className="text-xs font-semibold" style={{ color: colors.text }}>{feature}</Text>
                   </View>
                 ))}
@@ -782,10 +783,11 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({
               <TouchableOpacity
                 onPress={() => handleOpenWhatsApp('Hi RetelFlow Team, I want to upgrade/renew my RetelFlow Cafe subscription plan.')}
                 activeOpacity={0.8}
-                className="py-3.5 rounded-2xl items-center justify-center bg-emerald-500 flex-row gap-2 shadow-xl active:scale-98"
+                className="py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-xl active:scale-98"
+                style={{ backgroundColor: '#25D366' }}
               >
-                <Ionicons name="logo-whatsapp" size={18} color="#000" />
-                <Text className="text-xs font-black text-black uppercase tracking-wider">
+                <Ionicons name="logo-whatsapp" size={18} color="#ffffff" />
+                <Text className="text-xs font-black text-white uppercase tracking-wider">
                   Contact on WhatsApp to Upgrade
                 </Text>
               </TouchableOpacity>

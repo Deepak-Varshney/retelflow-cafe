@@ -17,7 +17,7 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
   onSelectVariant,
   onClose,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   if (!item) return null;
 
@@ -27,7 +27,7 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/60">
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
         <TouchableOpacity
           className="flex-1"
           activeOpacity={1}
@@ -36,7 +36,7 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
         <View
           className="rounded-t-3xl border-t p-5 w-full self-center"
           style={{ maxHeight: '80%', maxWidth: 640,
-            backgroundColor: colors.card,
+            backgroundColor: colors.panel,
             borderColor: colors.border,
           }}
         >
@@ -49,7 +49,8 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
                     item.imageUrl ||
                     'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=200&q=80',
                 }}
-                className="w-12 h-12 rounded-xl mr-3 bg-slate-800"
+                className="w-12 h-12 rounded-xl mr-3"
+                style={{ backgroundColor: colors.subtle }}
               />
               <View className="flex-1">
                 <Text className="text-base font-bold" style={{ color: colors.text }} numberOfLines={1}>
@@ -61,7 +62,7 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
               </View>
             </View>
 
-            <TouchableOpacity onPress={onClose} className="p-1 rounded-full bg-slate-800/40">
+            <TouchableOpacity onPress={onClose} className="p-1 rounded-full" style={{ backgroundColor: colors.subtle }}>
               <Ionicons name="close" size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -88,8 +89,8 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
                       {v.name}
                     </Text>
                     {v.isDefault && (
-                      <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: 'rgba(0, 210, 255, 0.15)' }}>
-                        <Text className="text-[10px] font-bold" style={{ color: colors.primary }}>Popular</Text>
+                      <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: colors.primarySoft }}>
+                        <Text className="text-[10px] font-bold" style={{ color: colors.primaryText }}>Popular</Text>
                       </View>
                     )}
                   </View>
@@ -101,7 +102,7 @@ export const VariantSelectorModal: React.FC<VariantSelectorModalProps> = ({
                 </View>
 
                 <View className="flex-row items-center gap-3">
-                  <Text className="text-base font-extrabold font-mono" style={{ color: colors.primary }}>
+                  <Text className="text-base font-extrabold font-mono" style={{ color: colors.primaryText }}>
                     ₹{v.price}
                   </Text>
                   <View

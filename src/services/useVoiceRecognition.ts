@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import { uploadVoiceRecording } from './voiceRecordingUpload';
 import { friendlyError } from '../utils/errorMessage';
 
@@ -28,6 +29,13 @@ function voiceErrorText(code?: string, message?: string): string {
 // Audio persistence is supported on Android 13+ (API 33) and iOS
 const CAN_PERSIST_AUDIO =
   Platform.OS === 'ios' || (Platform.OS === 'android' && Number(Platform.Version) >= 33);
+
+// Saved clips smaller than this are silence / a click: upload the text only
+const MIN_AUDIO_BYTES = 8000;
+
+const dropFile = (uri: string) => {
+  FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => {});
+};
 
 const nativeStartOptions = (lang: string, persistAudio = true) => ({
   lang,
@@ -59,7 +67,10 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
   const [error, setError] = useState<string | null>(null);
 
   const currentLocale = options?.locale || 'en-IN';
-  const recordAudio = options?.recordAudio !== false;
+  // Audio clips are opt-in per shop (user.voiceSettings.recordAudio)
+  const recordAudio = options?.recordAudio === true;
+  const recordAudioRef = useRef(recordAudio);
+  recordAudioRef.current = recordAudio;
 
   const isListeningRef = useRef(false);
   const isPressingRef = useRef(false);
@@ -158,6 +169,9 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
             if (!isOwner()) return;
             setIsListening(false);
             isListeningRef.current = false;
+            // No audio file will come (recording off, or Android 12 and older):
+            // send the spoken text on its own
+            if (!(recordAudioRef.current && CAN_PERSIST_AUDIO)) flushTranscript();
           };
           const endSub = mod.addListener('end', subEnd);
 
@@ -178,14 +192,27 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
             if (!isOwner()) return;
             if (event?.uri) segmentStartRef.current = event?.timestamp || Date.now();
           });
-          const subAudioEnd = mod.addListener('audioend', (event: any) => {
-            if (!isOwner() || !event?.uri) return;
-            const text = segmentTextRef.current;
+          const subAudioEnd = mod.addListener('audioend', async (event: any) => {
+            if (!isOwner()) return;
+            if (!event?.uri) {
+              flushTranscript();
+              return;
+            }
+            const uri: string = event.uri;
+            const text = segmentTextRef.current.trim();
             const started = segmentStartRef.current;
             segmentTextRef.current = '';
             segmentStartRef.current = 0;
+            // Nothing was said: the clip is useless
+            if (!text) return dropFile(uri);
             const durationSec = started ? ((event.timestamp || Date.now()) - started) / 1000 : 0;
-            uploadVoiceRecording(event.uri, text, durationSec, localeRef.current);
+            let keepAudio = false;
+            try {
+              const info: any = await FileSystem.getInfoAsync(uri);
+              keepAudio = !!info?.exists && (info.size || 0) >= MIN_AUDIO_BYTES;
+            } catch {}
+            if (!keepAudio) dropFile(uri);
+            uploadVoiceRecording(keepAudio ? uri : null, text, durationSec, localeRef.current);
           });
 
           subscriptionsRef.current = [subStart, subResult, endSub, subError, subAudioStart, subAudioEnd];
@@ -209,7 +236,8 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
     setError(null);
     setTranscript('');
     setInterimTranscript('');
-    segmentTextRef.current = '';
+    // Anything still unsent from the last press goes up as text first
+    flushTranscript();
     segmentStartRef.current = Date.now();
 
     if (Platform.OS === 'web') {
@@ -322,7 +350,7 @@ export function useVoiceRecognition(options?: UseVoiceRecognitionOptions) {
         isListeningRef.current = false;
       }
     }
-  }, [currentLocale, recordAudio]);
+  }, [currentLocale, recordAudio, flushTranscript]);
 
   const stopListening = useCallback((opts?: { abort?: boolean }) => {
     // Another instance owns the engine now: don't stop its session

@@ -32,7 +32,7 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
   message = 'A mandatory update is available to keep your cafe counter running smoothly.',
   releaseNotes,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   // Block Android hardware back button when force update is active
   useEffect(() => {
@@ -62,12 +62,12 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
       statusBarTranslucent
       onRequestClose={() => {}} // Unclosable on Android
     >
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, { backgroundColor: colors.overlay }]}>
         <View
           style={[
             styles.card,
             {
-              backgroundColor: isDark ? 'rgba(11, 20, 36, 0.98)' : 'rgba(255, 255, 255, 0.99)',
+              backgroundColor: colors.panel,
               borderColor: colors.primary,
             },
           ]}
@@ -86,11 +86,11 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
           <View
             style={[
               styles.badge,
-              { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: '#ef4444' },
+              { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
             ]}
           >
-            <View style={styles.redDot} />
-            <Text style={styles.badgeText}>MANDATORY UPDATE</Text>
+            <View style={[styles.redDot, { backgroundColor: colors.danger }]} />
+            <Text style={[styles.badgeText, { color: colors.danger }]}>MANDATORY UPDATE</Text>
           </View>
 
           {/* Title & Message */}
@@ -102,7 +102,7 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
             <View
               style={[
                 styles.versionPill,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' },
+                { backgroundColor: colors.subtle },
               ]}
             >
               <Text style={[styles.versionLabel, { color: colors.textSecondary }]}>Current</Text>
@@ -117,8 +117,8 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
                 { backgroundColor: colors.badgeBg, borderColor: colors.primary, borderWidth: 1 },
               ]}
             >
-              <Text style={[styles.versionLabel, { color: colors.primary }]}>New Version</Text>
-              <Text style={[styles.versionVal, { color: colors.primary, fontWeight: '900' }]}>
+              <Text style={[styles.versionLabel, { color: colors.primaryText }]}>New Version</Text>
+              <Text style={[styles.versionVal, { color: colors.primaryText, fontWeight: '900' }]}>
                 v{latestVersion}
               </Text>
             </View>
@@ -126,7 +126,7 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
 
           {/* Release Notes */}
           {notesList.length > 0 && (
-            <View style={styles.notesContainer}>
+            <View style={[styles.notesContainer, { backgroundColor: colors.inputBg }]}>
               <Text style={[styles.notesHeader, { color: colors.text }]}>What&apos;s New:</Text>
               <ScrollView style={{ maxHeight: 110 }} showsVerticalScrollIndicator={false}>
                 {notesList.map((note, idx) => (
@@ -154,13 +154,13 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
             <Ionicons
               name="download"
               size={18}
-              color={isDark ? '#020617' : '#ffffff'}
+              color={colors.onPrimary}
               style={{ marginRight: 8 }}
             />
             <Text
               style={[
                 styles.btnText,
-                { color: isDark ? '#020617' : '#ffffff' },
+                { color: colors.onPrimary },
               ]}
             >
               DOWNLOAD &amp; INSTALL UPDATE
@@ -179,7 +179,6 @@ export const ForceUpdateModal: React.FC<ForceUpdateModalProps> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(3, 7, 18, 0.90)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -218,13 +217,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#ef4444',
     marginRight: 6,
   },
   badgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#ef4444',
     letterSpacing: 0.6,
   },
   title: {
@@ -264,7 +261,6 @@ const styles = StyleSheet.create({
   },
   notesContainer: {
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 14,
     padding: 12,
     marginBottom: 18,

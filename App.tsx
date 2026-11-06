@@ -32,7 +32,6 @@ import { ForceUpdateModal } from './src/components/ForceUpdateModal';
 import { GlobalVoiceBubble } from './src/components/GlobalVoiceBubble';
 import { setAnalyticsDisplay, setBaseVoiceScreen, setVoiceNavigator } from './src/services/voiceTargets';
 import { isVersionOlder } from './src/utils/versionCheck';
-import { setTtsEngine } from './src/services/tts';
 
 // Keep the native splash up until the first real screen can render. Without
 // this it hides on the first JS frame and an empty white root view flashes
@@ -51,11 +50,6 @@ function AppContent() {
   const [introDone, setIntroDone] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    if (user?.themePreset) {
-      setPreset(user.themePreset);
-    }
-  }, [user?.themePreset]);
 
   // Navigation state
   const [currentTab, setCurrentTab] = useState<CafeTab>('order');
@@ -136,9 +130,10 @@ function AppContent() {
     setAnalyticsDisplay(user?.cafe?.analyticsDisplay);
   }, [user?.cafe?.analyticsDisplay]);
 
+  // Shop theme (sapphire / amber / emerald); light/dark follows the phone
   useEffect(() => {
-    setTtsEngine(user?.cafe?.ttsEngine);
-  }, [user?.cafe?.ttsEngine]);
+    if (user) setPreset(user.themePreset);
+  }, [user?.themePreset, !!user]);
 
   useEffect(() => {
     setVoiceNavigator((tab) => {
@@ -356,7 +351,7 @@ function AppContent() {
           setCart={setCart}
           onProceedToCustomer={() => setOrderStep('customer')}
           shopName={user.businessName || user.name || 'RetelFlow Cafe'}
-          voiceMode={user?.cafe?.voiceMode || 'stream'}
+          voiceMode={user?.cafe?.voiceMode}
         />
       )}
 

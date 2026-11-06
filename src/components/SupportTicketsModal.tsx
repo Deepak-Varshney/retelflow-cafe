@@ -34,7 +34,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
   visible,
   onClose,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
   const [tickets, setTickets] = useState<any[]>([]);
@@ -142,13 +142,13 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'in_progress':
-        return { label: 'In Progress', bg: 'rgba(56, 189, 248, 0.2)', text: '#38bdf8' };
+        return { label: 'In Progress', bg: colors.primarySoft, text: colors.primaryText };
       case 'resolved':
-        return { label: 'Resolved', bg: 'rgba(16, 185, 129, 0.2)', text: '#10b981' };
+        return { label: 'Resolved', bg: colors.successSoft, text: colors.success };
       case 'closed':
-        return { label: 'Closed', bg: 'rgba(148, 163, 184, 0.2)', text: '#94a3b8' };
+        return { label: 'Closed', bg: colors.subtle, text: colors.textSecondary };
       default:
-        return { label: 'Open', bg: 'rgba(245, 158, 11, 0.2)', text: '#f59e0b' };
+        return { label: 'Open', bg: colors.warningSoft, text: colors.warning };
     }
   };
 
@@ -156,7 +156,8 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/80"
+        className="flex-1 justify-end"
+        style={{ backgroundColor: colors.overlay }}
       >
         <TouchableOpacity
           activeOpacity={1}
@@ -166,7 +167,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
         {/* Fixed sheet height: the list / chat inside are flex-1 and collapse to nothing without it */}
         <View
           className="rounded-t-3xl border-t p-5"
-          style={{ backgroundColor: colors.card, borderColor: colors.border, height: '88%' }}
+          style={{ backgroundColor: colors.panel, borderColor: colors.border, height: '88%' }}
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b mb-3" style={{ borderColor: colors.border }}>
@@ -223,13 +224,13 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                 {/* Issue Header Info Card */}
                 <View
                   className="p-3 rounded-2xl border mb-3"
-                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderColor: colors.border }}
+                  style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
                 >
                   <View className="flex-row items-center justify-between mb-1">
                     <Text className="text-[10px] font-bold uppercase" style={{ color: colors.primary }}>
                       Category: {activeTicket.category}
                     </Text>
-                    <Text className="text-[10px] text-slate-400">
+                    <Text className="text-[10px]" style={{ color: colors.textMuted }}>
                       Priority: {activeTicket.priority?.toUpperCase()}
                     </Text>
                   </View>
@@ -249,29 +250,27 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                       <View
                         className="p-3.5 rounded-2xl border"
                         style={{
-                          backgroundColor: isAdmin
-                            ? isDark ? 'rgba(56, 189, 248, 0.12)' : '#e0f2fe'
-                            : colors.primary,
-                          borderColor: isAdmin ? '#38bdf8' : colors.primary,
+                          backgroundColor: isAdmin ? colors.primarySoft : colors.primary,
+                          borderColor: isAdmin ? colors.primarySoftBorder : colors.primary,
                         }}
                       >
                         <View className="flex-row items-center justify-between mb-1 gap-2">
                           <Text
                             className="text-[10px] font-black uppercase"
-                            style={{ color: isAdmin ? '#0284c7' : '#000000' }}
+                            style={{ color: isAdmin ? colors.primaryText : colors.onPrimary }}
                           >
                             {isAdmin ? '🛡️ RetelFlow Support' : '👤 You'}
                           </Text>
                           <Text
                             className="text-[9px] opacity-70"
-                            style={{ color: isAdmin ? colors.textSecondary : '#000000' }}
+                            style={{ color: isAdmin ? colors.textSecondary : colors.onPrimary }}
                           >
                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </Text>
                         </View>
                         <Text
                           className="text-xs font-medium leading-relaxed"
-                          style={{ color: isAdmin ? colors.text : '#000000' }}
+                          style={{ color: isAdmin ? colors.text : colors.onPrimary }}
                         >
                           {msg.text}
                         </Text>
@@ -301,9 +300,9 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                   style={{ backgroundColor: colors.primary, opacity: replyText.trim() ? 1 : 0.5 }}
                 >
                   {replying ? (
-                    <ActivityIndicator size="small" color="#000" />
+                    <ActivityIndicator size="small" color={colors.onPrimary} />
                   ) : (
-                    <Ionicons name="send" size={16} color="#000" />
+                    <Ionicons name="send" size={16} color={colors.onPrimary} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -317,13 +316,13 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                   onPress={() => setActiveTab('list')}
                   className="flex-1 py-2 rounded-xl items-center border"
                   style={{
-                    backgroundColor: activeTab === 'list' ? colors.primary : colors.card,
+                    backgroundColor: activeTab === 'list' ? colors.primary : colors.inputBg,
                     borderColor: activeTab === 'list' ? colors.primary : colors.border,
                   }}
                 >
                   <Text
                     className="text-xs font-black uppercase"
-                    style={{ color: activeTab === 'list' ? '#000' : colors.textSecondary }}
+                    style={{ color: activeTab === 'list' ? colors.onPrimary : colors.textSecondary }}
                   >
                     My Tickets ({tickets.length})
                   </Text>
@@ -333,13 +332,13 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                   onPress={() => setActiveTab('create')}
                   className="flex-1 py-2 rounded-xl items-center border"
                   style={{
-                    backgroundColor: activeTab === 'create' ? colors.primary : colors.card,
+                    backgroundColor: activeTab === 'create' ? colors.primary : colors.inputBg,
                     borderColor: activeTab === 'create' ? colors.primary : colors.border,
                   }}
                 >
                   <Text
                     className="text-xs font-black uppercase"
-                    style={{ color: activeTab === 'create' ? '#000' : colors.textSecondary }}
+                    style={{ color: activeTab === 'create' ? colors.onPrimary : colors.textSecondary }}
                   >
                     + Raise New Ticket
                   </Text>
@@ -352,20 +351,20 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                   {loading ? (
                     <View className="py-8 items-center justify-center">
                       <ActivityIndicator size="small" color={colors.primary} />
-                      <Text className="text-xs text-slate-400 mt-2 font-semibold">Loading tickets...</Text>
+                      <Text className="text-xs mt-2 font-semibold" style={{ color: colors.textMuted }}>Loading tickets...</Text>
                     </View>
                   ) : tickets.length === 0 ? (
                     <View className="py-8 items-center justify-center">
                       <Ionicons name="ticket-outline" size={40} color={colors.textMuted} />
-                      <Text className="text-sm font-bold text-slate-300 mt-2">No Support Tickets Yet</Text>
-                      <Text className="text-xs text-slate-500 text-center mt-1 px-4">
+                      <Text className="text-sm font-bold mt-2" style={{ color: colors.text }}>No Support Tickets Yet</Text>
+                      <Text className="text-xs text-center mt-1 px-4" style={{ color: colors.textSecondary }}>
                         Face any issue with thermal printing, AI voice, or billing? Raise a ticket and our team will assist you.
                       </Text>
                       <TouchableOpacity
                         onPress={() => setActiveTab('create')}
                         className="mt-4 px-4 py-2 rounded-xl active:scale-95" style={{ backgroundColor: colors.primary }}
                       >
-                        <Text className="text-xs font-black text-black uppercase">Raise Your First Ticket</Text>
+                        <Text className="text-xs font-black uppercase" style={{ color: colors.onPrimary }}>Raise Your First Ticket</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -378,7 +377,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                           onPress={() => handleOpenTicket(t)}
                           activeOpacity={0.8}
                           className="p-3.5 mb-2.5 rounded-2xl border shadow-sm active:scale-98"
-                          style={{ backgroundColor: colors.card, borderColor: colors.border }}
+                          style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
                         >
                           <View className="flex-row items-center justify-between mb-1">
                             <View className="flex-row items-center gap-2">
@@ -391,7 +390,7 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                                 </Text>
                               </View>
                             </View>
-                            <Text className="text-[10px] text-slate-400">
+                            <Text className="text-[10px]" style={{ color: colors.textMuted }}>
                               {new Date(t.updatedAt || t.createdAt).toLocaleDateString('en-IN')}
                             </Text>
                           </View>
@@ -401,8 +400,8 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                           </Text>
 
                           {lastMsg ? (
-                            <Text className="text-[11px] text-slate-400 mt-1" numberOfLines={2}>
-                              <Text className="font-bold text-slate-300">
+                            <Text className="text-[11px] mt-1" style={{ color: colors.textMuted }} numberOfLines={2}>
+                              <Text className="font-bold" style={{ color: colors.textSecondary }}>
                                 {lastMsg.sender === 'admin' ? 'Support Reply: ' : 'You: '}
                               </Text>
                               {lastMsg.text}
@@ -520,9 +519,9 @@ export const SupportTicketsModal: React.FC<SupportTicketsModalProps> = ({
                     className="py-3.5 rounded-2xl items-center justify-center shadow-xl active:scale-98" style={{ backgroundColor: colors.primary }}
                   >
                     {submitting ? (
-                      <ActivityIndicator size="small" color="#000" />
+                      <ActivityIndicator size="small" color={colors.onPrimary} />
                     ) : (
-                      <Text className="text-xs font-black text-black uppercase tracking-wider">
+                      <Text className="text-xs font-black uppercase tracking-wider" style={{ color: colors.onPrimary }}>
                         Submit Support Ticket
                       </Text>
                     )}

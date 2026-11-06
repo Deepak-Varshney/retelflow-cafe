@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../services/ThemeContext';
 import { useVoiceRecognition } from '../services/useVoiceRecognition';
+import { useRecordAudioSetting } from '../services/voiceRecordingUpload';
 import {
   VoiceStatus,
   addModalMicHost,
@@ -107,8 +108,10 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
   }, []);
 
   const target = getActiveVoiceTarget();
+  const recordAudio = useRecordAudioSetting();
   const speech = useVoiceRecognition({
     locale: target?.locale || 'hi-IN',
+    recordAudio,
     onPhraseSpoken: (phrase) => {
       bufferRef.current = `${bufferRef.current} ${phrase}`.trim();
       interimRef.current = '';
@@ -503,7 +506,7 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
               borderRadius: 18,
               borderWidth: 1,
               borderColor: colors.primary,
-              backgroundColor: 'rgba(255,255,255,0.97)',
+              backgroundColor: colors.panel,
               shadowColor: colors.primary,
               shadowOpacity: 0.3,
               shadowRadius: 10,
@@ -530,7 +533,7 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
               borderRadius: 20,
               borderWidth: 1,
               borderColor: colors.primary,
-              backgroundColor: '#ffffff',
+              backgroundColor: colors.panel,
               padding: 14,
               shadowColor: '#000',
               shadowOpacity: 0.18,
@@ -586,7 +589,7 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
             justifyContent: 'center',
             backgroundColor: active ? '#ef4444' : colors.primary,
             borderWidth: 3,
-            borderColor: 'rgba(255,255,255,0.85)',
+            borderColor: colors.panel,
             shadowColor: active ? '#ef4444' : colors.primary,
             shadowOpacity: 0.45,
             shadowRadius: 10,
@@ -596,17 +599,17 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
           }}
         >
           {status.busy && !active ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
-            <Ionicons name={active ? 'mic' : 'mic-outline'} size={26} color="#ffffff" />
+            <Ionicons name={active ? 'mic' : 'mic-outline'} size={26} color={active ? '#ffffff' : colors.onPrimary} />
           )}
         </Animated.View>
       </Animated.View>
 
       {/* Settle popup: pick the right customer, then settle (part or all) */}
       <Modal visible={Boolean(settle)} transparent animationType="fade" onRequestClose={() => setSettle(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: '#ffffff', borderRadius: 22, padding: 18 }}>
+        <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: colors.panel, borderRadius: 22, padding: 18 }}>
             {settle && !settle.picked ? (
               <>
                 <Text style={{ fontSize: 15, fontWeight: '900', color: colors.text }}>
@@ -638,7 +641,7 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
                         <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>{c.name}</Text>
                         <Text style={{ fontSize: 11, color: colors.textMuted }}>{c.phone || 'No mobile'} · {c.bills} bill(s)</Text>
                       </View>
-                      <Text style={{ fontSize: 13, fontWeight: '900', color: '#ef4444' }}>{money(c.due)}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '900', color: colors.danger }}>{money(c.due)}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -671,9 +674,9 @@ export const GlobalVoiceBubble: React.FC<{ inModal?: boolean }> = ({ inModal = f
                       }}
                     >
                       {settling && m === settle.paymentMethod ? (
-                        <ActivityIndicator color="#000" />
+                        <ActivityIndicator color={colors.onPrimary} />
                       ) : (
-                        <Text style={{ fontWeight: '900', fontSize: 12, color: m === settle.paymentMethod ? '#000' : colors.primary }}>
+                        <Text style={{ fontWeight: '900', fontSize: 12, color: m === settle.paymentMethod ? colors.onPrimary : colors.primary }}>
                           {settle.amount > 0 ? 'Settle' : 'Settle All'} · {m === 'cash' ? 'Cash' : 'Online'}
                         </Text>
                       )}

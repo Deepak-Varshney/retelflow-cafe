@@ -34,11 +34,11 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={() => onClose(data.ref)}>
-      <View className="flex-1 justify-center items-center bg-black/70 px-5">
+      <View className="flex-1 justify-center items-center px-5" style={{ backgroundColor: colors.overlay }}>
         <View
           className="w-full max-w-sm rounded-3xl border p-5 shadow-2xl"
           style={{
-            backgroundColor: colors.card,
+            backgroundColor: colors.panel,
             borderColor: colors.primary,
           }}
         >
@@ -51,7 +51,7 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
               <Ionicons name="help-circle-outline" size={26} color={colors.primary} />
             </View>
             {position ? (
-              <Text className="text-[10px] font-black text-cyan-400 uppercase mb-0.5">{position}</Text>
+              <Text className="text-[10px] font-black uppercase mb-0.5" style={{ color: colors.primaryText }}>{position}</Text>
             ) : null}
             <Text className="text-base font-black text-center" style={{ color: colors.text }}>
               Which {data.itemName}?{data.qty && data.qty > 1 ? ` (x${data.qty})` : ''}
@@ -79,12 +79,12 @@ export const DisambiguationModal: React.FC<DisambiguationModalProps> = ({
                     {v.name}
                   </Text>
                   {data.qty && data.qty > 1 ? (
-                    <Text className="text-[11px] text-cyan-400 font-medium">
+                    <Text className="text-[11px] font-medium" style={{ color: colors.primaryText }}>
                       Qty: {data.qty} (Total: ₹{data.qty * v.price})
                     </Text>
                   ) : null}
                 </View>
-                <Text className="text-base font-extrabold text-cyan-400 font-mono">
+                <Text className="text-base font-extrabold font-mono" style={{ color: colors.primaryText }}>
                   ₹{v.price}
                 </Text>
               </TouchableOpacity>

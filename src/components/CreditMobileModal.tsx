@@ -34,18 +34,21 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 justify-center items-center bg-black/75 px-5">
+      <View className="flex-1 justify-center items-center px-5" style={{ backgroundColor: colors.overlay }}>
         <View
           className="w-full max-w-sm rounded-3xl border p-5 shadow-2xl"
           style={{
-            backgroundColor: colors.card,
-            borderColor: '#f59e0b',
+            backgroundColor: colors.panel,
+            borderColor: colors.warning,
           }}
         >
           {/* Icon & Title */}
           <View className="items-center mb-3">
-            <View className="w-14 h-14 rounded-full bg-cyan-500/20 border border-cyan-500/40 items-center justify-center mb-2">
-              <Ionicons name="alert-circle" size={32} color="#f59e0b" />
+            <View
+              className="w-14 h-14 rounded-full border items-center justify-center mb-2"
+              style={{ backgroundColor: colors.warningSoft, borderColor: colors.warning }}
+            >
+              <Ionicons name="alert-circle" size={32} color={colors.warning} />
             </View>
             <Text className="text-base font-black text-center" style={{ color: colors.text }}>
               Mobile Number Required
@@ -77,7 +80,7 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
               <Text className="text-xs font-medium" style={{ color: colors.textMuted }}>
                 Credit Amount (Udhar):
               </Text>
-              <Text className="text-sm font-extrabold text-rose-500 font-mono">
+              <Text className="text-sm font-extrabold font-mono" style={{ color: colors.danger }}>
                 ₹{dueAmount.toLocaleString()}
               </Text>
             </View>
@@ -92,10 +95,10 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
               className="flex-row items-center px-3.5 py-2.5 rounded-2xl border"
               style={{
                 backgroundColor: colors.inputBg,
-                borderColor: error ? '#f43f5e' : colors.border,
+                borderColor: error ? colors.danger : colors.border,
               }}
             >
-              <Text className="text-sm font-bold text-cyan-400 mr-2">+91</Text>
+              <Text className="text-sm font-bold mr-2" style={{ color: colors.primaryText }}>+91</Text>
               <TextInput
                 placeholder="98765 43210"
                 placeholderTextColor={colors.textMuted}
@@ -112,7 +115,7 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
               />
             </View>
             {error ? (
-              <Text className="text-[11px] text-rose-500 mt-1">{error}</Text>
+              <Text className="text-[11px] mt-1" style={{ color: colors.danger }}>{error}</Text>
             ) : null}
           </View>
 
@@ -130,9 +133,10 @@ export const CreditMobileModal: React.FC<CreditMobileModalProps> = ({
 
             <TouchableOpacity
               onPress={handleConfirm}
-              className="flex-1 py-3 rounded-xl items-center justify-center bg-cyan-500 shadow-md"
+              className="flex-1 py-3 rounded-xl items-center justify-center shadow-md"
+              style={{ backgroundColor: colors.primary }}
             >
-              <Text className="text-xs font-black text-black">
+              <Text className="text-xs font-black" style={{ color: colors.onPrimary }}>
                 Confirm & Bill
               </Text>
             </TouchableOpacity>

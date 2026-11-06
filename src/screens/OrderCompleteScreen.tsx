@@ -117,8 +117,8 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
       <ScrollView contentContainerStyle={{ padding: 20, alignItems: 'center' }}>
         <View className="w-full max-w-md items-center">
           {/* Success Icon */}
-          <View className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 items-center justify-center mt-2 mb-2">
-            <Ionicons name="checkmark" size={34} color="#10b981" />
+          <View className="w-16 h-16 rounded-full border-2 items-center justify-center mt-2 mb-2" style={{ backgroundColor: colors.successSoft, borderColor: colors.success }}>
+            <Ionicons name="checkmark" size={34} color={colors.success} />
           </View>
 
           <Text className="text-xl font-black text-center" style={{ color: colors.text }}>
@@ -134,9 +134,9 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
           </View>
 
           {notice ? (
-            <View className="w-full mb-3 px-3 py-2 rounded-xl bg-emerald-500/15 flex-row items-center gap-2">
-              <Ionicons name="images-outline" size={16} color="#10b981" />
-              <Text className="text-xs font-bold text-emerald-500">{notice}</Text>
+            <View className="w-full mb-3 px-3 py-2 rounded-xl flex-row items-center gap-2" style={{ backgroundColor: colors.successSoft }}>
+              <Ionicons name="images-outline" size={16} color={colors.success} />
+              <Text className="text-xs font-bold" style={{ color: colors.success }}>{notice}</Text>
             </View>
           ) : null}
 
@@ -148,8 +148,8 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
               className="w-full py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-xl"
               style={{ backgroundColor: colors.primary }}
             >
-              <Ionicons name="home" size={20} color="#020617" />
-              <Text className="text-sm font-black text-slate-950 tracking-wider uppercase">Back to Home</Text>
+              <Ionicons name="home" size={20} color={colors.onPrimary} />
+              <Text className="text-sm font-black tracking-wider uppercase" style={{ color: colors.onPrimary }}>Back to Home</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -157,14 +157,14 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
               disabled={isPrinting}
               activeOpacity={0.8}
               className="w-full py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-md"
-              style={{ backgroundColor: 'rgba(7, 15, 36, 0.9)', borderWidth: 1.5, borderColor: '#00d2ff' }}
+              style={{ backgroundColor: colors.pillBg, borderWidth: 1.5, borderColor: colors.primary }}
             >
               {isPrinting ? (
-                <ActivityIndicator size="small" color="#38bdf8" />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Ionicons name="print" size={19} color="#38bdf8" />
+                <Ionicons name="print" size={19} color={colors.primary} />
               )}
-              <Text className="text-xs font-black text-sky-400 uppercase tracking-wider">
+              <Text className="text-xs font-black uppercase tracking-wider" style={{ color: colors.primaryText }}>
                 {isPrinting ? 'Printing Receipt...' : 'Print Receipt'}
               </Text>
             </TouchableOpacity>

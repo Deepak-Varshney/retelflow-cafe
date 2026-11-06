@@ -157,7 +157,7 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
           </Text>
         </View>
 
-        <TouchableOpacity onPress={loadOrders} className="p-2 rounded-xl bg-slate-800/40">
+        <TouchableOpacity onPress={loadOrders} className="p-2 rounded-xl" style={{ backgroundColor: colors.subtle }}>
           <Ionicons name="refresh" size={18} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -168,8 +168,8 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
           className="flex-1 p-4 rounded-3xl border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
-          <Text className="text-[11px] font-bold text-slate-400">Total Sales</Text>
-          <Text className="text-xl font-black text-cyan-400 font-mono mt-1">
+          <Text className="text-[11px] font-bold" style={{ color: colors.textMuted }}>Total Sales</Text>
+          <Text className="text-xl font-black font-mono mt-1" style={{ color: colors.primaryText }}>
             ₹{totalSales.toLocaleString()}
           </Text>
         </View>
@@ -178,7 +178,7 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
           className="flex-1 p-4 rounded-3xl border"
           style={{ backgroundColor: colors.card, borderColor: colors.border }}
         >
-          <Text className="text-[11px] font-bold text-slate-400">Total Orders</Text>
+          <Text className="text-[11px] font-bold" style={{ color: colors.textMuted }}>Total Orders</Text>
           <Text className="text-xl font-black font-mono mt-1" style={{ color: colors.text }}>
             {totalOrders}
           </Text>
@@ -210,7 +210,7 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
 
       {/* Orders List */}
       {voiceFilter ? (
-        <View className="mx-4 mt-2 px-3 py-2 rounded-2xl border flex-row items-center" style={{ borderColor: colors.primary }}>
+        <View className="mx-4 mt-2 px-3 py-2 rounded-2xl border flex-row items-center" style={{ backgroundColor: colors.primarySoft, borderColor: colors.primary }}>
           <Ionicons name="mic" size={13} color={colors.primary} />
           <Text className="text-xs font-bold ml-1.5 flex-1" style={{ color: colors.text }} numberOfLines={1}>
             {[
@@ -258,8 +258,8 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
               >
                 <View className="flex-row items-center justify-between mb-1.5">
                   <View className="flex-row items-center gap-2 flex-1 pr-2 flex-wrap">
-                    <View className="px-2 py-0.5 rounded-md bg-cyan-500/20">
-                      <Text className="text-[10px] font-black text-cyan-400">
+                    <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: colors.primarySoft }}>
+                      <Text className="text-[10px] font-black" style={{ color: colors.primaryText }}>
                         Token #{item.orderNumber || item.invoiceNumber?.slice(-3) || item.id?.slice(-3) || '01'}
                       </Text>
                     </View>
@@ -274,17 +274,17 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
                   </View>
 
                   <View className="items-end">
-                    <Text className="text-sm font-black text-cyan-400 font-mono">
+                    <Text className="text-sm font-black font-mono" style={{ color: colors.primaryText }}>
                       ₹{billAmount.toLocaleString()}
                     </Text>
                     {orderTime ? (
-                      <Text className="text-[9px] text-slate-400 font-mono">{orderTime}</Text>
+                      <Text className="text-[9px] font-mono" style={{ color: colors.textMuted }}>{orderTime}</Text>
                     ) : null}
                   </View>
                 </View>
 
                 {/* Items */}
-                <Text className="text-[11px] text-slate-400 mt-0.5" numberOfLines={1}>
+                <Text className="text-[11px] mt-0.5" style={{ color: colors.textMuted }} numberOfLines={1}>
                   {item.items?.map((it: any) => `${it.qty}x ${it.name}`).join(', ') || 'Item list'}
                 </Text>
 
@@ -293,10 +293,10 @@ export const OrdersHistoryScreen: React.FC<OrdersHistoryScreenProps> = ({
                     className="mt-2 pt-1 border-t flex-row justify-between"
                     style={{ borderColor: colors.border }}
                   >
-                    <Text className="text-[10px] text-rose-500 font-bold">
+                    <Text className="text-[10px] font-bold" style={{ color: colors.danger }}>
                       Credit / Due: ₹{dueAmt.toLocaleString()}
                     </Text>
-                    <Text className="text-[10px] text-slate-400">
+                    <Text className="text-[10px]" style={{ color: colors.textMuted }}>
                       Phone: {custPhone ? `+91 ${custPhone}` : 'N/A'}
                     </Text>
                   </View>

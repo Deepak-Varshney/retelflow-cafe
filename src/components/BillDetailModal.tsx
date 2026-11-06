@@ -87,7 +87,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/70">
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
         <TouchableOpacity
           activeOpacity={1}
           onPress={onClose}
@@ -95,7 +95,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
         />
         <View
           className="rounded-t-3xl border-t px-4 pt-4 pb-5 w-full self-center"
-          style={{ backgroundColor: colors.card, borderColor: colors.border, maxHeight: '90%', maxWidth: 640 }}
+          style={{ backgroundColor: colors.panel, borderColor: colors.border, maxHeight: '90%', maxWidth: 640 }}
         >
           <View className="flex-row items-center justify-between pb-3">
             <View className="flex-1 pr-2">
@@ -118,7 +118,7 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
           </ScrollView>
 
           {notice ? (
-            <Text className="text-xs font-bold text-emerald-500 text-center mt-2">{notice}</Text>
+            <Text className="text-xs font-bold text-center mt-2" style={{ color: colors.success }}>{notice}</Text>
           ) : null}
 
           {features.reprintBills ? (
@@ -127,10 +127,10 @@ export const BillDetailModal: React.FC<BillDetailModalProps> = ({
                 onPress={handlePrint}
                 disabled={printing}
                 className="flex-1 py-3 rounded-2xl flex-row items-center justify-center gap-1.5"
-                style={{ backgroundColor: '#1e293b', borderWidth: 1.5, borderColor: '#38bdf8' }}
+                style={{ backgroundColor: colors.primarySoft, borderWidth: 1.5, borderColor: colors.primary }}
               >
-                {printing ? <ActivityIndicator size="small" color="#38bdf8" /> : <Ionicons name="print" size={17} color="#38bdf8" />}
-                <Text className="text-xs font-black text-sky-400 uppercase">Reprint</Text>
+                {printing ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="print" size={17} color={colors.primaryText} />}
+                <Text className="text-xs font-black uppercase" style={{ color: colors.primaryText }}>Reprint</Text>
               </TouchableOpacity>
               {receipt.customerPhone ? (
                 <TouchableOpacity

@@ -31,7 +31,7 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
   onProceed,
   proceedLabel = 'Proceed to Customer Details',
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const total = cart.reduce((s, it) => s + it.qty * it.price, 0);
   const totalQty = cart.reduce((s, it) => s + it.qty, 0);
 
@@ -83,7 +83,7 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/75">
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
         <TouchableOpacity
           activeOpacity={1}
           onPress={onClose}
@@ -94,8 +94,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
         <View
           className="border-t px-4 pt-3 pb-6 w-full self-center"
           style={{
-            backgroundColor: isDark ? 'rgba(7, 15, 36, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-            borderColor: isDark ? 'rgba(0, 210, 255, 0.25)' : 'rgba(0, 0, 0, 0.08)',
+            backgroundColor: colors.panel,
+            borderColor: colors.border,
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             maxHeight: '90%',
@@ -110,20 +110,20 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
           {/* Sheet Handle Bar */}
           <View
             className="w-12 h-1 rounded-full self-center mb-3"
-            style={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)' }}
+            style={{ backgroundColor: colors.subtle }}
           />
 
           {/* Frosted Glass Header */}
           <View
             className="flex-row items-center justify-between pb-3.5 border-b"
-            style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }}
+            style={{ borderColor: colors.border }}
           >
             <View className="flex-row items-center gap-2.5">
               <View
                 className="w-9 h-9 rounded-xl items-center justify-center border"
                 style={{
-                  backgroundColor: isDark ? 'rgba(0, 210, 255, 0.14)' : 'rgba(2, 132, 199, 0.12)',
-                  borderColor: isDark ? 'rgba(0, 210, 255, 0.35)' : 'rgba(2, 132, 199, 0.25)',
+                  backgroundColor: colors.badgeBg,
+                  borderColor: colors.glassBorder,
                 }}
               >
                 <Ionicons name="receipt-outline" size={18} color={colors.primary} />
@@ -135,11 +135,11 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                   </Text>
                   <View
                     className="px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: isDark ? 'rgba(0, 210, 255, 0.15)' : 'rgba(2, 132, 199, 0.15)' }}
+                    style={{ backgroundColor: colors.primarySoft }}
                   >
                     <Text
                       className="text-[10px] font-black"
-                      style={{ color: isDark ? '#38bdf8' : '#0284c7' }}
+                      style={{ color: colors.primaryText }}
                     >
                       {totalQty} {totalQty === 1 ? 'item' : 'items'}
                     </Text>
@@ -157,12 +157,12 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                   onPress={clearAll}
                   className="px-2.5 py-1 rounded-lg border"
                   style={{
-                    backgroundColor: isDark ? 'rgba(244, 63, 94, 0.1)' : 'rgba(244, 63, 94, 0.08)',
-                    borderColor: 'rgba(244, 63, 94, 0.25)',
+                    backgroundColor: colors.dangerSoft,
+                    borderColor: colors.dangerSoft,
                   }}
                   hitSlop={6}
                 >
-                  <Text className="text-[11px] font-bold text-rose-500">Clear</Text>
+                  <Text className="text-[11px] font-bold" style={{ color: colors.danger }}>Clear</Text>
                 </TouchableOpacity>
               ) : null}
 
@@ -172,8 +172,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                 hitSlop={8}
                 className="w-8 h-8 rounded-full items-center justify-center border"
                 style={{
-                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
-                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+                  backgroundColor: colors.inputBg,
+                  borderColor: colors.border,
                 }}
               >
                 <Ionicons name="close" size={18} color={colors.text} />
@@ -192,8 +192,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                 <View
                   className="w-14 h-14 rounded-2xl items-center justify-center mb-3 border"
                   style={{
-                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
-                    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.border,
                   }}
                 >
                   <Ionicons name="cart-outline" size={28} color={colors.textMuted} />
@@ -217,8 +217,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                     key={item.id}
                     className="p-3 mb-2.5 rounded-2xl border"
                     style={{
-                      backgroundColor: isDark ? 'rgba(9, 18, 44, 0.85)' : 'rgba(248, 250, 252, 0.95)',
-                      borderColor: isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(0, 0, 0, 0.07)',
+                      backgroundColor: colors.inputBg,
+                      borderColor: colors.border,
                     }}
                   >
                     {/* Top Row: Name, Diet Icon & High-Contrast Price */}
@@ -255,7 +255,7 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                       {/* High-Contrast Line Subtotal */}
                       <Text
                         className="text-base font-black font-mono"
-                        style={{ color: colors.primary }}
+                        style={{ color: colors.primaryText }}
                       >
                         ₹{(item.qty * item.price).toLocaleString()}
                       </Text>
@@ -272,21 +272,13 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                               onPress={() => changeVariant(item, v)}
                               className="px-2.5 py-1 rounded-xl border"
                               style={{
-                                backgroundColor: active
-                                  ? colors.primary
-                                  : isDark
-                                  ? 'rgba(255, 255, 255, 0.04)'
-                                  : 'rgba(0, 0, 0, 0.03)',
-                                borderColor: active
-                                  ? colors.primary
-                                  : isDark
-                                  ? 'rgba(255, 255, 255, 0.08)'
-                                  : 'rgba(0, 0, 0, 0.06)',
+                                backgroundColor: active ? colors.primary : colors.panel,
+                                borderColor: active ? colors.primary : colors.border,
                               }}
                             >
                               <Text
                                 className="text-[11px] font-bold"
-                                style={{ color: active ? '#000000' : colors.text }}
+                                style={{ color: active ? colors.onPrimary : colors.text }}
                               >
                                 {v.name} • ₹{v.price}
                               </Text>
@@ -297,13 +289,13 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                     ) : null}
 
                     {/* Bottom Row: Tactile +/- Stepper & Tactile Remove Pill */}
-                    <View className="flex-row items-center justify-between mt-3 pt-2.5 border-t" style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)' }}>
+                    <View className="flex-row items-center justify-between mt-3 pt-2.5 border-t" style={{ borderColor: colors.border }}>
                       {/* Tactile Stepper */}
                       <View
                         className="flex-row items-center rounded-xl border"
                         style={{
-                          borderColor: isDark ? 'rgba(0, 210, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)',
-                          backgroundColor: isDark ? 'rgba(5, 12, 30, 0.85)' : '#f1f5f9',
+                          borderColor: colors.border,
+                          backgroundColor: colors.panel,
                         }}
                       >
                         <TouchableOpacity
@@ -333,12 +325,12 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                       {/* Tactile Remove Pill */}
                       <TouchableOpacity
                         onPress={() => remove(item.id)}
-                        className="flex-row items-center px-2.5 py-1.5 rounded-lg border border-rose-500/20 active:bg-rose-500/20"
-                        style={{ backgroundColor: 'rgba(244, 63, 94, 0.08)' }}
+                        className="flex-row items-center px-2.5 py-1.5 rounded-lg border"
+                        style={{ backgroundColor: colors.dangerSoft, borderColor: colors.dangerSoft }}
                         hitSlop={6}
                       >
-                        <Ionicons name="trash-outline" size={14} color="#f43f5e" />
-                        <Text className="text-[11px] font-bold text-rose-500 ml-1">Remove</Text>
+                        <Ionicons name="trash-outline" size={14} color={colors.danger} />
+                        <Text className="text-[11px] font-bold ml-1" style={{ color: colors.danger }}>Remove</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -352,8 +344,8 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
             <View
               className="mt-3 p-3.5 rounded-2xl border"
               style={{
-                backgroundColor: isDark ? 'rgba(9, 18, 44, 0.90)' : 'rgba(241, 245, 249, 0.95)',
-                borderColor: isDark ? 'rgba(0, 210, 255, 0.35)' : 'rgba(2, 132, 199, 0.30)',
+                backgroundColor: colors.primarySoft,
+                borderColor: colors.primarySoftBorder,
               }}
             >
               <View className="flex-row items-center justify-between">
@@ -369,14 +361,14 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                 <Text className="text-xs" style={{ color: colors.textSecondary }}>
                   Taxes & Charges
                 </Text>
-                <Text className="text-xs font-bold text-emerald-500">
+                <Text className="text-xs font-bold" style={{ color: colors.success }}>
                   Included
                 </Text>
               </View>
 
               <View
                 className="my-2 border-t"
-                style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }}
+                style={{ borderColor: colors.border }}
               />
 
               <View className="flex-row items-center justify-between">
@@ -385,7 +377,7 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                 </Text>
                 <Text
                   className="text-xl font-black font-mono tracking-tight"
-                  style={{ color: colors.primary }}
+                  style={{ color: colors.primaryText }}
                 >
                   ₹{total.toLocaleString()}
                 </Text>
@@ -399,7 +391,7 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
               onPress={onProceed || onClose}
               disabled={cart.length === 0}
               activeOpacity={0.8}
-              className="w-full py-3.5 px-4 rounded-2xl flex-row items-center justify-center gap-2 border border-white/20 active:scale-[0.99]"
+              className="w-full py-3.5 px-4 rounded-2xl flex-row items-center justify-center gap-2 active:scale-[0.99]"
               style={{
                 backgroundColor: colors.primary,
                 opacity: cart.length === 0 ? 0.5 : 1,
@@ -410,10 +402,10 @@ export const CartReviewModal: React.FC<CartReviewModalProps> = ({
                 elevation: 6,
               }}
             >
-              <Text className="text-xs font-black text-slate-950 uppercase tracking-wider">
+              <Text className="text-xs font-black uppercase tracking-wider" style={{ color: colors.onPrimary }}>
                 {onProceed ? proceedLabel : 'Done'}
               </Text>
-              {onProceed ? <Ionicons name="arrow-forward" size={17} color="#020617" /> : null}
+              {onProceed ? <Ionicons name="arrow-forward" size={17} color={colors.onPrimary} /> : null}
             </TouchableOpacity>
           </View>
         </View>

@@ -4,7 +4,10 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -46,6 +49,28 @@ class ThermalPrinterModule : Module() {
   private val prefs
     get() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+  // Bluetooth switched off: the printer socket is dead even though the SDK
+  // still says "connected". Drop it so the next print reconnects cleanly
+  // instead of writing into a dead socket and hanging.
+  private var bluetoothReceiver: BroadcastReceiver? = null
+  private fun watchBluetooth() {
+    if (bluetoothReceiver != null) return
+    val receiver = object : BroadcastReceiver() {
+      override fun onReceive(ctx: Context?, intent: Intent?) {
+        val state = intent?.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+        if (state == BluetoothAdapter.STATE_TURNING_OFF || state == BluetoothAdapter.STATE_OFF) {
+          closeConnection()
+          settleConnect { it.reject(PrinterException("BLUETOOTH_DISABLED", "Bluetooth is turned off on your phone. Please turn it on.")) }
+          emitState(false)
+        }
+      }
+    }
+    try {
+      context.registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+      bluetoothReceiver = receiver
+    } catch (_: Exception) {}
+  }
+
   // The SDK reports connection state through an android.os.Handler.
   private val sdkHandler = Handler(Looper.getMainLooper()) { msg ->
     when (msg.what) {
@@ -80,6 +105,10 @@ class ThermalPrinterModule : Module() {
 
     Events("onConnectionChange")
 
+    OnCreate {
+      watchBluetooth()
+    }
+
     Function("isConnected") {
       printer?.isConnected == true
     }
@@ -112,6 +141,14 @@ class ThermalPrinterModule : Module() {
 
     // Runs on the module's background queue, so blocking socket writes are fine here.
     AsyncFunction("print") { commands: List<Map<String, Any?>>, options: Map<String, Any?>? ->
+      // Bluetooth off / permission gone: say so right away instead of a dead write
+      try {
+        requireAdapter()
+      } catch (e: CodedException) {
+        closeConnection()
+        emitState(false)
+        throw e
+      }
       val p = printer
       if (p == null || !p.isConnected) {
         throw PrinterException("PRINTER_NOT_CONNECTED", "Printer is not connected")
@@ -128,6 +165,12 @@ class ThermalPrinterModule : Module() {
 
     OnDestroy {
       closeConnection()
+      bluetoothReceiver?.let {
+        try {
+          context.unregisterReceiver(it)
+        } catch (_: Exception) {}
+      }
+      bluetoothReceiver = null
     }
   }
 

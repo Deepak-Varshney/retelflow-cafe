@@ -42,7 +42,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
   shopName = 'Cafe Counter',
   voiceMode = 'stream',
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [search, setSearch] = useState('');
   const pressStartRef = useRef(0);
@@ -245,7 +245,7 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
             <Text className="text-base font-black tracking-tight" style={{ color: colors.text }}>
               {shopName}
             </Text>
-            <Text className="text-[11px] font-semibold text-cyan-400">
+            <Text className="text-[11px] font-semibold" style={{ color: colors.primaryText }}>
               New Dine-In / Takeaway Order
             </Text>
           </View>
@@ -334,10 +334,11 @@ export const NewOrderScreen: React.FC<NewOrderScreenProps> = ({
                   refreshMenu();
                 }}
                 activeOpacity={0.8}
-                className="flex-row items-center px-4 py-2.5 rounded-2xl bg-cyan-500 shadow-md active:scale-95"
+                className="flex-row items-center px-4 py-2.5 rounded-2xl shadow-md active:scale-95"
+                style={{ backgroundColor: colors.primary }}
               >
-                <Ionicons name="reload" size={16} color="#000000" className="mr-1.5" />
-                <Text className="text-xs font-black text-black uppercase tracking-wider ml-1">
+                <Ionicons name="reload" size={16} color={colors.onPrimary} className="mr-1.5" />
+                <Text className="text-xs font-black uppercase tracking-wider ml-1" style={{ color: colors.onPrimary }}>
                   Reset Filter & Refresh
                 </Text>
               </TouchableOpacity>

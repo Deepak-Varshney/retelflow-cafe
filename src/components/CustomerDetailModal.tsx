@@ -32,7 +32,9 @@ const fmtTime = (d?: string) => (d ? new Date(d).toLocaleTimeString([], { hour: 
 const rs = (n?: number) => `₹${(Number(n) || 0).toLocaleString()}`;
 
 export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ customer, features, onClose, onChanged }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  // Text on the green "Save payment" button (green is lighter in dark mode)
+  const onSuccess = isDark ? '#04140d' : '#ffffff';
   const [ledger, setLedger] = useState<CustomerLedger | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -100,8 +102,8 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
   const renderEntry = (e: LedgerEntry) =>
     e.type === 'bill' ? (
       <View key={e.id} className="flex-row items-start py-2.5 border-b" style={{ borderColor: colors.border }}>
-        <View className="w-8 h-8 rounded-xl items-center justify-center mr-2.5 bg-cyan-500/15">
-          <Ionicons name="receipt-outline" size={15} color="#f59e0b" />
+        <View className="w-8 h-8 rounded-xl items-center justify-center mr-2.5" style={{ backgroundColor: colors.badgeBg }}>
+          <Ionicons name="receipt-outline" size={15} color={colors.primary} />
         </View>
         <View className="flex-1 pr-2">
           <Text className="text-xs font-bold" style={{ color: colors.text }}>
@@ -116,16 +118,16 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
             {rs(e.total)}
           </Text>
           {(e.dueNow || 0) > 0 ? (
-            <Text className="text-[10px] font-bold text-rose-500">Due {rs(e.dueNow)}</Text>
+            <Text className="text-[10px] font-bold" style={{ color: colors.danger }}>Due {rs(e.dueNow)}</Text>
           ) : (
-            <Text className="text-[10px] font-bold text-emerald-500">Paid</Text>
+            <Text className="text-[10px] font-bold" style={{ color: colors.success }}>Paid</Text>
           )}
         </View>
       </View>
     ) : (
       <View key={e.id} className="flex-row items-start py-2.5 border-b" style={{ borderColor: colors.border }}>
-        <View className="w-8 h-8 rounded-xl items-center justify-center mr-2.5 bg-emerald-500/15">
-          <Ionicons name="cash-outline" size={15} color="#10b981" />
+        <View className="w-8 h-8 rounded-xl items-center justify-center mr-2.5" style={{ backgroundColor: colors.successSoft }}>
+          <Ionicons name="cash-outline" size={15} color={colors.success} />
         </View>
         <View className="flex-1 pr-2">
           <Text className="text-xs font-bold" style={{ color: colors.text }}>
@@ -136,7 +138,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
             {e.dueAfter !== undefined ? ` • Due after: ${rs(e.dueAfter)}` : ''}
           </Text>
         </View>
-        <Text className="text-xs font-black font-mono text-emerald-500">+{rs(e.amount)}</Text>
+        <Text className="text-xs font-black font-mono" style={{ color: colors.success }}>+{rs(e.amount)}</Text>
       </View>
     );
 
@@ -153,7 +155,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/70">
+      <View className="flex-1 justify-end" style={{ backgroundColor: colors.overlay }}>
         <TouchableOpacity
           activeOpacity={1}
           onPress={onClose}
@@ -161,7 +163,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
         />
         <View
           className="rounded-t-3xl border-t px-4 pt-4 pb-5 w-full self-center"
-          style={{ backgroundColor: colors.card, borderColor: colors.border, height: '88%', maxWidth: 640 }}
+          style={{ backgroundColor: colors.panel, borderColor: colors.border, height: '88%', maxWidth: 640 }}
         >
           {/* Header */}
           <View className="flex-row items-center pb-3 border-b" style={{ borderColor: colors.border }}>
@@ -186,7 +188,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
           <ScrollView className="flex-1" contentContainerStyle={{ paddingVertical: 12 }} keyboardShouldPersistTaps="handled">
             {/* Summary */}
             <View className="flex-row flex-wrap gap-2 mb-3">
-              <Tile label="Udhar / Due now" value={rs(due)} color={due > 0 ? '#f43f5e' : '#10b981'} />
+              <Tile label="Udhar / Due now" value={rs(due)} color={due > 0 ? colors.danger : colors.success} />
               <Tile label="Total bills" value={rs(ledger?.billed ?? customer.total)} />
               <Tile label="Visits" value={String(bills.length || customer.visits || 0)} />
               <Tile label="Last order" value={fmtDate(lastBill?.date || customer.lastSaleDate)} />
@@ -194,7 +196,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
 
             {/* Receive payment */}
             {due > 0 ? (
-              <View className="p-3 rounded-2xl border mb-3" style={{ borderColor: '#f43f5e55', backgroundColor: colors.surface }}>
+              <View className="p-3 rounded-2xl border mb-3" style={{ borderColor: colors.danger, backgroundColor: colors.dangerSoft }}>
                 <Text className="text-xs font-black mb-2" style={{ color: colors.text }}>
                   Receive payment
                 </Text>
@@ -203,7 +205,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
                     className="flex-1 flex-row items-center px-3 py-2 rounded-xl border"
                     style={{ borderColor: colors.border, backgroundColor: colors.inputBg }}
                   >
-                    <Text className="text-sm font-bold text-cyan-400 mr-1">₹</Text>
+                    <Text className="text-sm font-bold mr-1" style={{ color: colors.primaryText }}>₹</Text>
                     <TextInput
                       value={payAmount}
                       onChangeText={setPayAmount}
@@ -224,7 +226,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
                         borderColor: payMethod === m ? colors.primary : colors.border,
                       }}
                     >
-                      <Text className="text-[11px] font-black" style={{ color: payMethod === m ? '#000' : colors.text }}>
+                      <Text className="text-[11px] font-black" style={{ color: payMethod === m ? colors.onPrimary : colors.text }}>
                         {m === 'cash' ? 'Cash' : 'UPI'}
                       </Text>
                     </TouchableOpacity>
@@ -243,12 +245,13 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
                   <TouchableOpacity
                     onPress={handleReceive}
                     disabled={saving}
-                    className="flex-1 py-2 rounded-xl items-center justify-center bg-emerald-500"
+                    className="flex-1 py-2 rounded-xl items-center justify-center"
+                    style={{ backgroundColor: colors.success }}
                   >
                     {saving ? (
-                      <ActivityIndicator size="small" color="#fff" />
+                      <ActivityIndicator size="small" color={onSuccess} />
                     ) : (
-                      <Text className="text-xs font-black text-white">Save payment</Text>
+                      <Text className="text-xs font-black" style={{ color: onSuccess }}>Save payment</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -259,7 +262,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ custom
               <ActivityIndicator className="my-6" color={colors.primary} />
             ) : error ? (
               <TouchableOpacity onPress={load} className="items-center my-6">
-                <Text className="text-xs text-rose-500 font-semibold text-center">{error}</Text>
+                <Text className="text-xs font-semibold text-center" style={{ color: colors.danger }}>{error}</Text>
                 <Text className="text-xs font-bold mt-1" style={{ color: colors.primary }}>
                   Tap to retry
                 </Text>

@@ -40,12 +40,10 @@ export const FoodItemCard = React.memo(function FoodItemCard({
 
   const defaultVariant = item.variants?.find((v) => v.isDefault) || item.variants?.[0];
   const isVeg = item.isVeg !== false;
-  const vegColor = isVeg ? (colors.neonMint || '#10b981') : '#ef4444';
+  const vegColor = isVeg ? '#10b981' : '#ef4444';
 
   // Liquid Glass luminous border: subtle translucent cyan rim -> glowing electric cyan when in cart
-  const borderColor = inCart
-    ? (isDark ? 'rgba(0, 210, 255, 0.50)' : 'rgba(2, 132, 199, 0.40)')
-    : (colors.bentoBorder || (isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(0, 0, 0, 0.08)'));
+  const borderColor = inCart ? colors.glassBorderActive : colors.bentoBorder;
 
   return (
     <TouchableOpacity
@@ -58,9 +56,9 @@ export const FoodItemCard = React.memo(function FoodItemCard({
           backgroundColor: isDark ? colors.cardBento : colors.surface,
           borderColor,
           borderTopColor: inCart
-            ? (isDark ? 'rgba(0, 210, 255, 0.70)' : '#0284c7')
-            : (isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(255, 255, 255, 0.7)'),
-          shadowColor: inCart ? (colors.primary || '#00d2ff') : '#000000',
+            ? colors.primary
+            : (isDark ? colors.bentoBorder : 'rgba(255, 255, 255, 0.7)'),
+          shadowColor: inCart ? colors.primary : '#000000',
           shadowOpacity: inCart ? (isDark ? 0.42 : 0.18) : (isDark ? 0.22 : 0.05),
           shadowRadius: inCart ? 10 : 4,
           elevation: inCart ? 4 : 1,
@@ -99,7 +97,7 @@ export const FoodItemCard = React.memo(function FoodItemCard({
           style={[
             styles.vegBadgePill,
             {
-              backgroundColor: isDark ? 'rgba(7, 15, 36, 0.90)' : 'rgba(255, 255, 255, 0.95)',
+              backgroundColor: colors.panel,
               borderColor: `${vegColor}40`,
             },
           ]}
@@ -136,12 +134,12 @@ export const FoodItemCard = React.memo(function FoodItemCard({
               style={[
                 styles.optionsPill,
                 {
-                  backgroundColor: colors.pillBg || 'rgba(0, 210, 255, 0.08)',
-                  borderColor: isDark ? 'rgba(0, 210, 255, 0.20)' : 'rgba(0, 0, 0, 0.08)',
+                  backgroundColor: colors.pillBg,
+                  borderColor: colors.glassBorder,
                 },
               ]}
             >
-              <Text style={[styles.optionsHint, { color: colors.primary }]}>
+              <Text style={[styles.optionsHint, { color: colors.primaryText }]}>
                 Options ▾
               </Text>
             </View>
@@ -161,14 +159,14 @@ export const FoodItemCard = React.memo(function FoodItemCard({
             style={[
               styles.addButton,
               {
-                backgroundColor: isDark ? 'rgba(0, 210, 255, 0.14)' : 'rgba(2, 132, 199, 0.10)',
-                borderColor: isDark ? 'rgba(0, 210, 255, 0.40)' : 'rgba(2, 132, 199, 0.30)',
+                backgroundColor: colors.badgeBg,
+                borderColor: colors.glassBorderActive,
                 shadowColor: colors.primary,
               },
             ]}
           >
-            <Ionicons name="add" size={14} color={colors.primary} style={{ marginRight: 2 }} />
-            <Text style={[styles.addButtonText, { color: colors.primary }]}>+ Add</Text>
+            <Ionicons name="add" size={14} color={colors.primaryText} style={{ marginRight: 2 }} />
+            <Text style={[styles.addButtonText, { color: colors.primaryText }]}>+ Add</Text>
           </TouchableOpacity>
         ) : (
           /* High-contrast tactile pill with - and + buttons and glowing badge */
@@ -176,7 +174,7 @@ export const FoodItemCard = React.memo(function FoodItemCard({
             style={[
               styles.qtyPill,
               {
-                backgroundColor: isDark ? colors.cardBento : '#ffffff',
+                backgroundColor: colors.panel,
                 borderColor: colors.primary,
                 shadowColor: colors.primary,
               },
@@ -188,18 +186,18 @@ export const FoodItemCard = React.memo(function FoodItemCard({
               style={styles.qtyBtn}
               hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             >
-              <Ionicons name="remove" size={14} color="#ef4444" />
+              <Ionicons name="remove" size={14} color={colors.danger} />
             </TouchableOpacity>
 
             <View
               style={[
                 styles.qtyBadge,
                 {
-                  backgroundColor: isDark ? 'rgba(0, 210, 255, 0.20)' : 'rgba(2, 132, 199, 0.12)',
+                  backgroundColor: colors.badgeBg,
                 },
               ]}
             >
-              <Text style={[styles.qtyText, { color: colors.primary }]}>
+              <Text style={[styles.qtyText, { color: colors.primaryText }]}>
                 {currentQty}
               </Text>
             </View>

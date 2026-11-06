@@ -19,7 +19,7 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
@@ -64,9 +64,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           {/* Logo & Cafe Header */}
           <View className="items-center mb-8">
             <View
-              className="w-20 h-20 rounded-[22px] items-center justify-center mb-3.5 border shadow-lg bg-white"
+              className="w-20 h-20 rounded-[22px] items-center justify-center mb-3.5 border shadow-lg"
               style={{
-                borderColor: 'rgba(2, 132, 199, 0.25)',
+                backgroundColor: colors.panel,
+                borderColor: colors.glassBorder,
                 shadowColor: colors.primary,
                 shadowOffset: { width: 0, height: 6 },
                 shadowOpacity: 0.15,
@@ -88,8 +89,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               <Text className="text-3xl font-black tracking-tight" style={{ color: colors.primary }}>
                 Flow
               </Text>
-              <View className="ml-2 px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-200">
-                <Text className="text-[11px] font-black text-sky-600 uppercase tracking-wider">
+              <View
+                className="ml-2 px-2.5 py-0.5 rounded-full border"
+                style={{ backgroundColor: colors.primarySoft, borderColor: colors.primarySoftBorder }}
+              >
+                <Text className="text-[11px] font-black uppercase tracking-wider" style={{ color: colors.primaryText }}>
                   Cafe
                 </Text>
               </View>
@@ -108,9 +112,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             }}
           >
             {error ? (
-              <View className="p-3 mb-4 rounded-xl bg-rose-500/15 border border-rose-500/30 flex-row items-center gap-2">
-                <Ionicons name="alert-circle" size={16} color="#f43f5e" />
-                <Text className="text-xs text-rose-500 flex-1 font-medium">{error}</Text>
+              <View
+                className="p-3 mb-4 rounded-xl border flex-row items-center gap-2"
+                style={{ backgroundColor: colors.dangerSoft, borderColor: colors.danger }}
+              >
+                <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                <Text className="text-xs flex-1 font-medium" style={{ color: colors.danger }}>{error}</Text>
               </View>
             ) : null}
 
@@ -184,9 +191,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               style={{ backgroundColor: colors.primary }}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#000" />
+                <ActivityIndicator size="small" color={colors.onPrimary} />
               ) : (
-                <Text className="text-sm font-black text-slate-950 tracking-wider uppercase">
+                <Text className="text-sm font-black tracking-wider uppercase" style={{ color: colors.onPrimary }}>
                   Login to Counter
                 </Text>
               )}

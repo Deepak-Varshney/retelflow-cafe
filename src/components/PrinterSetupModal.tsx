@@ -107,10 +107,10 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 justify-center items-center bg-black/75 px-5">
+      <View className="flex-1 justify-center items-center px-5" style={{ backgroundColor: colors.overlay }}>
         <View
           className="w-full max-w-sm rounded-3xl border p-5 shadow-2xl"
-          style={{ backgroundColor: colors.card, borderColor: colors.border, maxHeight: '85%' }}
+          style={{ backgroundColor: colors.panel, borderColor: colors.border, maxHeight: '85%' }}
         >
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center">
@@ -128,10 +128,10 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
           {onConnected || reason ? (
             <View
               className="flex-row items-center gap-2 p-2.5 mb-3 rounded-2xl border"
-              style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)' }}
+              style={{ backgroundColor: colors.primarySoft, borderColor: colors.primarySoftBorder }}
             >
-              <Ionicons name="print" size={16} color="#f59e0b" />
-              <Text className="text-xs font-bold text-cyan-400 flex-1">
+              <Ionicons name="print" size={16} color={colors.primary} />
+              <Text className="text-xs font-bold flex-1" style={{ color: colors.primaryText }}>
                 {reason || 'Connect your printer to resume printing the bill automatically.'}
               </Text>
             </View>
@@ -151,7 +151,7 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
             {saved ? (
               <Text className="text-[10px] font-mono" style={{ color: colors.textMuted }}>
                 {saved.address} •{' '}
-                <Text style={{ color: connected ? '#10b981' : colors.textMuted }}>
+                <Text style={{ color: connected ? colors.success : colors.textMuted }}>
                   {connected ? 'Connected' : 'Not connected'}
                 </Text>
               </Text>
@@ -161,17 +161,18 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
                 <TouchableOpacity
                   onPress={handleTestPrint}
                   disabled={testing}
-                  className="flex-1 py-2 rounded-xl items-center justify-center bg-cyan-500 flex-row gap-1.5"
+                  className="flex-1 py-2 rounded-xl items-center justify-center flex-row gap-1.5"
+                  style={{ backgroundColor: colors.primary }}
                 >
-                  {testing ? <ActivityIndicator size="small" color="#000" /> : null}
-                  <Text className="text-xs font-black text-black">Test Print</Text>
+                  {testing ? <ActivityIndicator size="small" color={colors.onPrimary} /> : null}
+                  <Text className="text-xs font-black" style={{ color: colors.onPrimary }}>Test Print</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleForget}
                   className="px-3 py-2 rounded-xl border items-center justify-center"
                   style={{ borderColor: colors.border }}
                 >
-                  <Text className="text-xs font-bold text-rose-500">Remove</Text>
+                  <Text className="text-xs font-bold" style={{ color: colors.danger }}>Remove</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -187,8 +188,8 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
           </View>
 
           {error ? (
-            <View className="p-2 mb-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
-              <Text className="text-[11px] font-semibold text-rose-500">{error}</Text>
+            <View className="p-2 mb-2 rounded-xl border" style={{ backgroundColor: colors.dangerSoft, borderColor: colors.danger }}>
+              <Text className="text-[11px] font-semibold" style={{ color: colors.danger }}>{error}</Text>
             </View>
           ) : null}
 
@@ -226,8 +227,8 @@ export const PrinterSetupModal: React.FC<PrinterSetupModalProps> = ({
                       <ActivityIndicator size="small" color={colors.primary} />
                     ) : isItemConnected ? (
                       <View className="flex-row items-center gap-1">
-                        <Ionicons name="checkmark-circle" size={18} color="#10b981" />
-                        <Text className="text-[10px] font-bold text-emerald-500">Connected</Text>
+                        <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+                        <Text className="text-[10px] font-bold" style={{ color: colors.success }}>Connected</Text>
                       </View>
                     ) : isSelected ? (
                       <Text className="text-[11px] font-bold" style={{ color: colors.primary }}>

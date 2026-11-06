@@ -68,28 +68,32 @@ export async function printBill(
     }
   }
 
+  // Every alert settles the print promise (any button, or Back / tap outside),
+  // so the Print button never stays in its loading state
+  const ask = (
+    resolve: (ok: boolean) => void,
+    title: string,
+    message: string,
+    buttons: { text: string; onPress: () => void }[]
+  ) =>
+    Alert.alert(
+      title,
+      message,
+      [{ text: 'Cancel', style: 'cancel', onPress: () => resolve(false) }, ...buttons],
+      { cancelable: true, onDismiss: () => resolve(false) }
+    );
+
   // Case 1: No printer saved at all
   if (!getSavedPrinter()) {
     return new Promise((resolve) => {
-      Alert.alert(
-        'Printer Not Connected',
-        'No printer is connected with RetelFlow Cafe. Please connect your Bluetooth printer to print.',
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Connect Printer Now', onPress: () => requestPrinterSetup(resolve) },
-          {
-            text: 'System Print',
-            onPress: () =>
-              printViaSystemDialog(r, store, settings)
-                .then(() => resolve(true))
-                .catch(() => resolve(false)),
-          },
-        ]
-      );
+      ask(resolve, 'Printer Not Connected', 'No printer is connected with RetelFlow Cafe. Connect your Bluetooth printer to print.', [
+        { text: 'Connect Printer', onPress: () => requestPrinterSetup(resolve) },
+      ]);
     });
   }
 
-  // Case 2: Attempt print (will auto-connect to saved printer if needed)
+  // Case 2: Attempt print (auto-connects to the saved printer; times out with
+  // a clear error if the printer is off, out of range or the link is dead)
   try {
     await printCommands(buildThermalReceipt(r, store, settings), {
       paperWidthDots: paperWidthDots(settings),
@@ -99,39 +103,15 @@ export async function printBill(
     const errorInfo = classifyPrinterError(err);
 
     return new Promise((resolve) => {
-      const handleConnectPrinter = () => requestPrinterSetup(resolve);
+      const connect = { text: 'Connect Printer', onPress: () => requestPrinterSetup(resolve) };
+      const retry = { text: 'Retry', onPress: () => printBill(r, store, settings, options).then(resolve) };
 
-      const handleRetry = () => {
-        printBill(r, store, settings, options).then(resolve);
-      };
-
-      const handleSystemPrint = () => {
-        printViaSystemDialog(r, store, settings)
-          .then(() => resolve(true))
-          .catch(() => resolve(false));
-      };
-
-      // Case: Bluetooth disabled on mobile device
-      if (errorInfo.kind === 'BLUETOOTH_DISABLED') {
-        Alert.alert(
-          'Bluetooth is Off',
-          'Bluetooth is turned off on your phone. Please turn it on and try again.',
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Retry', onPress: handleRetry },
-            { text: 'System Print', onPress: handleSystemPrint },
-          ]
-        );
-        return;
-      }
-
-      // Case: Bluetooth permissions not granted
-      if (errorInfo.kind === 'BLUETOOTH_PERMISSION') {
-        Alert.alert(
-          'Bluetooth Permission Required',
-          'Bluetooth permission is required to print receipts. Please allow Nearby devices in Settings.',
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+      switch (errorInfo.kind) {
+        case 'BLUETOOTH_DISABLED':
+          ask(resolve, 'Bluetooth is Off', 'Bluetooth is turned off on your phone. Turn it on, then tap Retry.', [retry]);
+          return;
+        case 'BLUETOOTH_PERMISSION':
+          ask(resolve, 'Bluetooth Permission Required', 'Allow "Nearby devices" for RetelFlow Cafe in Settings to print receipts.', [
             {
               text: 'Open Settings',
               onPress: () => {
@@ -139,53 +119,18 @@ export async function printBill(
                 resolve(false);
               },
             },
-            { text: 'System Print', onPress: handleSystemPrint },
-          ]
-        );
-        return;
+          ]);
+          return;
+        case 'PRINTER_OFF_OR_UNREACHABLE':
+          ask(resolve, 'Printer Not Responding', 'The printer is off or too far away. Turn it on, keep it close, then tap Retry.', [connect, retry]);
+          return;
+        case 'PRINTER_NOT_CONNECTED':
+        case 'NO_PRINTER_SAVED':
+          ask(resolve, 'Printer Not Connected', 'The printer is not connected with RetelFlow Cafe. Connect it now to print.', [connect, retry]);
+          return;
+        default:
+          ask(resolve, 'Printer Error', errorInfo.message || 'Could not print the receipt.', [connect, retry]);
       }
-
-      // Case: Printer is turned off or unreachable
-      if (errorInfo.kind === 'PRINTER_OFF_OR_UNREACHABLE') {
-        Alert.alert(
-          'Printer is Off',
-          'Printer is off. Please turn it on and try again.',
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Connect Printer', onPress: handleConnectPrinter },
-            { text: 'Retry', onPress: handleRetry },
-            { text: 'System Print', onPress: handleSystemPrint },
-          ]
-        );
-        return;
-      }
-
-      // Case: Printer is on but not connected to the app
-      if (errorInfo.kind === 'PRINTER_NOT_CONNECTED' || errorInfo.kind === 'NO_PRINTER_SAVED') {
-        Alert.alert(
-          'Printer Not Connected',
-          'Printer is on but not connected with RetelFlow Cafe. Connect it now to print.',
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-            { text: 'Connect Printer Now', onPress: handleConnectPrinter },
-            { text: 'Retry', onPress: handleRetry },
-            { text: 'System Print', onPress: handleSystemPrint },
-          ]
-        );
-        return;
-      }
-
-      // Case: Generic error fallback
-      Alert.alert(
-        'Printer Error',
-        errorInfo.message,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-          { text: 'Connect Printer', onPress: handleConnectPrinter },
-          { text: 'Retry', onPress: handleRetry },
-          { text: 'System Print', onPress: handleSystemPrint },
-        ]
-      );
     });
   }
 }

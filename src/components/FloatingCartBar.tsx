@@ -25,20 +25,20 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
 
   if (items.length === 0) return null;
 
-  const luminousBorder = isDark ? 'rgba(0, 210, 255, 0.32)' : 'rgba(2, 132, 199, 0.25)';
-  const dockIconBg = isDark ? 'rgba(0, 210, 255, 0.16)' : 'rgba(2, 132, 199, 0.12)';
-  const dockIconBorder = isDark ? 'rgba(0, 210, 255, 0.35)' : 'rgba(2, 132, 199, 0.28)';
-  const glowShadow = '#00d2ff';
+  const luminousBorder = colors.glassBorder;
+  const dockIconBg = colors.badgeBg;
+  const dockIconBorder = colors.glassBorderActive;
+  const glowShadow = colors.primary;
 
   return (
     <View
       className="absolute bottom-4 left-4 right-4 rounded-[26px] overflow-hidden border"
       style={{
         borderColor: luminousBorder,
-        borderTopColor: isDark ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.90)',
+        borderTopColor: isDark ? colors.glassBorderActive : 'rgba(255, 255, 255, 0.90)',
         shadowColor: glowShadow,
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: isDark ? 0.35 : 0.18,
+        shadowOpacity: isDark ? 0.3 : 0.18,
         shadowRadius: 18,
         elevation: 12,
       }}
@@ -47,7 +47,7 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
       <View
         className="p-3 flex-row items-center justify-between"
         style={{
-          backgroundColor: isDark ? 'rgba(7, 16, 38, 0.88)' : 'rgba(255, 255, 255, 0.92)',
+          backgroundColor: colors.panel,
         }}
       >
         {/* Left: Tactile Dock Summary (tap to view / edit order in Neo-Bento Sheet) */}
@@ -75,12 +75,13 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
 
             {/* Tactile Bouncy Badge for item count */}
             <View
-              className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full items-center justify-center border border-black/30 shadow-sm"
+              className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full items-center justify-center border shadow-sm"
               style={{
-                backgroundColor: '#00d2ff',
+                backgroundColor: colors.primary,
+                borderColor: colors.panel,
               }}
             >
-              <Text className="text-[10px] font-black text-slate-950">
+              <Text className="text-[10px] font-black" style={{ color: colors.onPrimary }}>
                 {totalQty}
               </Text>
             </View>
@@ -91,7 +92,7 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
             <View className="flex-row items-center gap-1.5">
               <Text
                 className="text-[11px] font-bold uppercase tracking-wider"
-                style={{ color: isDark ? '#94a3b8' : '#64748b' }}
+                style={{ color: colors.textSecondary }}
               >
                 {totalQty} {totalQty === 1 ? 'Item' : 'Items'}
               </Text>
@@ -99,13 +100,13 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
                 <View
                   className="px-1.5 py-0.2 rounded-md border flex-row items-center"
                   style={{
-                    backgroundColor: 'rgba(0, 210, 255, 0.15)',
-                    borderColor: 'rgba(0, 210, 255, 0.30)',
+                    backgroundColor: colors.primarySoft,
+                    borderColor: colors.primarySoftBorder,
                   }}
                 >
                   <Text
                     className="text-[9px] font-bold"
-                    style={{ color: isDark ? '#38bdf8' : '#0284c7' }}
+                    style={{ color: colors.primaryText }}
                   >
                     Edit ▴
                   </Text>
@@ -132,18 +133,18 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
               activeOpacity={0.7}
               className="p-2.5 rounded-2xl border"
               style={{
-                backgroundColor: isDark ? 'rgba(244, 63, 94, 0.15)' : 'rgba(244, 63, 94, 0.08)',
-                borderColor: 'rgba(244, 63, 94, 0.28)',
+                backgroundColor: colors.dangerSoft,
+                borderColor: colors.dangerSoft,
               }}
             >
-              <Ionicons name="trash-outline" size={17} color="#f43f5e" />
+              <Ionicons name="trash-outline" size={17} color={colors.danger} />
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             onPress={onProceed}
             activeOpacity={0.8}
-            className="px-4 py-2.5 rounded-2xl flex-row items-center gap-1.5 border border-white/20 active:scale-95"
+            className="px-4 py-2.5 rounded-2xl flex-row items-center gap-1.5 active:scale-95"
             style={{
               backgroundColor: colors.primary,
               shadowColor: colors.primary,
@@ -153,10 +154,10 @@ export const FloatingCartBar: React.FC<FloatingCartBarProps> = ({
               elevation: 6,
             }}
           >
-            <Text className="text-xs font-black text-slate-950 tracking-wider uppercase">
+            <Text className="text-xs font-black tracking-wider uppercase" style={{ color: colors.onPrimary }}>
               Next
             </Text>
-            <Ionicons name="arrow-forward" size={16} color="#020617" />
+            <Ionicons name="arrow-forward" size={16} color={colors.onPrimary} />
           </TouchableOpacity>
         </View>
       </View>

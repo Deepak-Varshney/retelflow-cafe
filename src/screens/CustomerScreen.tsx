@@ -37,7 +37,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
   onProceedToPayment,
   onBack,
 }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [cartModalVisible, setCartModalVisible] = useState(false);
   const menuItems = useMemo(() => {
     const cached = getCachedMenu();
@@ -223,7 +223,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             <View className="flex-row items-center justify-between pb-2.5 border-b" style={{ borderColor: colors.border }}>
               <View className="flex-row items-center">
                 <Ionicons name="receipt-outline" size={16} color={colors.primary} />
-                <Text className="text-xs font-black uppercase tracking-wider ml-1.5 text-cyan-400">
+                <Text className="text-xs font-black uppercase tracking-wider ml-1.5" style={{ color: colors.primaryText }}>
                   Items in this Order ({cart.length})
                 </Text>
               </View>
@@ -250,9 +250,9 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                   <View className="flex-row items-center flex-1 pr-2">
                     <View
                       className="px-2 py-0.5 rounded-md mr-2"
-                      style={{ backgroundColor: isDark ? 'rgba(0, 210, 255, 0.15)' : '#e0f2fe' }}
+                      style={{ backgroundColor: colors.primarySoft }}
                     >
-                      <Text className="text-xs font-black text-cyan-400 font-mono">
+                      <Text className="text-xs font-black font-mono" style={{ color: colors.primaryText }}>
                         {item.qty}x
                       </Text>
                     </View>
@@ -267,7 +267,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                       ) : null}
                     </View>
                   </View>
-                  <Text className="text-xs font-black text-cyan-400 font-mono">
+                  <Text className="text-xs font-black font-mono" style={{ color: colors.primaryText }}>
                     ₹{item.qty * item.price}
                   </Text>
                 </View>
@@ -275,16 +275,19 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             </View>
             <View className="flex-row justify-end pt-2">
               <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
-                Total: <Text className="font-mono font-black text-cyan-400">₹{totalAmount.toLocaleString()}</Text>
+                Total: <Text className="font-mono font-black" style={{ color: colors.primaryText }}>₹{totalAmount.toLocaleString()}</Text>
               </Text>
             </View>
           </View>
 
           {/* Validation Error Banner */}
           {error ? (
-            <View className="p-3 mb-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex-row items-center gap-2">
-              <Ionicons name="alert-circle" size={18} color="#f43f5e" />
-              <Text className="text-xs text-rose-500 flex-1 font-semibold">{error}</Text>
+            <View
+              className="p-3 mb-4 rounded-2xl border flex-row items-center gap-2"
+              style={{ backgroundColor: colors.dangerSoft, borderColor: colors.danger }}
+            >
+              <Ionicons name="alert-circle" size={18} color={colors.danger} />
+              <Text className="text-xs flex-1 font-semibold" style={{ color: colors.danger }}>{error}</Text>
             </View>
           ) : null}
 
@@ -293,7 +296,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             className="rounded-3xl p-5 border shadow-xl"
             style={{ backgroundColor: colors.card, borderColor: colors.border }}
           >
-            <Text className="text-xs font-extrabold uppercase tracking-wider mb-4 text-cyan-400">
+            <Text className="text-xs font-extrabold uppercase tracking-wider mb-4" style={{ color: colors.primaryText }}>
               Customer Info (Either is Required)
             </Text>
 
@@ -303,7 +306,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                 <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
                   Customer Name / Table #
                 </Text>
-                <Text className="text-[10px] text-slate-400">Optional if phone provided</Text>
+                <Text className="text-[10px]" style={{ color: colors.textMuted }}>Optional if phone provided</Text>
               </View>
 
               <View
@@ -331,7 +334,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                 <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
                   Mobile Number
                 </Text>
-                <Text className="text-[10px] text-cyan-400 font-medium">
+                <Text className="text-[10px] font-medium" style={{ color: colors.primaryText }}>
                   {isExistingCustomer ? 'Registered Customer' : 'Required for Credit / Khata'}
                 </Text>
               </View>
@@ -340,7 +343,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                 className="flex-row items-center px-4 py-3 rounded-2xl border"
                 style={{
                   backgroundColor: colors.inputBg,
-                  borderColor: isExistingCustomer ? '#10b981' : colors.border,
+                  borderColor: isExistingCustomer ? colors.success : colors.border,
                 }}
               >
                 <Text className="text-sm font-bold mr-2" style={{ color: colors.primary }}>+91</Text>
@@ -360,7 +363,7 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
                 {searching ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : isExistingCustomer ? (
-                  <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                 ) : null}
               </View>
             </View>
@@ -408,10 +411,10 @@ export const CustomerScreen: React.FC<CustomerScreenProps> = ({
             className="w-full py-4 rounded-2xl items-center justify-center flex-row gap-2 shadow-xl active:scale-98"
             style={{ backgroundColor: colors.primary }}
           >
-            <Text className="text-sm font-black text-slate-950 tracking-wider uppercase">
+            <Text className="text-sm font-black tracking-wider uppercase" style={{ color: colors.onPrimary }}>
               Proceed to Payment (₹{totalAmount.toLocaleString()})
             </Text>
-            <Ionicons name="arrow-forward" size={18} color="#020617" />
+            <Ionicons name="arrow-forward" size={18} color={colors.onPrimary} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

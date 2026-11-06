@@ -22,7 +22,7 @@ interface CustomersKhataScreenProps {
 }
 
 export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ features }) => {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [openCustomer, setOpenCustomer] = useState<any | null>(null);
   const [customers, setCustomers] = useState<any[]>(() => getCachedCustomers());
   const [loading, setLoading] = useState(() => getCachedCustomers().length === 0);
@@ -125,11 +125,11 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
           className="flex-1 p-3.5 rounded-2xl border"
           style={{
             backgroundColor: colors.card,
-            borderColor: totalDue > 0 ? '#f43f5e' : colors.border,
+            borderColor: totalDue > 0 ? colors.danger : colors.border,
           }}
         >
           <Text className="text-[10px] font-bold uppercase" style={{ color: colors.textSecondary }}>Total Udhar / Due</Text>
-          <Text className="text-lg font-black font-mono mt-0.5" style={{ color: '#f43f5e' }}>
+          <Text className="text-lg font-black font-mono mt-0.5" style={{ color: colors.danger }}>
             ₹{totalDue.toLocaleString()}
           </Text>
         </View>
@@ -182,7 +182,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
         >
           <Text
             className="text-xs font-black"
-            style={{ color: tabFilter === 'all' ? '#000000' : colors.text }}
+            style={{ color: tabFilter === 'all' ? colors.onPrimary : colors.text }}
           >
             All Customers ({customers.length})
           </Text>
@@ -193,13 +193,13 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
           activeOpacity={0.8}
           className="px-3.5 py-1.5 rounded-xl border flex-row items-center gap-1.5"
           style={{
-            backgroundColor: tabFilter === 'due' ? '#f43f5e' : colors.surface,
-            borderColor: tabFilter === 'due' ? '#f43f5e' : colors.border,
+            backgroundColor: tabFilter === 'due' ? colors.danger : colors.surface,
+            borderColor: tabFilter === 'due' ? colors.danger : colors.border,
           }}
         >
           <Text
             className="text-xs font-black"
-            style={{ color: tabFilter === 'due' ? '#ffffff' : colors.text }}
+            style={{ color: tabFilter === 'due' ? colors.panel : colors.text }}
           >
             Credit / Udhar ({creditCustomerCount})
           </Text>
@@ -227,7 +227,7 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
                 className="p-3.5 mb-2.5 mx-4 rounded-2xl border"
                 style={{
                   backgroundColor: colors.card,
-                  borderColor: dueAmt > 0 ? 'rgba(244, 63, 94, 0.4)' : colors.border,
+                  borderColor: dueAmt > 0 ? colors.danger : colors.border,
                 }}
               >
                 <View className="flex-row items-center justify-between mb-2">
@@ -263,18 +263,18 @@ export const CustomersKhataScreen: React.FC<CustomersKhataScreenProps> = ({ feat
                   <View className="items-end">
                     {dueAmt > 0 ? (
                       <>
-                        <Text className="text-[10px] font-bold uppercase" style={{ color: '#f43f5e' }}>
+                        <Text className="text-[10px] font-bold uppercase" style={{ color: colors.danger }}>
                           Credit Due
                         </Text>
-                        <Text className="text-sm font-black font-mono" style={{ color: '#f43f5e' }}>
+                        <Text className="text-sm font-black font-mono" style={{ color: colors.danger }}>
                           ₹{dueAmt.toLocaleString()}
                         </Text>
                       </>
                     ) : (
                       <>
-                        <View className="px-2 py-0.5 rounded-full bg-emerald-500/20 flex-row items-center">
-                          <Ionicons name="checkmark-circle" size={11} color="#10b981" />
-                          <Text className="text-[10px] font-bold text-emerald-400 ml-1">
+                        <View className="px-2 py-0.5 rounded-full flex-row items-center" style={{ backgroundColor: colors.successSoft }}>
+                          <Ionicons name="checkmark-circle" size={11} color={colors.success} />
+                          <Text className="text-[10px] font-bold ml-1" style={{ color: colors.success }}>
                             All Paid
                           </Text>
                         </View>
