@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/app-icon/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/app-icon/adaptive-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -24,11 +19,6 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon/adaptive-icon.png",
-        "backgroundColor": "#0f172a"
-      },
-      "splash": {
-        "image": "./assets/app-icon/adaptive-icon.png",
-        "resizeMode": "contain",
         "backgroundColor": "#0f172a"
       },
       "permissions": [
@@ -50,8 +40,8 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0f172a",
-          "image": "./assets/app-icon/adaptive-icon.png",
+          "backgroundColor": "#f1f5f9",
+          "image": "./assets/app-icon/splash-mark.png",
           "imageWidth": 200
         }
       ],
@@ -82,7 +72,9 @@
         }
       ],
       "expo-asset",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-audio",
+      "expo-font"
     ],
     "owner": "frpunlockcomins-team",
     "extra": {

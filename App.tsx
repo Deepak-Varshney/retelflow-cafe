@@ -21,7 +21,7 @@ import { CustomersKhataScreen } from './src/screens/CustomersKhataScreen';
 import { MoreScreen } from './src/screens/MoreScreen';
 import { BottomNavBar, CafeTab } from './src/components/BottomNavBar';
 import { CafeSplashScreen } from './src/components/CafeSplashScreen';
-import { clearCache, initCache, setCachedConfig, syncMenu } from './src/services/cacheService';
+import { clearCache, getCachedConfig, initCache, setCachedConfig, syncMenu } from './src/services/cacheService';
 import { getAppConfigApi } from './src/api/cafeApi';
 import { getPrintSettings, getShopFeatures, getStoreInfo } from './src/utils/shopSettings';
 import { GlobalPrinterSetupModal } from './src/components/PrinterSetupModal';
@@ -47,6 +47,8 @@ function AppContent() {
   const { colors, isDark, setPreset } = useTheme();
 
   const [authLoading, setAuthLoading] = useState(true);
+  // Launch intro (animation, or the admin's splash image) plays once per launch
+  const [introDone, setIntroDone] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -271,9 +273,16 @@ function AppContent() {
     );
   }
 
-  if (authLoading) {
-    // Our own launch screen takes over from the native splash on its first frame
-    return <CafeSplashScreen onReady={hideNativeSplash} />;
+  // Launch intro takes over from the phone's splash on its first frame and
+  // plays while the session check runs; the app opens when both are done
+  if (authLoading || !introDone) {
+    return (
+      <CafeSplashScreen
+        imageUrl={getCachedConfig()?.splashUrl || undefined}
+        onReady={hideNativeSplash}
+        onDone={() => setIntroDone(true)}
+      />
+    );
   }
 
   if (!user) {

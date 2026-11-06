@@ -30,7 +30,7 @@ const Dashed = () => <View className="my-2 border-t border-dashed" style={{ bord
  * Paper-style bill (always white, same in light and dark theme). Shown on
  * screen and captured as an image for WhatsApp / gallery, so keep it plain.
  */
-export const BillReceiptView = forwardRef<View, BillReceiptViewProps>(({ receipt: r, store, footerText }, ref) => (
+export const BillReceiptView = forwardRef<React.ComponentRef<typeof View>, BillReceiptViewProps>(({ receipt: r, store, footerText }, ref) => (
   <View ref={ref} collapsable={false} className="w-full rounded-2xl p-4" style={{ backgroundColor: '#ffffff' }}>
     <Text className="text-base font-black uppercase text-center" style={{ color: INK }}>
       {store.shopName || 'RetelFlow Cafe'}

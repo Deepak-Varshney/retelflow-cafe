@@ -32,7 +32,7 @@ export const OrderCompleteScreen: React.FC<OrderCompleteScreenProps> = ({
   // Pending print waiting on the printer picker (a ref, so connect/close
   // always see the latest one without waiting for a re-render)
   const printerSetupRef = useRef<{ resume: () => void; cancel: () => void } | null>(null);
-  const receiptRef = useRef<View>(null);
+  const receiptRef = useRef<React.ComponentRef<typeof View>>(null);
 
   const receipt = useMemo(() => toReceiptData(invoice), [invoice]);
   const hasPhone = Boolean(receipt.customerPhone);
